@@ -1,0 +1,25 @@
+
+###########################################################################################################
+#### description for v0:
+This package is used to run some cloud feedback analysis for E3SM developing versions.
+
+
+#### Environments:
+1. python (anaconda)
+2. latest CDAT
+3. cartopy
+
+#### How to use it?
+1. ***main.py is the control script. Please modify it following all related settings in that script.****
+2. other *.py files are defined functions used by main.py. Please don't modify them.
+
+#### outputs?
+1. the directory "figure" includes some basic output figures.
+2. the directory "data" includes some NC files and CSV files for further detailed analysis. Please help to tar it and send it to me for further plotting. Thanks ^-^
+
+
+###########################################################################################################
+#### Aug 6, 2020: added plotting scripts as v1
+
+after completing main.py run for all cases, pls modify and run *main-plot.py* to get several plots for diagnosis.
+
