@@ -215,6 +215,6 @@ def Global_RadFeedback(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fna
                     
                 print(df_gavg)
     
-                df_gavg.to_csv(outdir+'global_mean_features_'+exp_cntl+'_'+used_models[imod]+'_'+case_stamp+'.csv')
+                df_gavg.to_csv(outdir+'global_mean_features_'+case_stamp+'_'+used_models[imod]+'.csv')
 
 
