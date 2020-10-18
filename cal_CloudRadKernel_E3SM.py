@@ -313,7 +313,7 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
     df_sw_all = pd.DataFrame()
     df_lw_all = pd.DataFrame()
     
-    out1 = cdms.open(outdir+'global_cloud_feedback_amip_'+used_models+'_'+case_stamp+'.nc','w')
+    out1 = cdms.open(outdir+'global_cloud_feedback_'+case_stamp+'_'+used_models+'.nc','w')
 
     dic_all = {}
     
@@ -442,6 +442,6 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
     print(df_lw_all.head())
     print(df_sw_all.head())
     
-    df_lw_all.to_csv(outdir+'decomp_global_mean_lw_amip_'+used_models+'_'+case_stamp+'.csv')
-    df_sw_all.to_csv(outdir+'decomp_global_mean_sw_amip_'+used_models+'_'+case_stamp+'.csv')
+    df_lw_all.to_csv(outdir+'decomp_global_mean_lw_'+case_stamp+'_'+used_models+'.csv')
+    df_sw_all.to_csv(outdir+'decomp_global_mean_sw_'+case_stamp+'_'+used_models+'.csv')
 
