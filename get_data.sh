@@ -25,9 +25,14 @@ echo $ncase
 #var_list=(FISCCP1_COSP FSDSC FSNSC TREFHT FSNT FSNTC FLUT FLUTC TS T CLOUD CLDLIQ CLDICE FSDS FSNS Q)
 #var_new_list=(clisccp rsdscs rsnsc tas rsnt rsntcs rlut rlutcs ts ta CLOUD CLDLIQ CLDICE rsds rsns hus)
 
-vars=(FISCCP1_COSP,FSDSC,FSNSC,TREFHT,FSNT,FSNTC,FLUT,FLUTC,TS,FSDS,FSNS,TGCLDLWP,TGCLDIWP,T,Q)
-var_list=(FISCCP1_COSP FSDSC FSNSC TREFHT FSNT FSNTC FLUT FLUTC TS FSDS FSNS TGCLDLWP TGCLDIWP T Q)
-var_new_list=(clisccp rsdscs rsnsc tas rsnt rsntcs rlut rlutcs ts rsds rsns TGCLDLWP TGCLDIWP ta hus)
+#vars=(FISCCP1_COSP,FSDSC,FSNSC,TREFHT,FSNT,FSNTC,FLUT,FLUTC,TS,FSDS,FSNS,TGCLDLWP,TGCLDIWP,T,Q)
+#var_list=(FISCCP1_COSP FSDSC FSNSC TREFHT FSNT FSNTC FLUT FLUTC TS FSDS FSNS TGCLDLWP TGCLDIWP T Q)
+#var_new_list=(clisccp rsdscs rsnsc tas rsnt rsntcs rlut rlutcs ts rsds rsns TGCLDLWP TGCLDIWP ta hus)
+
+vars=(FISCCP1_COSP,FSDSC,FSNSC,TREFHT,FSNT,FSNTC,FLUT,FLUTC,TS,T,CLOUD,CLDLIQ,CLDICE,FSDS,FSNS,Q,SOLIN,FSUTOA,FSUTOAC,PSL,PS)
+var_list=(FISCCP1_COSP FSDSC FSNSC TREFHT FSNT FSNTC FLUT FLUTC TS T CLOUD CLDLIQ CLDICE FSDS FSNS Q SOLIN FSUTOA FSUTOAC PSL PS)
+var_new_list=(clisccp rsdscs rsnsc tas rsnt rsntcs rlut rlutcs ts ta CLOUD CLDLIQ CLDICE rsds rsns hus rsdt FSUTOA FSUTOAC psl ps)
+
 
 nvar=${#var_list[@]}
 echo $nvar
@@ -47,11 +52,26 @@ do
 #	datadir_in=/global/cscratch1/sd/qinyi/E3SM_predata/${run_id[ii]}/archive/atm/hist/
 #	outdir=/global/cscratch1/sd/qinyi/E3SM_middata/${run_id[ii]}/
 
-    datadir=${datadir_in1}/${run_id[ii]}/${datadir_in2}/
+    if [ "${run_id[ii]}" == "20200428.DECKv1b_amip1-CFMIP.ne30_oEC.cori-knl-L" ] ; then
+        datadir=${datadir_in1}/${run_id[ii]}/${datadir_in2}h0/
+    else
+        datadir=${datadir_in1}/${run_id[ii]}/${datadir_in2}
+    fi
+
+    echo $datadir
+
     outdir=${outdir_out}/${run_id[ii]}/
 
 	if [ ! -d "${outdir}" ] ; then
 		mkdir -p ${outdir}
+    else
+		# if the directory is not empty, pls don't continue the following codes
+		if [ -z "$(ls -A ${outdir})" ]; then
+			echo "outdir is Empy"
+		else
+			echo "outdir Not Empty"
+			continue
+		fi
 	fi
 	
 	if [ "$regrid" == "True" ] ; then
@@ -78,6 +98,8 @@ do
 
 		# use 'ncrcat' to get monthly-series variables
 		ncrcat -O $outdir/*.cam.h0.????-??_regrid.nc $outdir/${run_id[ii]}.cam.h0.${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
+        rm $outdir/*.cam.h0.????-??_regrid.nc
+
 	fi
 	
 	echo $outdir
@@ -92,7 +114,9 @@ do
 		# extract each variable from the input file
 		ncks -O -v ${var_list[ivar]} ${in_file} ${out_file}
 		# change variable name
-		ncrename -v ${var_list[ivar]},${var_new_list[ivar]} ${out_file}
+        if [ "${var_list[ivar]}" == "${var_new_list[ivar]}" ] ; then
+    		ncrename -v ${var_list[ivar]},${var_new_list[ivar]} ${out_file}
+        fi
 	done
 	
 	# get surface up SW at clear-sky
@@ -103,7 +127,16 @@ do
 	ncap2 -O -s 'rsus=FSDS-FSNS' ${in_file} rsus_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
     ncks -O -v rsus rsus_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc rsus_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
 
+    ncap2 -O -s 'rsut=SOLIN-FSNT' ${in_file} rsut_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
+    ncks -O -v rsut rsut_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc rsut_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
+
+    ncap2 -O -s 'rsutcs=SOLIN-FSNTC' ${in_file} rsutcs_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
+    ncks -O -v rsutcs rsutcs_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc rsutcs_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
+
+
 	echo $outdir
+    rm $outdir/${run_id[ii]}.cam.h0.${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
+
 done 
 
 
