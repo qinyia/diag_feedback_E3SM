@@ -149,4 +149,83 @@ def get_tropopause_pressure(Ta0):
 
     return tropp
 
+# =====================================================
+
+def get_weights_SPC(ps, trop, field):
+    """
+    from Stephen Po-Chedley
+	copy from Mark's CMIP6_utils.py
+
+    wts = get_weights(ps, trop, field)
+
+    Function returns the layer weights (layer thickness) given the upper
+    integration boundary (e.g., the tropopause, trop) and the lower bound
+    (e.g., surface pressure, ps). Uses the input field to get pressure level
+    information.
+                    ps - response field [time, lat, lon]
+                    trop - radiative kernel [time, lat, lon]
+                    field - field that will be integrated [time, plev, lat, lon]
+
+    """
+
+    PAL = MV.zeros(ps.shape)
+    PAT = MV.ones(ps.shape)
+    trop_wts = MV.zeros(field.shape - MV.array([0,1,0,0]))
+    atm_wts = MV.zeros(field.shape - MV.array([0,1,0,0]))
+    plev = field.getLevel()[:]
+    
+    # make sure pressures are in Pa.
+    if MV.maximum(plev)<=2000:
+        plev=100*plev
+    if MV.maximum(ps)<=2000:
+        ps=100*ps
+    if MV.maximum(trop)<=2000:
+        trop=100*trop
+    
+    if plev[0] < plev[1]:
+        raise ValueError('This script assumes that plev[0] > plev[1].')
+    for i in range(len(plev)-1):
+        # allocate slice
+        sfield = MV.zeros(ps.shape)
+        tfield = MV.zeros(ps.shape)
+        # get first level above surface
+        p = plev[i]
+        pp = plev[i+1]
+        ISURF = MV.greater(ps, p) # 1 where ps>p, 0 where ps<p
+        II = MV.equal(PAL, 0)
+        IA = MV.logical_and(ISURF, II)
+        PAL = MV.where(IA, pp, PAL)
+        # get first layer below tropopause
+        ITROP = MV.less(trop, p)
+        II = MV.greater_equal(trop, pp)
+        IB = MV.logical_and(ITROP, II)
+        PAT = MV.where(IB, p, PAT)
+        # layers above tropopause or below surface (i.e., zero weight)
+        above_trop = MV.logical_not(ITROP)
+        below_surf = MV.logical_not(ISURF)
+        IC = MV.logical_or(below_surf,above_trop)
+        # layers adjacent to both tropopause and surface (i.e., layer is between tropopause and surface)
+        ID = MV.logical_and(IA, IB)
+        # layers not adjacent to tropopause or surface (i.e., full layers)
+        IE = MV.logical_or(IA, IB)
+        IE = MV.logical_and(MV.logical_not(IC), MV.logical_not(IE))
+        # layers not adjacent to surface (i.e., full layers)
+        IF = MV.logical_and(MV.logical_not(below_surf), MV.logical_not(IA))
+        # TROPOSPHERIC VALUES
+        sfield = MV.where(IA, ps-PAL, sfield)
+        sfield = MV.where(IB, PAT-trop, sfield)
+        sfield = MV.where(IC, 0., sfield)
+        sfield = MV.where(ID, ps-trop, sfield)
+        sfield = MV.where(IE, p - pp, sfield)
+        # store field and weight by per 100 hPa (1/100 for Pa to hPa and 1/100 for per *100* hPa)
+        trop_wts[:, i, :, :] = sfield / 10000.
+        
+        # ATMOSPHERIC VALUES
+        tfield = MV.where(IA, ps-PAL, tfield)
+        tfield = MV.where(below_surf, 0., tfield)
+        tfield = MV.where(IF, p - pp, tfield)
+        # store field and weight by per 100 hPa (1/100 for Pa to hPa and 1/100 for per *100* hPa)
+        atm_wts[:, i, :, :] = tfield / 10000.
+
+    return trop_wts,atm_wts
 
