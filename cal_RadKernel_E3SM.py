@@ -258,7 +258,7 @@ def RadKernel(kernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,
     monS_2d='{:02d}'.format(monS)
     monE_2d='{:02d}'.format(monE) 
 
-    plotting = True
+    plotting = False
     phases = ['CMIP6']
 
     # figure font
