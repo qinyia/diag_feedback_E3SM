@@ -37,8 +37,13 @@ import PlotDefinedFunction as PDF
 # ---------------- please set all these following directories and your prefered styles: start ----------------------
 
 # -------------- set up directories for all kinds of necessary data
+<<<<<<< HEAD
 ## main directory. pls modify it based on your current script directory. 
 datadir = '/global/homes/q/qinyi/scripts/diag_feedback_E3SM/'
+=======
+# main directory. pls modify it based on your current script directory. 
+datadir = '/global/homes/q/qinyi/E3SM_scripts/diag_feedback_E3SM/'
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
 
 ## data directory for E3SMv2 
 ## [it includes all data that you want to be plotted. If main.py runs successfully, this directory would be enough for further plot.]
@@ -46,6 +51,7 @@ datadir_v2 = datadir+'data/'
 ## figure directory
 figdir = datadir+'figure/'
 
+<<<<<<< HEAD
 ## notion: if you also want to compare with default E3SM-1-0, please add 'v1_coupled' and 'v1_amip4K' below.
 cases = ['v1_coupled','v1_amip4K','TEST']
 colors = ['tab:red','tab:blue','tab:orange']
@@ -54,6 +60,20 @@ linestyles = ['-','-','-']
 
 ## include option about whether adding results from other CMIP models 
 Add_otherCMIPs = True
+=======
+cases = ['v1_coupled','amip-p4K','amip-future4K']
+colors = ['tab:red','tab:blue','tab:orange']
+linewidths = [2, 2, 2]
+linestyles = ['-','-','-']
+
+#cases = ['v1_coupled','v1_amip', 'alpha3_0','alpha2', 'alpha2_4', 'alpha2_min10nc', 'alpha2_v1p']
+#colors = ['black', 'brown','red','m','b','g','c']
+#linewidths = [2, 2, 2, 2, 2, 2, 2]
+#linestyles = ['-','-','-','-.','-.','-.','-']
+
+# --- include option about whether adding results from other CMIP models 
+#Add_otherCMIPs = False
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
 
 # ----------------- please set all these following directories and your prefered styles: End!!!!! ----------------------
 
@@ -69,6 +89,9 @@ plot_RadKernel_zonalmean = True
 plot_CldRadKernel_globalmean = True
 ### zonal mean plot: CldRadKernel feedback --> decomposition of cloud feedback
 plot_CldRadKernel_zonalmean = True
+# scatter plot: amip-p4K vs Future-4K -- just CRE feedback
+plot_CRE_globalmean_P4KvsFuture = True
+
 
 ### scatter plot: amip-p4K vs Future-4K -- just CRE feedback [cannot be used if you don't have amip-future4K!!!!!]
 plot_CRE_globalmean_P4KvsFuture = False
@@ -89,17 +112,26 @@ a1 = 0.4
 #ncase = [3,6,len(cases)]
 ncase = [len(cases)]
 
+<<<<<<< HEAD
 # ---------------- please set other optional setting for figure: end -------------------------------------------------
 
 ####Modification ends here #################################################################
 ############################################################################################
+=======
+# ---------- optional settings ----------------
+####Modification ends here ##############################################################################################################
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
 
 # ----------- set up directories for necessary data --------------------------
 datadir_CMIPs = '/global/project/projectdirs/mp193/www/qinyi/DATA/'
 # -- data for E3SMv1 [dont modify data in this directory.]
 datadir_v1 = datadir_CMIPs+'E3SMv1_data/'
 # -- data for other CMIP models from CRE feedback [dont' modify data in it.]
+<<<<<<< HEAD
 datadir_Ringer = datadir_CMIPs+'RadFeedback/'
+=======
+datadir_Ringer = datadir_CMIPs+'Ringer2014_forcing_update/'
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
 # -- data for other CMIP models for RadKernel feedback [don't modify data in it.]
 datadir_RadKernel = datadir_CMIPs+'RadKernel/'
 # -- data for other CMIP models for CldRadKernel feedabck [ don't modify data in it.]
@@ -112,6 +144,8 @@ Add_amipFuture = False
 ### 1. bar plot for global mean CRE feedback: including E3SMv1 piControl and amip
 ####################################################################################
 
+Add_otherCMIPs = True
+
 if plot_CRE_globalmean:
     print('ScatterPlot-CRE-feedback starts ........')
 
@@ -119,6 +153,7 @@ if plot_CRE_globalmean:
 
     if Add_otherCMIPs:
         # read other CMIP5 and CMIP6 models
+<<<<<<< HEAD
         # Oct 19, 2020: reduce model lists to fit both amip-p4K and amipFuture
 
         exp_cntl = [['piControl','amip'],['piControl','amip']]
@@ -159,12 +194,42 @@ if plot_CRE_globalmean:
                 filename = datadir_Ringer+'global_mean_features_CMIP5_amip4K_'+model_amip+'.csv'
             else:
                 filename = datadir_Ringer+'global_mean_features_CMIP6_amip-p4K_'+model+'.csv'
+=======
+
+	    # here use E3SM-FC5 as the fake of E3SM-1-0 in AMIP simulation
+#        models_cmip6 = ['BCC-CSM2-MR','CNRM-CM6-1','IPSL-CM6A-LR',\
+#        'MRI-ESM2-0','GISS-E2-1-G','CESM2','GFDL-CM4','CanESM5']
+#        models_cmip5 = ['bcc-csm1-1','CNRM-CM5','IPSL-CM5A-LR','IPSL-CM5B-LR',\
+#        'FGOALS-g2','MIROC5','MPI-ESM-LR','MPI-ESM-MR','MRI-CGCM3','CanAM4']
+
+        # Oct 19, 2020: reduce model lists to fit both amip-p4K and amipFuture
+        models_cmip6 = ['BCC-CSM2-MR','CNRM-CM6-1','IPSL-CM6A-LR',\
+        'MRI-ESM2-0','CESM2','GFDL-CM4','CanESM5']
+        models_cmip5 = ['bcc-csm1-1','CNRM-CM5','IPSL-CM5A-LR','IPSL-CM5B-LR',\
+        'MIROC5','MPI-ESM-LR','MPI-ESM-MR','MRI-CGCM3','CanAM4']
+        models_all = models_cmip6 + models_cmip5
+
+
+        df_p4K = pd.DataFrame()
+
+        for model in models_all:
+            if model in models_cmip5:
+                filename = datadir_Ringer+'global_mean_features_CMIP5_amip4K_'+model+'_r1i1p1.csv'
+            else:
+                if model == 'CNRM-CM6-1':
+                    filename = datadir_Ringer+'global_mean_features_CMIP6_amip-p4K_'+model+'_r1i1p1f2.csv'
+                elif model == 'CanESM5':
+                    filename = datadir_Ringer+'global_mean_features_CMIP6_amip-p4K_'+model+'_r1i1p2f1.csv'
+                else:
+                    filename = datadir_Ringer+'global_mean_features_CMIP6_amip-p4K_'+model+'_r1i1p1f1.csv'
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
         
             df = pd.read_csv(filename,index_col=0)
             df.index = df.loc[:,'varname']
             df2 = df.loc[:,'anomaly_perK']
             df_p4K[model] = df2
 
+<<<<<<< HEAD
         # ---- amipFuture ---------------------
         df_future = pd.DataFrame()
         for model in models_all_future:
@@ -180,11 +245,28 @@ if plot_CRE_globalmean:
                 filename = datadir_Ringer+'global_mean_features_CMIP5_amipFuture_'+model_amip+'.csv'
             else:
                 filename = datadir_Ringer+'global_mean_features_CMIP6_amip-future4K_'+model+'.csv'
+=======
+        df_future = pd.DataFrame()
+        for model in models_all:
+            if model in models_cmip5:
+                filename = datadir_Ringer+'global_mean_features_CMIP5_amipFuture_'+model+'_r1i1p1.csv'
+            else:
+                if model == 'CNRM-CM6-1':
+                    filename = datadir_Ringer+'global_mean_features_CMIP6_amip-future4K_'+model+'_r1i1p1f2.csv'
+                elif model == 'CanESM5':
+                    filename = datadir_Ringer+'global_mean_features_CMIP6_amip-future4K_'+model+'_r1i1p2f1.csv'
+                else:
+                    filename = datadir_Ringer+'global_mean_features_CMIP6_amip-future4K_'+model+'_r1i1p1f1.csv'
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
         
             df = pd.read_csv(filename,index_col=0)
             df.index = df.loc[:,'varname']
             df2 = df.loc[:,'anomaly_perK']
             df_future[model] = df2
+<<<<<<< HEAD
+=======
+
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
 
     # read amip
     for icase,case in enumerate(cases):
@@ -232,6 +314,7 @@ if plot_CRE_globalmean:
         if Add_otherCMIPs:
             # add other CMIP models
             for icol,column in enumerate(df_p4K_plot.columns):
+<<<<<<< HEAD
 #                ax.scatter(x[idx]-0.2,df_p4K_plot.loc[index,column].tolist(),edgecolor='none',facecolor='tab:blue',alpha=a1,s=s2)
                 ax.scatter(x[idx]-0.2,df_p4K_plot.loc[index,column].tolist(),edgecolor='none',facecolor='grey',alpha=a1,s=s2)
             # ensemble mean
@@ -245,6 +328,16 @@ if plot_CRE_globalmean:
                 # ensemble mean
 #                L3 = ax.scatter(x[idx]+0.2,df_future_plot.loc[index,:].mean().tolist(),edgecolor='black',facecolor='orange',s=s2)
                 L3 = ax.scatter(x[idx]+0.2,df_future_plot.loc[index,:].mean().tolist(),color='red',s=s2)
+=======
+                ax.scatter(x[idx]-0.2,df_p4K_plot.loc[index,column].tolist(),edgecolor='none',facecolor='tab:blue',alpha=a1,s=s2)
+            # ensemble mean
+            ax.scatter(x[idx]-0.2,df_p4K_plot.loc[index,:].mean().tolist(),edgecolor='black',facecolor='blue',s=s2)
+
+            for icol,column in enumerate(df_future_plot.columns):
+                ax.scatter(x[idx]+0.2,df_future_plot.loc[index,column].tolist(),edgecolor='none',facecolor='tab:orange',alpha=a1,s=s2)
+            # ensemble mean
+            ax.scatter(x[idx]+0.2,df_future_plot.loc[index,:].mean().tolist(),edgecolor='black',facecolor='orange',s=s2)
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
 
             
         ax.tick_params(labelsize=fh)
@@ -267,10 +360,17 @@ if plot_CRE_globalmean:
     del(df_all,df_plot)
     print('------------------------------------------------')
     print('ScatterPlot-CRE-feedback is done!')
+<<<<<<< HEAD
     print('------------------------------------------------')
 
 ####################################################################################
 ### 1.1 scatter plot for global mean CRE feedback: p4K vs future4K
+=======
+    exit()
+
+####################################################################################
+### 1. scatter plot for global mean CRE feedback: p4K vs future4K
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
 ####################################################################################
 
 if plot_CRE_globalmean_P4KvsFuture:
@@ -281,6 +381,16 @@ if plot_CRE_globalmean_P4KvsFuture:
     if Add_otherCMIPs:
         # read other CMIP5 and CMIP6 models
 
+<<<<<<< HEAD
+=======
+	    # here use E3SM-FC5 as the fake of E3SM-1-0 in AMIP simulation
+#        models_cmip6 = ['BCC-CSM2-MR','CNRM-CM6-1','IPSL-CM6A-LR',\
+#        'MRI-ESM2-0','GISS-E2-1-G','CESM2','GFDL-CM4','CanESM5']
+#        models_cmip5 = ['bcc-csm1-1','CNRM-CM5','IPSL-CM5A-LR','IPSL-CM5B-LR',\
+#        'FGOALS-g2','MIROC5','MPI-ESM-LR','MPI-ESM-MR','MRI-CGCM3','CanAM4']
+
+        # Oct 19, 2020: reduce model lists to fit both amip-p4K and amipFuture
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
         models_cmip6 = ['BCC-CSM2-MR','CNRM-CM6-1','IPSL-CM6A-LR',\
         'MRI-ESM2-0','CESM2','GFDL-CM4','CanESM5']
         models_cmip5 = ['bcc-csm1-1','CNRM-CM5','IPSL-CM5A-LR','IPSL-CM5B-LR',\
@@ -331,11 +441,19 @@ if plot_CRE_globalmean_P4KvsFuture:
             df_coupled = pd.read_csv(datadir_v1+'global_mean_features_piControl_E3SM-1-0.csv',index_col=0)
             df_coupled.index = df_coupled.loc[:,'varname']
             df_all['v1_coupled'] = df_coupled.loc[:,'anomaly_perK']
+<<<<<<< HEAD
         elif case == 'v1_amip4K':
             # read v1-amip
             df_amip = pd.read_csv(datadir_v1+'global_mean_features_amip_E3SM-1-0.csv',index_col=0)
             df_amip.index = df_coupled.loc[:,'varname']
             df_all['v1_amip4K'] = df_amip.loc[:,'anomaly_perK']
+=======
+        elif case == 'v1_amip':
+            # read v1-amip
+            df_amip = pd.read_csv(datadir_v1+'global_mean_features_amip_E3SM-1-0.csv',index_col=0)
+            df_amip.index = df_coupled.loc[:,'varname']
+            df_all['v1_amip'] = df_amip.loc[:,'anomaly_perK']
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
         else:   
             df1 = pd.read_csv(datadir_v2+'global_mean_features_'+case+'_E3SM-1-0'+'.csv',index_col=0)
             df1.index = df1.loc[:,'varname']
@@ -357,6 +475,12 @@ if plot_CRE_globalmean_P4KvsFuture:
         df_p4K_plot = df_p4K.drop(index=drop_index)
         df_future_plot = df_future.drop(index=drop_index)
 
+<<<<<<< HEAD
+=======
+        print(df_p4K_plot)
+        print(df_future_plot)
+
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
     for idx,index in enumerate(df_plot.index):
 
         if index in ['FTOA']:
@@ -382,6 +506,10 @@ if plot_CRE_globalmean_P4KvsFuture:
 
         if Add_otherCMIPs:
             for icol,column in enumerate(df_p4K_plot.columns):
+<<<<<<< HEAD
+=======
+                print(index,column)
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
                 if model in models_cmip5:
                     L1 = ax.scatter(df_p4K_plot.loc[index,column],df_future_plot.loc[index,column],s=s1-100,alpha=a1,label=column,color='tab:blue')
                 else:
@@ -404,15 +532,24 @@ if plot_CRE_globalmean_P4KvsFuture:
     fig.savefig(figdir+'ScatterPlot-CRE-P4KvsFuture-feedback.pdf')
     plt.show()
     del(df_all,df_plot)
+<<<<<<< HEAD
     print('------------------------------------------------')
     print('ScatterPlot-CRE-P4KvsFuture-feedback is done!')
     print('------------------------------------------------')
+=======
+    print('ScatterPlot-CRE-P4KvsFuture-feedback is done!')
+
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
 
 
 ####################################################################
 ### 2. bar plot for radiative feedback based on Radiative kernel 
 ####################################################################
 
+<<<<<<< HEAD
+=======
+Add_otherCMIPs = False
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
 if plot_RadKernel_globalmean:
     print('ScatterPlot-RadKernel-Feedback starts........')
 
@@ -420,6 +557,7 @@ if plot_RadKernel_globalmean:
 
     # read other CMIP5&6 models
     if Add_otherCMIPs:
+<<<<<<< HEAD
 
         phases = ['CMIP5','CMIP6']
 
@@ -458,6 +596,20 @@ if plot_RadKernel_globalmean:
                 df2 = df.iloc[:,0]
                 df_others[model] = df2
 
+=======
+        df_others = pd.DataFrame()
+        phases = ['CMIP5','CMIP6']
+        cmip5_models = ['bcc-csm1-1', 'CCSM4', 'CNRM-CM5', 'IPSL-CM5A-LR', 'IPSL-CM5B-LR', 'MIROC5', 'MPI-ESM-LR', 'MPI-ESM-MR', 'MRI-CGCM3']
+        cmip6_models = ['BCC-CSM2-MR', 'CESM2', 'CNRM-CM6-1', 'GFDL-CM4', 'GISS-E2-1-G','IPSL-CM6A-LR', 'MRI-ESM2-0']
+        models = [cmip5_models, cmip6_models]
+        exps = ['amip', 'piControl']
+
+        for iphase,phase in enumerate(phases):
+            for imodel,model in enumerate(models[iphase]):
+                df = pd.read_csv(datadir_RadKernel+'FDBK_'+phase+'_'+exps[0]+'_'+model+'.csv',index_col=0)
+                df2 = df.iloc[:26,0]
+                df_others[model] = df2
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
 
     # E3SM
     for icase,case in enumerate(cases):
@@ -465,7 +617,11 @@ if plot_RadKernel_globalmean:
             # read v1-coupled 
             df_coupled = pd.read_csv(datadir_v1+'FDBK_CMIP6_abrupt-4xCO2_E3SM-1-0_Latest-Oct18_1yr-150yr.csv',index_col=0)
             df_all['v1_coupled'] = df_coupled.iloc[:,0]
+<<<<<<< HEAD
         elif case == 'v1_amip4K':
+=======
+        elif case == 'v1_amip':
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
             # read v1-amip
             df_amip = pd.read_csv(datadir_v1+'FDBK_CMIP6_amip-p4K_E3SM-1-0_Latest-Oct18_1yr-36yr.csv',index_col=0)
             df_all['v1_amip4K'] = df_amip.iloc[:,:]
@@ -509,7 +665,11 @@ if plot_RadKernel_globalmean:
             for icol,column in enumerate(df_others_plot.columns):
                 ax.scatter(x[idx]-0.2, df_others_plot.loc[index,column].tolist(),s=s2,edgecolor='none',facecolor='grey',alpha=a1)
             # ensemble mean
+<<<<<<< HEAD
             L2 = ax.scatter(x[idx]-0.2, df_others_plot.loc[index,:].mean(),s=s2,edgecolor='black',facecolor='black')
+=======
+            ax.scatter(x[idx]-0.2, df_others_plot.loc[index,:].mean(),s=s2,edgecolor='black',facecolor='black')
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
 
         ax.tick_params(labelsize=fh)
         ax.set_ylabel('W/m$^2$/K',fontsize=fh)
@@ -521,12 +681,17 @@ if plot_RadKernel_globalmean:
     ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
     degrees = 70
     plt.xticks(x,df_plot.index,rotation=degrees)
+<<<<<<< HEAD
     ax.set_title('Radiative Kernel feedback',fontsize=fh)
+=======
+    ax.set_title('CRE feedback',fontsize=fh)
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
     
     fig.savefig(figdir+'ScatterPlot-RadKernel-Feedback.pdf')
     print('------------------------------------------------')
     print('ScatterPlot-RadKernel-Feedback is done!')
     print('------------------------------------------------')
+
 
 
 #########################################################################
@@ -555,6 +720,7 @@ if plot_RadKernel_zonalmean:
 
         # add other CMIP models
         if Add_otherCMIPs:
+<<<<<<< HEAD
 
             phases = ['CMIP5','CMIP6']
 
@@ -570,6 +736,13 @@ if plot_RadKernel_zonalmean:
             #print('cmip5_models',cmip5_models,len(cmip5_models))
             #print('cmip6_models',cmip6_models,len(cmip6_models))
             models = [cmip5_models, cmip6_models]
+=======
+            phases = ['CMIP5','CMIP6']
+            cmip5_models = ['bcc-csm1-1', 'CCSM4', 'CNRM-CM5', 'IPSL-CM5A-LR', 'IPSL-CM5B-LR', 'MIROC5', 'MPI-ESM-LR', 'MPI-ESM-MR', 'MRI-CGCM3']
+            cmip6_models = ['BCC-CSM2-MR', 'CESM2', 'CNRM-CM6-1', 'GFDL-CM4', 'GISS-E2-1-G','IPSL-CM6A-LR', 'MRI-ESM2-0']
+            models = [cmip5_models, cmip6_models]
+            exps = ['amip', 'piControl']
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
             model_list = cmip5_models + cmip6_models
 
         for ivar,svar in enumerate(variables):
@@ -578,6 +751,7 @@ if plot_RadKernel_zonalmean:
             if Add_otherCMIPs:
                 data_others = np.zeros((nlat,len(model_list)))
                 for iphase,phase in enumerate(phases):
+<<<<<<< HEAD
                     if phase == 'CMIP5':
                         suffix = '_Latest-Oct18_1yr-27yr'
                     else:
@@ -594,6 +768,12 @@ if plot_RadKernel_zonalmean:
                     	    model_amip = model
 
                         f1 = cdms.open(datadir_RadKernel+'lat-lon-gfdbk-'+phase+'-'+exp_new[iphase][1]+'-'+model_amip+suffix+'.nc')
+=======
+                    # define the array to save the overall data for cross-model correlation
+                    data1 = np.zeros((nlat,len(models[iphase])))
+                    for imodel,model in enumerate(models[iphase]):
+                        f1 = cdms.open(datadir_RadKernel+'lat-lon-gfdbk-'+phase+'-'+exps[0]+'-'+model+'.nc')
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
                         tmp1 = f1(svar)
                     
                         lats = tmp1.getLatitude()[:]
@@ -602,15 +782,23 @@ if plot_RadKernel_zonalmean:
                         data_others[:,:len(cmip5_models)] = data1
                     else:
                         data_others[:,len(cmip5_models):] = data1
+<<<<<<< HEAD
 
+=======
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
  
             # E3SM
             data_all = np.zeros((nlat,len(cases[:ii])))
             for icase,case in enumerate(cases[:ii]):
                 if case == 'v1_coupled':
                     f1 = cdms.open(datadir_v1+'lat-lon-gfdbk-CMIP6-abrupt-4xCO2-E3SM-1-0_Latest-Oct18_1yr-150yr.nc')
+<<<<<<< HEAD
                 elif case == 'v1_amip4K':
                     f1 = cdms.open(datadir_v1+'lat-lon-gfdbk-CMIP6-amip-p4K-E3SM-1-0_Latest-Oct18_1yr-36yr.nc')
+=======
+                elif case == 'v1_amip':
+                    f1 = cdms.open(datadir_v1+'lat-lon-gfdbk-CMIP6-amip-E3SM-1-0.nc')
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
                 else:
                     f1 = cdms.open(datadir_v2+'lat-lon-gfdbk-CMIP6-'+case+'-E3SM-1-0'+'.nc')
     
@@ -655,8 +843,13 @@ if plot_RadKernel_zonalmean:
             
             # plot other CMIP models
             if Add_otherCMIPs:
+<<<<<<< HEAD
                 L2 = ax.plot(clats,np.average(data_others,axis=1),lw=3,label='ENS-MEAN',color='grey',linestyle='-')
                 ax.fill_between(clats, np.amax(data_others,axis=1),np.amin(data_others,axis=1),alpha=0.2,color='grey')
+=======
+                L2 = ax.plot(lats,np.average(data_others,axis=1),lw=3,label='ENS-MEAN',color='grey',linestyle='-')
+                ax.fill_between(lats, np.amax(data_others,axis=1),np.amin(data_others,axis=1),alpha=0.2)
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
     
             plt.xticks(spec_clats,spec_lats,fontsize=fh)
             ax.set_xlim((0,1))
@@ -695,6 +888,7 @@ if plot_CldRadKernel_globalmean:
     print('ScatterPlot-Cloud-feedback-Decomposition starts .........')
     # other CMIP models
     if Add_otherCMIPs:
+<<<<<<< HEAD
 
         phases = ['CMIP5','CMIP6']
         exp_cntl = [['piControl','amip'],['piControl','amip']]
@@ -710,17 +904,32 @@ if plot_CldRadKernel_globalmean:
         #print('cmip6_models',cmip6_models,len(cmip6_models))
         models = [cmip5_models, cmip6_models]
         model_list = cmip5_models + cmip6_models
+=======
+        phases = ['CMIP5','CMIP6']
+        cmip5_models = ['MIROC5', 'MPI-ESM-LR', 'MRI-CGCM3']
+        cmip6_models = ['CESM2','E3SM-1-0', 'GFDL-CM4', 'IPSL-CM6A-LR', 'MRI-ESM2-0']
+        models = [cmip5_models, cmip6_models]
+        exps = ['amip', 'piControl']
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
 
         df_LW_others = pd.DataFrame()
         df_SW_others = pd.DataFrame()
 
         for iphase,phase in enumerate(phases):
             for imodel,model in enumerate(models[iphase]):
+<<<<<<< HEAD
                 df = pd.read_csv(datadir_CldRadKernel+'decomp_global_mean_lw_'+phase+'_'+exp_new[iphase][1]+'_'+model+'.csv',index_col=0)
                 df2 = df.loc[:,model]
                 df_LW_others[model] = df2
 
                 df = pd.read_csv(datadir_CldRadKernel+'decomp_global_mean_sw_'+phase+'_'+exp_new[iphase][1]+'_'+model+'.csv',index_col=0)
+=======
+                df = pd.read_csv(datadir_CldRadKernel+'decomp_global_mean_lw_'+phase+'_'+exps[0]+'_'+model+'.csv',index_col=0)
+                df2 = df.loc[:,model]
+                df_LW_others[model] = df2
+
+                df = pd.read_csv(datadir_CldRadKernel+'decomp_global_mean_sw_'+phase+'_'+exps[0]+'_'+model+'.csv',index_col=0)
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
                 df2 = df.loc[:,model]
                 df_SW_others[model] = df2
 
@@ -783,11 +992,18 @@ if plot_CldRadKernel_globalmean:
             y1 = df_LW_all.iloc[ii*5:(ii+1)*5,icol]
             if column == 'v1_coupled':
                 axes[ii].scatter(x-w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label=column)
+<<<<<<< HEAD
             elif column == 'v1_amip4K':
                 axes[ii].scatter(x-w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label=column)
             else:
 #                L1 = axes[ii].scatter(x-w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
                 axes[ii].scatter(x-w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
+=======
+            elif column == 'v1_amip':
+                axes[ii].scatter(x-w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label=column)
+            else:
+                L1 = axes[ii].scatter(x-w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
 
                
         if ii == 0:
@@ -797,29 +1013,45 @@ if plot_CldRadKernel_globalmean:
             y1 = df_net_all.iloc[ii*5:(ii+1)*5,icol]
             if column == 'v1_coupled':
                 axes[ii].scatter(x+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label=column)
+<<<<<<< HEAD
             elif column == 'v1_amip4K':
                 axes[ii].scatter(x+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label=column)
             else:
 #                L2 = axes[ii].scatter(x+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
                 axes[ii].scatter(x+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
 
+=======
+            elif column == 'v1_amip':
+                axes[ii].scatter(x+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label=column)
+            else:
+                L2 = axes[ii].scatter(x+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
     
         for icol,column in enumerate(df_SW_all.columns):
             y1 = df_SW_all.iloc[ii*5:(ii+1)*5,icol]
             if column == 'v1_coupled':
                 axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label=column)
+<<<<<<< HEAD
             elif column == 'v1_amip4K':
                 axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label=column)
             else:
  #               L3 = axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
                 axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
    
+=======
+            elif column == 'v1_amip':
+                axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label=column)
+            else:
+                L3 = axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
+    
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
         # CMIP - other models
         if Add_otherCMIPs:
             a2 = 0.3
             s3 = 100
             for icol,column in enumerate(df_LW_others.columns):
                 y1 = df_LW_others.iloc[ii*5:(ii+1)*5,icol]
+<<<<<<< HEAD
                 axes[ii].scatter(x-w+w2-w3,y1.values.tolist(),marker='o',s=s3,color='red',linewidths=wf,alpha=a2,label='_nolegend_')
 
             for icol,column in enumerate(df_net_others.columns):
@@ -836,6 +1068,21 @@ if plot_CldRadKernel_globalmean:
 
             plt.legend((L1,L2,L3),["LW","NET","SW"],scatterpoints=1,bbox_to_anchor=(1,1),loc="best",fontsize=15)
 
+=======
+                axes[ii].scatter(x-w+w2-w3,y1.values.tolist(),marker='o',s=s3,color='grey',linewidths=wf,alpha=a2,label='_nolegend_')
+
+            for icol,column in enumerate(df_net_others.columns):
+               y1 = df_net_others.iloc[ii*5:(ii+1)*5,icol]
+               axes[ii].scatter(x+w2-w3,y1.values.tolist(),marker='o',s=s3,color='grey',linewidths=wf,alpha=a2,label='_nolegend_')
+      
+            for icol,column in enumerate(df_SW_others.columns):
+               y1 = df_SW_others.iloc[ii*5:(ii+1)*5,icol]
+               axes[ii].scatter(x+w+w2-w3,y1.values.tolist(),marker='o',s=s3,color='grey',linewidths=wf,alpha=a2,label='_nolegend_')
+            
+            axes[ii].scatter(x-w+w2-w3,df_LW_others.iloc[ii*5:(ii+1)*5,:].mean(axis=1),marker='o',s=s3,color='black',linewidths=wf,alpha=1.0,label='_nolegend_')
+            axes[ii].scatter(x+w2-w3,df_net_others.iloc[ii*5:(ii+1)*5,:].mean(axis=1),marker='o',s=s3,color='black',linewidths=wf,alpha=1.0,label='_nolegend_')
+            axes[ii].scatter(x+w+w2-w3,df_SW_others.iloc[ii*5:(ii+1)*5,:].mean(axis=1),marker='o',s=s3,color='black',linewidths=wf,alpha=1.0,label='_nolegend_')
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
 
         axes[ii].grid(which='major', linestyle=':', linewidth='1.0', color='grey')
         
@@ -915,6 +1162,15 @@ if plot_CldRadKernel_zonalmean:
     
                     # add other CMIP models
                     if Add_otherCMIPs:
+<<<<<<< HEAD
+=======
+                        phases = ['CMIP5','CMIP6']
+                        cmip5_models = ['MIROC5', 'MPI-ESM-LR', 'MRI-CGCM3']
+                        cmip6_models = ['CESM2','E3SM-1-0', 'GFDL-CM4', 'IPSL-CM6A-LR', 'MRI-ESM2-0']
+                        models = [cmip5_models, cmip6_models]
+                        exps = ['amip', 'piControl']
+                        model_list = cmip5_models + cmip6_models
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
             
                         data_others = np.zeros((nlat,len(model_list)))
                         avgdata_others = np.zeros(len(model_list))
@@ -923,7 +1179,11 @@ if plot_CldRadKernel_zonalmean:
                             data1 = np.zeros((nlat,len(models[iphase])))
                             avgdata1 = np.zeros((len(models[iphase])))
                             for imodel,model in enumerate(models[iphase]):
+<<<<<<< HEAD
                                 f1 = cdms.open(datadir_CldRadKernel+'global_cloud_feedback_'+phase+'_'+exp_new[iphase][1]+'_'+model+'.nc')
+=======
+                                f1 = cdms.open(datadir_CldRadKernel+'global_cloud_feedback_'+phase+'_'+exps[0]+'_'+model+'.nc')
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
                                 if component in ['LW','SW']:
                                     tmp1 = f1(varname)
                                 else:
@@ -1005,11 +1265,16 @@ if plot_CldRadKernel_zonalmean:
 
                     # plot other CMIP models
                     if Add_otherCMIPs:
+<<<<<<< HEAD
                         L2 = ax.plot(clats,np.average(data_others,axis=1),lw=3,label='ENS-MEAN',color='grey',linestyle='-')
                         ax.fill_between(clats, np.amax(data_others,axis=1),np.amin(data_others,axis=1),alpha=0.2,color='grey')
 
                     plt.xticks(spec_clats,spec_lats,fontsize=fh)
                     ax.set_xlim((0,1))
+=======
+                        L2 = ax.plot(lats,np.average(data_others,axis=1),lw=3,label='ENS-MEAN',color='grey',linestyle='-')
+                        ax.fill_between(lats, np.amax(data_others,axis=1),np.amin(data_others,axis=1),alpha=0.2)
+>>>>>>> 798c54ec24f0c0e42f689fdd330245e3f9b4c0df
 
                     plt.yticks(fontsize=fh)
                     ax.set_title(varname,fontsize=fh)
@@ -1036,6 +1301,8 @@ if plot_CldRadKernel_zonalmean:
     print('------------------------------------------------')
 
 
+
+    exit()
 
 
 
