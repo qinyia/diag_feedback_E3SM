@@ -114,25 +114,27 @@ do
 		# extract each variable from the input file
 		ncks -O -v ${var_list[ivar]} ${in_file} ${out_file}
 		# change variable name
-        if [ "${var_list[ivar]}" == "${var_new_list[ivar]}" ] ; then
+        if [ "${var_list[ivar]}" != "${var_new_list[ivar]}" ] ; then
     		ncrename -v ${var_list[ivar]},${var_new_list[ivar]} ${out_file}
         fi
 	done
 	
 	# get surface up SW at clear-sky
-	ncap2 -O -s 'rsuscs=FSDSC-FSNSC' ${in_file} rsuscs_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
+    ncks -O -v FSDSC,FSNSC,FSDS,FSNS,SOLIN,FSNT,FSNTC ${in_file} tmp.nc
+	ncap2 -O -s 'rsuscs=FSDSC-FSNSC' tmp.nc rsuscs_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
     ncks -O -v rsuscs rsuscs_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc rsuscs_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
 
-    # get surface up SW at all-sky
-	ncap2 -O -s 'rsus=FSDS-FSNS' ${in_file} rsus_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
+     # get surface up SW at all-sky
+	ncap2 -O -s 'rsus=FSDS-FSNS' tmp.nc rsus_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
     ncks -O -v rsus rsus_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc rsus_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
 
-    ncap2 -O -s 'rsut=SOLIN-FSNT' ${in_file} rsut_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
+	ncap2 -O -s 'rsut=SOLIN-FSNT' tmp.nc rsut_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
     ncks -O -v rsut rsut_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc rsut_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
 
-    ncap2 -O -s 'rsutcs=SOLIN-FSNTC' ${in_file} rsutcs_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
+	ncap2 -O -s 'rsutcs=SOLIN-FSNTC' tmp.nc rsutcs_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
     ncks -O -v rsutcs rsutcs_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc rsutcs_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
 
+    rm tmp.nc
 
 	echo $outdir
     rm $outdir/${run_id[ii]}.cam.h0.${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
