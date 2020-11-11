@@ -52,11 +52,11 @@ datadir_in1 = '/global/cscratch1/sd/qinyi/E3SM_predata/'
 # set input directory 2 --- the directory after casename in the whole directory
 datadir_in2 = 'archive/atm/hist/'
 
-# set output directory for necessary variables
+# set output directory for necessary variables after post-processing E3SM raw data
 outdir_out = '/global/cscratch1/sd/qinyi/diag_feedback_E3SM_postdata/'
 
 
-### NOTION: if you work on Cori, you should not change the below directories.If not, you should download data.
+### NOTION: if you work on Cori, you should not change the below directories. If not, you should download data.
 # set RadKernel input kernel directory
 RadKernel_dir = '/global/project/projectdirs/mp193/www/qinyi/DATA/Huang_kernel_data/'
 
