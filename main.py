@@ -13,42 +13,42 @@ import cal_CloudRadKernel_E3SM as CRK
 
 # ----------------------------Hi, all modifications please start here --------------------------------------------
 # if you run this script at the first time, set PreProcess = True; otherwise, PreProcess = False
-PreProcess = False 
+PreProcess = False
 Global_RadFeedback = True
 RadKernel = True
 CloudRadKernel = True
 
 # give one stamp for each pair experiment, like v1, v2, v3....
 case_stamp = [\
-#'TEST',\
-'amip-p4K',\
-'amip-4xCO2',\
-'amip-future4K'\
+'TEST',\
+#'amip-p4K',\
+#'amip-4xCO2',\
+#'amip-future4K'\
 ]
 # set the control case names
 run_id1s = [\
-#'cori-haswell.20190513.F2010C5-CMIP6-LR.ne30_oECv3',\
-'20200428.DECKv1b_amip1-CFMIP.ne30_oEC.cori-knl-L',\
-'20200428.DECKv1b_amip1-CFMIP.ne30_oEC.cori-knl-L',\
-'20200428.DECKv1b_amip1-CFMIP.ne30_oEC.cori-knl-L',\
+'cori-haswell.20190513.F2010C5-CMIP6-LR.ne30_oECv3',\
+#'20200428.DECKv1b_amip1-CFMIP.ne30_oEC.cori-knl-L',\
+#'20200428.DECKv1b_amip1-CFMIP.ne30_oEC.cori-knl-L',\
+#'20200428.DECKv1b_amip1-CFMIP.ne30_oEC.cori-knl-L',\
 ]
 # set the p4K case names
 run_id2s = [\
-#'cori-haswell.20190513.F2010C5-CMIP6-LR.plus4K.ne30_oECv3',\
-'20200428.DECKv1b_amip1.plus4K-CFMIP.ne30_oEC.cori-knl-L',\
-'20201010.DECKv1b_amip1.4xCO2-CFMIP.ne30_oEC.cori-knl-L',\
-'20201011.DECKv1b_amip1.future4K-CFMIP.ne30_oEC.cori-knl-L',\
+'cori-haswell.20190513.F2010C5-CMIP6-LR.plus4K.ne30_oECv3',\
+#'20200428.DECKv1b_amip1.plus4K-CFMIP.ne30_oEC.cori-knl-L',\
+#'20201010.DECKv1b_amip1.4xCO2-CFMIP.ne30_oEC.cori-knl-L',\
+#'20201011.DECKv1b_amip1.future4K-CFMIP.ne30_oEC.cori-knl-L',\
 ]
 # set the regrid map from ne30np4 to lat-lon
 rgr_map = '~zender/data/maps/map_ne30np4_to_cmip6_72x144_aave.20181001.nc'
 # set start year
-yearS = 1975
+yearS = 1
 # set end year
-yearE = 1979
+yearE = 2
 
 # set input directory 1 --- the directory before casename in the whole directory
-#datadir_in1 = '/global/cscratch1/sd/qinyi/E3SM_predata/'
-datadir_in1= '/global/cscratch1/sd/qinyi/E3SM_simulations/'
+datadir_in1 = '/global/cscratch1/sd/qinyi/E3SM_predata/'
+#datadir_in1= '/global/cscratch1/sd/qinyi/E3SM_simulations/'
 # set input directory 2 --- the directory after casename in the whole directory
 datadir_in2 = 'archive/atm/hist/'
 
