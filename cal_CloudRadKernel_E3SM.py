@@ -102,7 +102,7 @@ def map_SWkern_to_lon(Ksw,albcsmap):
             except:
                 alon2=alon
             if np.ma.count(alon2)>1: # at least 1 unmasked value
-                if len(pl.find(Ksw[MM,:,:,LA,:]>0))==0:
+                if len(np.where(Ksw[MM,:,:,LA,:]>0))==0:
 #                if len(np.where(Ksw[MM,:,:,LA,:]>0))==0:
                     SWkernel_map[M,:,:,LA,:] = 0
                 else:
