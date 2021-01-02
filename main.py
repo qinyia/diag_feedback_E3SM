@@ -20,37 +20,37 @@ CloudRadKernel = True
 
 # give one stamp for each pair experiment, like v1, v2, v3....
 case_stamp = [\
-'TEST',\
+#'TEST',\
 #'amip-p4K',\
-#'amip-4xCO2',\
-#'amip-future4K'\
+'amip-future4K',\
+'amip-4xCO2',\
 ]
 # set the control case names
 run_id1s = [\
-'cori-haswell.20190513.F2010C5-CMIP6-LR.ne30_oECv3',\
+#'cori-haswell.20190513.F2010C5-CMIP6-LR.ne30_oECv3',\
 #'20200428.DECKv1b_amip1-CFMIP.ne30_oEC.cori-knl-L',\
-#'20200428.DECKv1b_amip1-CFMIP.ne30_oEC.cori-knl-L',\
-#'20200428.DECKv1b_amip1-CFMIP.ne30_oEC.cori-knl-L',\
+'20200428.DECKv1b_amip1-CFMIP.ne30_oEC.cori-knl-L',\
+'20200428.DECKv1b_amip1-CFMIP.ne30_oEC.cori-knl-L',\
 ]
 # set the p4K case names
 run_id2s = [\
-'cori-haswell.20190513.F2010C5-CMIP6-LR.plus4K.ne30_oECv3',\
+#'cori-haswell.20190513.F2010C5-CMIP6-LR.plus4K.ne30_oECv3',\
 #'20200428.DECKv1b_amip1.plus4K-CFMIP.ne30_oEC.cori-knl-L',\
-#'20201010.DECKv1b_amip1.4xCO2-CFMIP.ne30_oEC.cori-knl-L',\
-#'20201011.DECKv1b_amip1.future4K-CFMIP.ne30_oEC.cori-knl-L',\
+'20201011.DECKv1b_amip1.future4K-CFMIP.ne30_oEC.cori-knl-L',\
+'20201010.DECKv1b_amip1.4xCO2-CFMIP.ne30_oEC.cori-knl-L',\
 ]
 # set the regrid map from ne30np4 to lat-lon
 rgr_map = '~zender/data/maps/map_ne30np4_to_cmip6_72x144_aave.20181001.nc'
 # set start year
-yearS = 1
+yearS = 1979
 # set end year
-yearE = 2
+yearE = 2014
 
 # set input directory 1 --- the directory before casename in the whole directory
-datadir_in1 = '/global/cscratch1/sd/qinyi/E3SM_predata/'
-#datadir_in1= '/global/cscratch1/sd/qinyi/E3SM_simulations/'
+#datadir_in1 = '/global/cscratch1/sd/qinyi/E3SM_predata/'
+datadir_in1= '/global/cscratch1/sd/qinyi/E3SM_simulations/'
 # set input directory 2 --- the directory after casename in the whole directory
-datadir_in2 = 'archive/atm/hist/'
+datadir_in2 = 'archive/atm/hist/h0/'
 
 # set output directory for necessary variables after post-processing E3SM raw data
 outdir_out = '/global/cscratch1/sd/qinyi/diag_feedback_E3SM_postdata/'
@@ -102,6 +102,7 @@ else:
 # ----------------------------------------------------------------------------
 for icase,case in enumerate(case_stamp):
 
+
     run_id1 = run_id1s[icase]
     run_id2 = run_id2s[icase]
     
@@ -112,15 +113,15 @@ for icase,case in enumerate(case_stamp):
     # Part 2: run global radiative feedback analysis
     direc_data = outdir_out
     if Global_RadFeedback:
-        result = GRF.Global_RadFeedback(CloudRadKernel_dir,direc_data,case_stamp[icase],yearS,yearE,run_id1,run_id2,outdir_final)
+        result = GRF.Global_RadFeedback(direc_data,case_stamp[icase],yearS,yearE,run_id1,run_id2,outdir_final)
     
-    # Part 3: run radiative kernel analysis
-    if RadKernel:
-        result = RK.RadKernel(RadKernel_dir,direc_data,case_stamp[icase],yearS,yearE,run_id1,run_id2,outdir_final,figdir,exp1,exp2)
-    
-    # Part 4: run cloud radiative kernel analysis: decomposition 
-    if CloudRadKernel:
-        result = CRK.CloudRadKernel(CloudRadKernel_dir,direc_data,case_stamp[icase],yearS,yearE,run_id1,run_id2,outdir_final,figdir)
-
-
+    # special treatment to amip-4xCO2: it does not need RadKernel and CloudRadKernel analysis
+    if case != 'amip-4xCO2':
+        # Part 3: run radiative kernel analysis
+        if RadKernel:
+            result = RK.RadKernel(RadKernel_dir,direc_data,case_stamp[icase],yearS,yearE,run_id1,run_id2,outdir_final,figdir,exp1,exp2)
+        
+        # Part 4: run cloud radiative kernel analysis: decomposition 
+        if CloudRadKernel:
+            result = CRK.CloudRadKernel(CloudRadKernel_dir,direc_data,case_stamp[icase],yearS,yearE,run_id1,run_id2,outdir_final,figdir)
 
