@@ -28,7 +28,7 @@ import numpy.ma as ma
 from genutil import statistics
 
 ########## MAIN SUBROUTINE STARTS HERE ....
-def Global_RadFeedback(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir):
+def Global_RadFeedback(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir):
 
     yearS_4d = "{:04d}".format(yearS)
     yearE_4d = "{:04d}".format(yearE)
@@ -41,8 +41,6 @@ def Global_RadFeedback(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fna
     for phase in phases:
     #    print('----------Hi, here is processing ',phase,' Data----------------')
     
-    #    direc_kernel='/work/qin4/script/cloud-radiative-kernels/'
-    #    direc_data = '/work/qin4/Data/E3SM_data/'
     
         All_project_cntl = ['CMIP','CMIP']
         All_exp_cntl = ['piControl','amip']
