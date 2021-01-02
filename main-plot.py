@@ -8,6 +8,8 @@ E3SMv1-amip, E3SMv1-piControl, and other available CMIP5 and CMIP6 models.
 created by: Yi Qin on Aug 4, 2020
 modified: Nov 10, 2020
 
+Dec 29, 2020: add plot for radiative forcing, especially for amip-4xCO2 experiment
+
 '''
 import cdms2 as cdms
 import cdutil
@@ -29,7 +31,7 @@ from matplotlib import ticker
 from genutil import statistics
 import scipy.stats
 import PlotDefinedFunction as PDF
-
+import copy
 
 ############################################################################################
 ####Modification ends here #################################################################
@@ -47,13 +49,24 @@ datadir_v2 = datadir+'data/'
 figdir = datadir+'figure/'
 
 ## notion: if you also want to compare with default E3SM-1-0, please add 'v1_coupled' and 'v1_amip4K' below.
-cases = ['v1_coupled','v1_amip4K','TEST']
-colors = ['tab:red','tab:blue','tab:orange']
-linewidths = [2,2,2]
-linestyles = ['-','-','-']
+cases = ['v1_coupled','amip-p4K','amip-future4K','amip-4xCO2']
+colors = ['tab:red','tab:blue','tab:orange','tab:purple','tab:green']
+linewidths = [2,2,2,2,2]
+linestyles = ['-','-','-','-','-']
+
+lw_CESM2 = 2
+ls_CESM2 = ':'
+lc_CESM2 = 'blue'
+
+#cases = ['v1_coupled','amip-4xCO2']
+#colors = ['tab:red','tab:blue']
+#linewidths = [2,2]
+#linestyles = ['-','-']
 
 ## include option about whether adding results from other CMIP models 
 Add_otherCMIPs = True
+
+highlight_CESM2 = False
 
 # ----------------- please set all these following directories and your prefered styles: End!!!!! ----------------------
 
@@ -63,15 +76,18 @@ Add_otherCMIPs = True
 plot_CRE_globalmean = True
 ### scatter plot: global mean RadKernel feedback --> non-cloud feedback and adjusted CRE feedback
 plot_RadKernel_globalmean = True
-### scatter plot: global mean CldRadKernel feedback --> decomposition of cloud feedback
-plot_RadKernel_zonalmean = True
 ### zonal mean plot: RadKernel feedback --> adjusted CRE feedback
+plot_RadKernel_zonalmean = True
+### scatter plot: global mean CldRadKernel feedback --> decomposition of cloud feedback
 plot_CldRadKernel_globalmean = True
 ### zonal mean plot: CldRadKernel feedback --> decomposition of cloud feedback
 plot_CldRadKernel_zonalmean = True
 
 ### scatter plot: amip-p4K vs Future-4K -- just CRE feedback [cannot be used if you don't have amip-future4K!!!!!]
-plot_CRE_globalmean_P4KvsFuture = False
+plot_CRE_globalmean_P4KvsFuture = True
+
+### scatter plot: global mean radiative forcing --> intercept from abrupt-4xCO2; radiation anomaly from amip-4xCO2
+plot_RadForcing_globalmean = True
 
 # ---------------- please set other optional setting for figure: start -------------------------------------------------
 
@@ -115,6 +131,10 @@ Add_amipFuture = False
 if plot_CRE_globalmean:
     print('ScatterPlot-CRE-feedback starts ........')
 
+    cases_here = copy.deepcopy(cases)
+    if 'amip-4xCO2' in cases:
+        cases_here.remove('amip-4xCO2')
+
     df_all = pd.DataFrame()
 
     if Add_otherCMIPs:
@@ -146,7 +166,6 @@ if plot_CRE_globalmean:
         # ---- amip4K ---------------------
         df_p4K = pd.DataFrame()
         for model in models_all:
-            #print(model)
             if model in cmip5_models:
 
                 if model == 'CanESM2_r1i1p1':
@@ -187,7 +206,7 @@ if plot_CRE_globalmean:
             df_future[model] = df2
 
     # read amip
-    for icase,case in enumerate(cases):
+    for icase,case in enumerate(cases_here):
         if case == 'v1_coupled':
             # read v1-coupled 
             df_coupled = pd.read_csv(datadir_v1+'global_mean_features_CMIP6_abrupt-4xCO2_E3SM-1-0_r1i1p1f1.csv',index_col=0)
@@ -198,7 +217,9 @@ if plot_CRE_globalmean:
             df_amip = pd.read_csv(datadir_v1+'global_mean_features_CMIP6_amip-p4K_E3SM-1-0_r1i1p1f1.csv',index_col=0)
             df_amip.index = df_coupled.loc[:,'varname']
             df_all['v1_amip4K'] = df_amip.loc[:,'anomaly_perK']
-        else:   
+        elif case == 'amip-4xCO2':   
+            continue
+        else:
             df1 = pd.read_csv(datadir_v2+'global_mean_features_'+case+'_E3SM-1-0'+'.csv',index_col=0)
             df1.index = df1.loc[:,'varname']
     
@@ -207,7 +228,7 @@ if plot_CRE_globalmean:
     
 
     # start plotting 
-    fig = plt.figure(figsize=(12,12))
+    fig = plt.figure(figsize=(12,9))
     ax = fig.add_subplot(1,1,1)
     fh = 15
     
@@ -232,18 +253,23 @@ if plot_CRE_globalmean:
         if Add_otherCMIPs:
             # add other CMIP models
             for icol,column in enumerate(df_p4K_plot.columns):
-#                ax.scatter(x[idx]-0.2,df_p4K_plot.loc[index,column].tolist(),edgecolor='none',facecolor='tab:blue',alpha=a1,s=s2)
-                ax.scatter(x[idx]-0.2,df_p4K_plot.loc[index,column].tolist(),edgecolor='none',facecolor='grey',alpha=a1,s=s2)
+                if highlight_CESM2 and 'CESM2' in column:
+                    ax.scatter(x[idx]-0.2,df_p4K_plot.loc[index,column].tolist(),edgecolor='none',facecolor=lc_CESM2,alpha=1.0,s=s2,marker='X',\
+                    label=column.split('_')[0]+'_amip-p4K')
+                else:
+                    ax.scatter(x[idx]-0.2,df_p4K_plot.loc[index,column].tolist(),edgecolor='none',facecolor='grey',alpha=a1,s=s2)
+
             # ensemble mean
-#            L2 = ax.scatter(x[idx]-0.2,df_p4K_plot.loc[index,:].mean().tolist(),edgecolor='black',facecolor='blue',s=s2)
             L2 = ax.scatter(x[idx]-0.2,df_p4K_plot.loc[index,:].mean().tolist(),color='black',s=s2)
 
-#            Add_amipFuture = True
             if Add_amipFuture:
                 for icol,column in enumerate(df_future_plot.columns):
-                    ax.scatter(x[idx]+0.2,df_future_plot.loc[index,column].tolist(),edgecolor='none',facecolor='tab:orange',alpha=a1,s=s2)
+                    if highlight_CESM2 and 'CESM2' in column:
+                        ax.scatter(x[idx]+0.2,df_future_plot.loc[index,column].tolist(),edgecolor='none',facecolor=lc_CESM2,alpha=1.0,s=s2,marker='X',label=column.split('_')[0]+'_amip-future4K')
+                    else:
+                        ax.scatter(x[idx]+0.2,df_future_plot.loc[index,column].tolist(),edgecolor='none',facecolor='grey',alpha=a1,s=s2)
+
                 # ensemble mean
-#                L3 = ax.scatter(x[idx]+0.2,df_future_plot.loc[index,:].mean().tolist(),edgecolor='black',facecolor='orange',s=s2)
                 L3 = ax.scatter(x[idx]+0.2,df_future_plot.loc[index,:].mean().tolist(),color='red',s=s2)
 
             
@@ -262,7 +288,7 @@ if plot_CRE_globalmean:
     plt.xticks(x,df_plot.index)
     
     ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
-    fig.savefig(figdir+'ScatterPlot-CRE-feedback.pdf')
+    fig.savefig(figdir+'ScatterPlot-CRE-feedback.pdf',bbox_inches='tight')
     plt.show()
     del(df_all,df_plot)
     print('------------------------------------------------')
@@ -275,6 +301,10 @@ if plot_CRE_globalmean:
 
 if plot_CRE_globalmean_P4KvsFuture:
     print('ScatterPlot-CRE-feedback P4K.vs.Future starts ........')
+
+    cases_here = copy.deepcopy(cases)
+    if 'amip-4xCO2' in cases:
+        cases_here.remove('amip-4xCO2')
 
     df_all = pd.DataFrame()
 
@@ -325,17 +355,19 @@ if plot_CRE_globalmean_P4KvsFuture:
 
 
     # read amip
-    for icase,case in enumerate(cases):
+    for icase,case in enumerate(cases_here):
         if case == 'v1_coupled':
             # read v1-coupled 
-            df_coupled = pd.read_csv(datadir_v1+'global_mean_features_piControl_E3SM-1-0.csv',index_col=0)
+            df_coupled = pd.read_csv(datadir_v1+'global_mean_features_CMIP6_abrupt-4xCO2_E3SM-1-0_r1i1p1f1.csv',index_col=0)
             df_coupled.index = df_coupled.loc[:,'varname']
             df_all['v1_coupled'] = df_coupled.loc[:,'anomaly_perK']
         elif case == 'v1_amip4K':
             # read v1-amip
-            df_amip = pd.read_csv(datadir_v1+'global_mean_features_amip_E3SM-1-0.csv',index_col=0)
+            df_amip = pd.read_csv(datadir_v1+'global_mean_features_CMIP6_amip-p4K_E3SM-1-0_r1i1p1f1.csv',index_col=0)
             df_amip.index = df_coupled.loc[:,'varname']
             df_all['v1_amip4K'] = df_amip.loc[:,'anomaly_perK']
+        elif case == 'amip-4xCO2':
+            continue
         else:   
             df1 = pd.read_csv(datadir_v2+'global_mean_features_'+case+'_E3SM-1-0'+'.csv',index_col=0)
             df1.index = df1.loc[:,'varname']
@@ -347,7 +379,7 @@ if plot_CRE_globalmean_P4KvsFuture:
     
     fig = plt.figure(figsize=(12,12))
     fh = 15
-    a1 = 0.6
+    a1 = 0.4
     
     
     drop_index = ['ts','SWCLR','LWCLR']
@@ -378,14 +410,17 @@ if plot_CRE_globalmean_P4KvsFuture:
         ax = fig.add_subplot(3,3,idx+1)
 
         # plot E3SM itself
-        ax.scatter(df_plot.loc[index,'amip-p4K'],df_plot.loc[index,'amip-future4K'],s=s1-100,alpha=a1,label='E3SM',color='red',marker='*')
+        ax.scatter(df_plot.loc[index,'amip-p4K'],df_plot.loc[index,'amip-future4K'],s=s1,alpha=a1,label='E3SM',color='red',marker='*')
 
         if Add_otherCMIPs:
             for icol,column in enumerate(df_p4K_plot.columns):
-                if model in models_cmip5:
-                    L1 = ax.scatter(df_p4K_plot.loc[index,column],df_future_plot.loc[index,column],s=s1-100,alpha=a1,label=column,color='tab:blue')
+                if column in models_cmip5:
+                    L1 = ax.scatter(df_p4K_plot.loc[index,column],df_future_plot.loc[index,column],s=s1-100,alpha=a1,label='_no_legend_',color='tab:blue',edgecolor='none')
                 else:
-                    L1 = ax.scatter(df_p4K_plot.loc[index,column],df_future_plot.loc[index,column],s=s1-100,alpha=a1,label=column,color='tab:red')
+                    if highlight_CESM2 and column == 'CESM2':
+                        L1 = ax.scatter(df_p4K_plot.loc[index,column],df_future_plot.loc[index,column],s=s1,alpha=a1,label=column,color='tab:red',marker='X',edgecolor='none')
+                    else:
+                        L1 = ax.scatter(df_p4K_plot.loc[index,column],df_future_plot.loc[index,column],s=s1-100,alpha=a1,label='_no_legend_',color='tab:red',edgecolor='none')
 
         ax.plot([valmin,valmax],[valmin,valmax],ls='--',lw=3,color='grey')
 
@@ -395,13 +430,13 @@ if plot_CRE_globalmean_P4KvsFuture:
 
         ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
 
-#        if idx==0:
-#            ax.legend(fontsize=fh)
-    
+        if idx == 0:
+            ax.legend(fontsize=fh)
+
 #    plt.xticks(x,df_plot.index)
     
     fig.tight_layout()
-    fig.savefig(figdir+'ScatterPlot-CRE-P4KvsFuture-feedback.pdf')
+    fig.savefig(figdir+'ScatterPlot-CRE-P4KvsFuture-feedback.pdf',bbox_inches='tight')
     plt.show()
     del(df_all,df_plot)
     print('------------------------------------------------')
@@ -415,6 +450,10 @@ if plot_CRE_globalmean_P4KvsFuture:
 
 if plot_RadKernel_globalmean:
     print('ScatterPlot-RadKernel-Feedback starts........')
+
+    cases_here = copy.deepcopy(cases)
+    if 'amip-4xCO2' in cases:
+        cases_here.remove('amip-4xCO2')
 
     df_all = pd.DataFrame()
 
@@ -460,7 +499,7 @@ if plot_RadKernel_globalmean:
 
 
     # E3SM
-    for icase,case in enumerate(cases):
+    for icase,case in enumerate(cases_here):
         if case == 'v1_coupled':
             # read v1-coupled 
             df_coupled = pd.read_csv(datadir_v1+'FDBK_CMIP6_abrupt-4xCO2_E3SM-1-0_Latest-Oct18_1yr-150yr.csv',index_col=0)
@@ -469,6 +508,8 @@ if plot_RadKernel_globalmean:
             # read v1-amip
             df_amip = pd.read_csv(datadir_v1+'FDBK_CMIP6_amip-p4K_E3SM-1-0_Latest-Oct18_1yr-36yr.csv',index_col=0)
             df_all['v1_amip4K'] = df_amip.iloc[:,:]
+        elif case == 'amip-4xCO2':
+            continue
         else:    
             df1 = pd.read_csv(datadir_v2+'FDBK_CMIP6_'+case+'_E3SM-1-0'+'.csv',index_col=0)
             df2 = df1.loc[:,'E3SM-1-0']
@@ -476,7 +517,7 @@ if plot_RadKernel_globalmean:
         
     # start plotting 
     
-    fig = plt.figure(figsize=(12,12))
+    fig = plt.figure(figsize=(12,9))
     ax = fig.add_subplot(1,1,1)
     fh = 15
     a1 = 0.6
@@ -507,7 +548,12 @@ if plot_RadKernel_globalmean:
         # other CMIP models
         if Add_otherCMIPs:
             for icol,column in enumerate(df_others_plot.columns):
-                ax.scatter(x[idx]-0.2, df_others_plot.loc[index,column].tolist(),s=s2,edgecolor='none',facecolor='grey',alpha=a1)
+                if highlight_CESM2 and 'CESM2' in column:
+                    ax.scatter(x[idx], df_others_plot.loc[index,column].tolist(),s=s2,edgecolor='none',facecolor=lc_CESM2,alpha=1, marker='X',\
+                    label = column.split('_')[0]+'_amip-p4K')
+                else:
+                    ax.scatter(x[idx]-0.2, df_others_plot.loc[index,column].tolist(),s=s2,edgecolor='none',facecolor='grey',alpha=a1)
+
             # ensemble mean
             L2 = ax.scatter(x[idx]-0.2, df_others_plot.loc[index,:].mean(),s=s2,edgecolor='black',facecolor='black')
 
@@ -523,7 +569,7 @@ if plot_RadKernel_globalmean:
     plt.xticks(x,df_plot.index,rotation=degrees)
     ax.set_title('Radiative Kernel feedback',fontsize=fh)
     
-    fig.savefig(figdir+'ScatterPlot-RadKernel-Feedback.pdf')
+    fig.savefig(figdir+'ScatterPlot-RadKernel-Feedback.pdf',bbox_inches='tight')
     print('------------------------------------------------')
     print('ScatterPlot-RadKernel-Feedback is done!')
     print('------------------------------------------------')
@@ -535,6 +581,11 @@ if plot_RadKernel_globalmean:
 
 if plot_RadKernel_zonalmean:
     print('plot_RadKernel_zonalmean starts ..........')
+
+    cases_here = copy.deepcopy(cases)
+    if 'amip-4xCO2' in cases:
+        cases_here.remove('amip-4xCO2')
+
 
     # variables = ['SWCRE_ano_grd_gfdbk','LWCRE_ano_grd_gfdbk','netCRE_ano_grd_gfdbk',\
     #             'SWCRE_ano_grd_adj_gfdbk','LWCRE_ano_grd_adj_gfdbk','netCRE_ano_grd_adj_gfdbk']
@@ -605,12 +656,14 @@ if plot_RadKernel_zonalmean:
 
  
             # E3SM
-            data_all = np.zeros((nlat,len(cases[:ii])))
-            for icase,case in enumerate(cases[:ii]):
+            data_all = np.zeros((nlat,len(cases_here[:ii])))
+            for icase,case in enumerate(cases_here[:ii]):
                 if case == 'v1_coupled':
                     f1 = cdms.open(datadir_v1+'lat-lon-gfdbk-CMIP6-abrupt-4xCO2-E3SM-1-0_Latest-Oct18_1yr-150yr.nc')
                 elif case == 'v1_amip4K':
                     f1 = cdms.open(datadir_v1+'lat-lon-gfdbk-CMIP6-amip-p4K-E3SM-1-0_Latest-Oct18_1yr-36yr.nc')
+                elif case == 'amip-4xCO2':
+                    continue
                 else:
                     f1 = cdms.open(datadir_v2+'lat-lon-gfdbk-CMIP6-'+case+'-E3SM-1-0'+'.nc')
     
@@ -653,6 +706,13 @@ if plot_RadKernel_zonalmean:
     
             L1 = ax.plot(clats,data_all,alpha=a1)
             
+            # highlight CESM2
+            if highlight_CESM2:
+                data_others = pd.DataFrame(data_others,columns = model_list)
+                for column in data_others.columns:
+                    if column == 'CESM2':
+                        L3 = ax.plot(clats,data_others.loc[:,column],lw=lw_CESM2,ls=ls_CESM2,color=lc_CESM2)
+
             # plot other CMIP models
             if Add_otherCMIPs:
                 L2 = ax.plot(clats,np.average(data_others,axis=1),lw=3,label='ENS-MEAN',color='grey',linestyle='-')
@@ -673,12 +733,15 @@ if plot_RadKernel_zonalmean:
     
             ax.axhline(y=0,color='grey',linestyle='--',lw=2)
             if ivar == len(variables)-1:
-                ax.legend(L1,cases,fontsize=fh,bbox_to_anchor=(1.04,0), loc='lower left')
+                if highlight_CESM2:
+                    ax.legend(L1+L3,cases_here+['CESM2-amip4K'],fontsize=fh,bbox_to_anchor=(1.04,0), loc='lower left')
+                else:
+                    ax.legend(L1,cases_here,fontsize=fh,bbox_to_anchor=(1.04,0), loc='lower left')
     
             num1 += 1
     
         plt.tight_layout()
-        fig.savefig(figdir+'Zonal-mean-Cloud-RadKernel-Feedback-'+str(np.round(ii,0))+'.pdf')
+        fig.savefig(figdir+'Zonal-mean-Cloud-RadKernel-Feedback-'+str(np.round(ii,0))+'.pdf',bbox_inches='tight')
 
 
     print('------------------------------------------------')
@@ -692,6 +755,10 @@ if plot_RadKernel_zonalmean:
 
 if plot_CldRadKernel_globalmean:
 
+    cases_here = copy.deepcopy(cases)
+    if 'amip-4xCO2' in cases:
+        cases_here.remove('amip-4xCO2')
+
     print('ScatterPlot-Cloud-feedback-Decomposition starts .........')
     # other CMIP models
     if Add_otherCMIPs:
@@ -699,17 +766,20 @@ if plot_CldRadKernel_globalmean:
         phases = ['CMIP5','CMIP6']
         exp_cntl = [['piControl','amip'],['piControl','amip']]
         exp_new = [['abrupt4xCO2','amip4K'],['abrupt-4xCO2','amip-p4K']]
-        
+#        exp_cntl = [['amip','amip'],['amip','amip']]
+#        exp_new = [['amip4K','amip4K'],['amip-p4K','amip-p4K']]
+       
         prefix = 'decomp_global_mean_lw'
         suffix1 = '*1yr-150yr.csv'
         suffix2 = '*.csv'
         
         models_all,cmip5_models,cmip6_models = PDF.get_intersect(exp_cntl,exp_new,prefix,suffix1,suffix2,datadir_CldRadKernel)
-        #print('models_all',models_all,len(models_all))
-        #print('cmip5_models',cmip5_models,len(cmip5_models))
-        #print('cmip6_models',cmip6_models,len(cmip6_models))
         models = [cmip5_models, cmip6_models]
         model_list = cmip5_models + cmip6_models
+
+#        print('models_all=',models_all)
+#        print('cmip5_models=',cmip5_models)
+#        print('cmip6_models=',cmip6_models)
 
         df_LW_others = pd.DataFrame()
         df_SW_others = pd.DataFrame()
@@ -728,7 +798,7 @@ if plot_CldRadKernel_globalmean:
     df_LW_all = pd.DataFrame()
     df_SW_all = pd.DataFrame()
     
-    for icase,case in enumerate(cases):
+    for icase,case in enumerate(cases_here):
         if case == 'v1_coupled':
             df1 = pd.read_csv(datadir_v1+'decomp_global_mean_lw_CMIP6_abrupt-4xCO2_E3SM-1-0_1yr-150yr.csv',index_col=0)
             df2 = df1.loc[:,'E3SM-1-0']
@@ -745,6 +815,8 @@ if plot_CldRadKernel_globalmean:
             df1 = pd.read_csv(datadir_v1+'decomp_global_mean_sw_CMIP6_amip-p4K_E3SM-1-0.csv',index_col=0)
             df2 = df1.loc[:,'E3SM-1-0']
             df_SW_all[case] = df2
+        elif case == 'amip-4xCO2':
+            continue
         else:
             df1 = pd.read_csv(datadir_v2+'decomp_global_mean_lw_'+case+'_E3SM-1-0'+'.csv',index_col=0)
             df2 = df1.loc[:,'E3SM-1-0']
@@ -789,54 +861,67 @@ if plot_CldRadKernel_globalmean:
 #                L1 = axes[ii].scatter(x-w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
                 axes[ii].scatter(x-w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
 
-               
-        if ii == 0:
-            axes[ii].legend(fontsize=fh)
-            
+           
         for icol,column in enumerate(df_net_all.columns):
             y1 = df_net_all.iloc[ii*5:(ii+1)*5,icol]
             if column == 'v1_coupled':
-                axes[ii].scatter(x+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label=column)
+                axes[ii].scatter(x+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label='_no_legend_')
             elif column == 'v1_amip4K':
-                axes[ii].scatter(x+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label=column)
+                axes[ii].scatter(x+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label='_no_legend_')
             else:
 #                L2 = axes[ii].scatter(x+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
-                axes[ii].scatter(x+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
+                axes[ii].scatter(x+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label='_no_legend_')
 
     
         for icol,column in enumerate(df_SW_all.columns):
             y1 = df_SW_all.iloc[ii*5:(ii+1)*5,icol]
             if column == 'v1_coupled':
-                axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label=column)
+                axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label='_no_legend_')
             elif column == 'v1_amip4K':
-                axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label=column)
+                axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label='_no_legend_')
             else:
  #               L3 = axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
-                axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
+                axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label='_no_legend_')
    
+
         # CMIP - other models
         if Add_otherCMIPs:
             a2 = 0.3
             s3 = 100
             for icol,column in enumerate(df_LW_others.columns):
                 y1 = df_LW_others.iloc[ii*5:(ii+1)*5,icol]
-                axes[ii].scatter(x-w+w2-w3,y1.values.tolist(),marker='o',s=s3,color='red',linewidths=wf,alpha=a2,label='_nolegend_')
+                if highlight_CESM2 and 'CESM2' in column:
+                    axes[ii].scatter(x-w+w2-w3,y1.values.tolist(),marker='X',s=s3,color='red',linewidths=wf,alpha=a2,\
+                    label=column.split('_')[0]+'_amip-p4K')
+                else:
+                    axes[ii].scatter(x-w+w2-w3,y1.values.tolist(),marker='o',s=s3,color='red',linewidths=wf,alpha=a2,label='_nolegend_')
 
             for icol,column in enumerate(df_net_others.columns):
                 y1 = df_net_others.iloc[ii*5:(ii+1)*5,icol]
-                axes[ii].scatter(x+w2-w3,y1.values.tolist(),marker='o',s=s3,color='grey',linewidths=wf,alpha=a2,label='_nolegend_')
-      
+                if highlight_CESM2 and 'CESM2' in column:
+                    axes[ii].scatter(x+w2-w3,y1.values.tolist(),marker='X',s=s3,color='grey',linewidths=wf,alpha=a2,\
+                    label=column.split('_')[0]+'_amip-p4K')
+                else:
+                    axes[ii].scatter(x+w2-w3,y1.values.tolist(),marker='o',s=s3,color='grey',linewidths=wf,alpha=a2,label='_nolegend_')
+
             for icol,column in enumerate(df_SW_others.columns):
                 y1 = df_SW_others.iloc[ii*5:(ii+1)*5,icol]
-                axes[ii].scatter(x+w+w2-w3,y1.values.tolist(),marker='o',s=s3,color='blue',linewidths=wf,alpha=a2,label='_nolegend_')
-            
+                if highlight_CESM2 and 'CESM2' in column:
+                    axes[ii].scatter(x+w+w2-w3,y1.values.tolist(),marker='X',s=s3,color='blue',linewidths=wf,alpha=a2,\
+                    label=column.split('_')[0]+'_amip-p4K')
+                else:
+                    axes[ii].scatter(x+w+w2-w3,y1.values.tolist(),marker='o',s=s3,color='blue',linewidths=wf,alpha=a2,label='_nolegend_')
+
+
             L1 = axes[ii].scatter(x-w+w2-w3,df_LW_others.iloc[ii*5:(ii+1)*5,:].mean(axis=1),marker='o',s=s3,color='red',linewidths=wf,alpha=1.0,label='_nolegend_')
             L2 = axes[ii].scatter(x+w2-w3,df_net_others.iloc[ii*5:(ii+1)*5,:].mean(axis=1),marker='o',s=s3,color='grey',linewidths=wf,alpha=1.0,label='_nolegend_')
             L3 = axes[ii].scatter(x+w+w2-w3,df_SW_others.iloc[ii*5:(ii+1)*5,:].mean(axis=1),marker='o',s=s3,color='blue',linewidths=wf,alpha=1.0,label='_nolegend_')
 
             plt.legend((L1,L2,L3),["LW","NET","SW"],scatterpoints=1,bbox_to_anchor=(1,1),loc="best",fontsize=15)
 
-
+        if ii == 0:
+            axes[ii].legend(fontsize=fh)
+ 
         axes[ii].grid(which='major', linestyle=':', linewidth='1.0', color='grey')
         
         axes[ii].axhline(0, color="grey", linestyle="-",linewidth=2)
@@ -859,7 +944,7 @@ if plot_CldRadKernel_globalmean:
             axes[ii].set_xticklabels("")
             
     plt.tight_layout()
-    fig.savefig(figdir+'ScatterPlot-Cloud-feedback-Decomposition.pdf')
+    fig.savefig(figdir+'ScatterPlot-Cloud-feedback-Decomposition.pdf',bbox_inches='tight')
 
     print('------------------------------------------------')
     print('ScatterPlot-Cloud-feedback-Decomposition is done!')
@@ -872,6 +957,11 @@ if plot_CldRadKernel_globalmean:
 if plot_CldRadKernel_zonalmean:
 
     print('ZonalMean-Cloud-feedback-Decomposition starts ........')
+
+    cases_here = copy.deepcopy(cases)
+    if 'amip-4xCO2' in cases:
+        cases_here.remove('amip-4xCO2')
+
 
     nlat = 90
     nlon = 144
@@ -942,14 +1032,16 @@ if plot_CldRadKernel_zonalmean:
                                 avgdata_others[len(cmip5_models):] = avgdata1
  
                     # E3SM 
-                    data_all = np.zeros((nlat,len(cases[:ii])))
-                    avgdata = np.zeros(len(cases[:ii]))
+                    data_all = np.zeros((nlat,len(cases_here[:ii])))
+                    avgdata = np.zeros(len(cases_here[:ii]))
     
-                    for icase,case in enumerate(cases[:ii]):
+                    for icase,case in enumerate(cases_here[:ii]):
                         if case == 'v1_coupled':
                             f1 = cdms.open(datadir_v1+'global_cloud_feedback_CMIP6_abrupt-4xCO2_E3SM-1-0_1yr-150yr.nc')
                         elif case == 'v1_amip4K':
                             f1 = cdms.open(datadir_v1+'global_cloud_feedback_CMIP6_amip-p4K_E3SM-1-0.nc')
+                        elif case == 'amip-4xCO2':
+                            continue
                         else:
                             f1 = cdms.open(datadir_v2+'global_cloud_feedback_'+case+'_E3SM-1-0'+'.nc')
     
@@ -1024,17 +1116,130 @@ if plot_CldRadKernel_zonalmean:
                     #ax.set_xlim((-90,90))
     
                     if 'tau' in varname:
-                        ax.legend(L1,cases,fontsize=fh,bbox_to_anchor=(1.04,0), loc='lower left')
+                        ax.legend(L1,cases_here,fontsize=fh,bbox_to_anchor=(1.04,0), loc='lower left')
     
                     num1 += 1
     
                 plt.tight_layout()
-                fig.savefig(figdir+'ZonalMean-Cloud-feedback-Decomposition-'+lev+'-'+component+'-'+str(np.round(ii,0))+'.pdf')
+                fig.savefig(figdir+'ZonalMean-Cloud-feedback-Decomposition-'+lev+'-'+component+'-'+str(np.round(ii,0))+'.pdf',bbox_inches='tight')
 
     print('------------------------------------------------')
     print('ZonalMean-Cloud-feedback-Decomposition is done!')
     print('------------------------------------------------')
 
+
+####################################################################################
+### 6. scatter plot for global mean radiative forcing: including E3SMv1 piControl and amip
+####################################################################################
+
+if plot_RadForcing_globalmean and any(case for case in cases if case == 'amip-4xCO2'):
+    print('ScatterPlot-RadForcing starts ........')
+
+    df_all = pd.DataFrame()
+
+    if Add_otherCMIPs:
+        # read other CMIP5 and CMIP6 models
+
+        exp_cntl = [['piControl','amip'],['piControl','amip']]
+        exp_new = [['abrupt4xCO2','amip4xCO2'],['abrupt-4xCO2','amip-4xCO2']]
+        
+        prefix = 'global_mean_features'
+        suffix1 = '*.csv'
+        suffix2 = '*.csv'
+        
+        models_all,cmip5_models,cmip6_models = PDF.get_intersect_withripf(exp_cntl,exp_new,prefix,suffix1,suffix2,datadir_Ringer)
+
+#        print('models_all',models_all,len(models_all))
+#        print('cmip5_models', cmip5_models,len(cmip5_models))
+#        print('cmip6_models', cmip6_models,len(cmip6_models))
+
+        # ---- amip4xCO2 ---------------------
+        df_4xCO2 = pd.DataFrame()
+        for model in models_all:
+            if model in cmip5_models:
+
+                if model == 'CanESM2_r1i1p1':
+                    model_amip = 'CanAM4_r1i1p1'
+                elif model == 'HadGEM2-ES_r1i1p1':
+                    model_amip = 'HadGEM2-A_r1i1p1'
+                else:
+            	    model_amip = model
+
+                filename = datadir_Ringer+'global_mean_features_CMIP5_amip4xCO2_'+model_amip+'.csv'
+            else:
+                filename = datadir_Ringer+'global_mean_features_CMIP6_amip-4xCO2_'+model+'.csv'
+        
+            df = pd.read_csv(filename,index_col=0)
+            df.index = df.loc[:,'varname']
+            df2 = df.loc[:,'anomaly']
+            df_4xCO2[model] = df2
+
+    # ------ read E3SM amip4xCO2 ------------------------
+    for icase,case in enumerate(cases):
+        if case == 'v1_coupled':
+            # read v1-coupled 
+            df_coupled = pd.read_csv(datadir_v1+'global_mean_features_CMIP6_abrupt-4xCO2_E3SM-1-0_r1i1p1f1.csv',index_col=0)
+            df_coupled.index = df_coupled.loc[:,'varname']
+            df_all['v1_coupled'] = df_coupled.loc[:,'forcing']
+        elif case not in ['amip-4xCO2','v1_coupled']:
+            continue
+        else:   
+            df1 = pd.read_csv(datadir_v2+'global_mean_features_'+case+'_E3SM-1-0'+'.csv',index_col=0)
+            df1.index = df1.loc[:,'varname']
+    
+            df2 = df1.loc[:,'anomaly']
+            df_all[case] = df2
+    
+
+    # start plotting 
+    fig = plt.figure(figsize=(12,12))
+    ax = fig.add_subplot(1,1,1)
+    fh = 15
+    
+    drop_index = ['ts','SWCLR','LWCLR']
+    df_plot = df_all.drop(index=drop_index)
+
+    if Add_otherCMIPs:
+        df_4xCO2_plot = df_4xCO2.drop(index=drop_index)
+   
+    x = np.arange(1,len(df_plot.index)+1,1)
+    
+    for idx,index in enumerate(df_plot.index):
+        for icol,column in enumerate(df_plot.columns):
+            if column == 'v1_coupled':
+                L1 = ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=s1,alpha=a1,label=column,color=colors[icol],marker='x')
+            else:
+                ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=s1,alpha=a1,label=column,color=colors[icol])
+    
+        if Add_otherCMIPs:
+            # add other CMIP models
+            for icol,column in enumerate(df_4xCO2_plot.columns):
+                if highlight_CESM2 and 'CESM2' in column:
+                    ax.scatter(x[idx]-0.2,df_4xCO2_plot.loc[index,column].tolist(),edgecolor='none',facecolor=lc_CESM2,alpha=a1,s=s2,marker='X',\
+                    label=column.split('_')[0]+'_amip-p4K')
+                else:
+                    ax.scatter(x[idx]-0.2,df_4xCO2_plot.loc[index,column].tolist(),edgecolor='none',facecolor='grey',alpha=a1,s=s2,\
+                    label='_no_legend_')
+
+            # ensemble mean
+            L2 = ax.scatter(x[idx]-0.2,df_4xCO2_plot.loc[index,:].mean().tolist(),color='black',s=s2)
+            
+        ax.tick_params(labelsize=fh)
+        ax.set_ylabel('Forcing/Adjustment [W/m$^2$]',fontsize=fh)
+        if idx==0:
+            legend1 = ax.legend([L2],['amip4xCO2'],fontsize=fh,loc='lower right')
+            ax.legend(fontsize=fh)
+            ax.add_artist(legend1) 
+    
+    plt.xticks(x,df_plot.index)
+    
+    ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
+    fig.savefig(figdir+'ScatterPlot-RadForcing.pdf',bbox_inches='tight')
+    plt.show()
+    del(df_all,df_plot)
+    print('------------------------------------------------')
+    print('ScatterPlot-RadForcing is done!')
+    print('------------------------------------------------')
 
 
 
