@@ -49,10 +49,15 @@ datadir_v2 = datadir+'data/'
 figdir = datadir+'figure/'
 
 ## notion: if you also want to compare with default E3SM-1-0, please add 'v1_coupled' and 'v1_amip4K' below.
-cases = ['v1_coupled','amip-p4K','amip-future4K','amip-4xCO2']
-colors = ['tab:red','tab:blue','tab:orange','tab:purple','tab:green']
-linewidths = [2,2,2,2,2]
-linestyles = ['-','-','-','-','-']
+#cases = ['v1_coupled','amip-p4K','amip-future4K','amip-4xCO2']
+#colors = ['tab:red','tab:blue','tab:orange','tab:purple','tab:green']
+#linewidths = [2,2,2,2,2]
+#linestyles = ['-','-','-','-','-']
+
+cases = ['v1_coupled','amip-p4K','F2010-p4K']
+colors = ['tab:red','tab:blue','tab:orange']
+linewidths = [2,2,4]
+linestyles = [':',':','-']
 
 lw_CESM2 = 2
 ls_CESM2 = ':'
@@ -64,7 +69,7 @@ lc_CESM2 = 'blue'
 #linestyles = ['-','-']
 
 ## include option about whether adding results from other CMIP models 
-Add_otherCMIPs = True
+Add_otherCMIPs = False
 
 highlight_CESM2 = False
 
@@ -84,10 +89,10 @@ plot_CldRadKernel_globalmean = True
 plot_CldRadKernel_zonalmean = True
 
 ### scatter plot: amip-p4K vs Future-4K -- just CRE feedback [cannot be used if you don't have amip-future4K!!!!!]
-plot_CRE_globalmean_P4KvsFuture = True
+plot_CRE_globalmean_P4KvsFuture = False
 
 ### scatter plot: global mean radiative forcing --> intercept from abrupt-4xCO2; radiation anomaly from amip-4xCO2
-plot_RadForcing_globalmean = True
+plot_RadForcing_globalmean = False
 
 # ---------------- please set other optional setting for figure: start -------------------------------------------------
 
@@ -277,18 +282,24 @@ if plot_CRE_globalmean:
         ax.set_ylabel('W/m$^2$/K',fontsize=fh)
         if idx==0:
             if Add_amipFuture:
-                legend1 = ax.legend([L2,L3],['amip4K','amipFuture'],fontsize=fh,loc='upper left')
-                ax.legend(fontsize=fh)
-                ax.add_artist(legend1) 
+                if Add_otherCMIPs:
+                    legend1 = ax.legend([L2,L3],['amip4K','amipFuture'],fontsize=fh,loc='upper left')
+                    ax.legend(fontsize=fh)
+                    ax.add_artist(legend1) 
+                else:
+                    ax.legend(fontsize=fh)
             else:
-                legend1 = ax.legend([L2],['amip4K'],fontsize=fh,loc='upper left')
-                ax.legend(fontsize=fh)
-                ax.add_artist(legend1) 
+                if Add_otherCMIPs:
+                    legend1 = ax.legend([L2],['amip4K'],fontsize=fh,loc='upper left')
+                    ax.legend(fontsize=fh)
+                    ax.add_artist(legend1) 
+                else:
+                    ax.legend(fontsize=fh)
     
     plt.xticks(x,df_plot.index)
     
     ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
-    fig.savefig(figdir+'ScatterPlot-CRE-feedback.pdf',bbox_inches='tight')
+    fig.savefig(figdir+'ScatterPlot-CRE-feedback-'+cases[-1]+'.pdf',bbox_inches='tight')
     plt.show()
     del(df_all,df_plot)
     print('------------------------------------------------')
@@ -436,7 +447,7 @@ if plot_CRE_globalmean_P4KvsFuture:
 #    plt.xticks(x,df_plot.index)
     
     fig.tight_layout()
-    fig.savefig(figdir+'ScatterPlot-CRE-P4KvsFuture-feedback.pdf',bbox_inches='tight')
+    fig.savefig(figdir+'ScatterPlot-CRE-P4KvsFuture-feedback-'+cases[-1]+'.pdf',bbox_inches='tight')
     plt.show()
     del(df_all,df_plot)
     print('------------------------------------------------')
@@ -560,16 +571,19 @@ if plot_RadKernel_globalmean:
         ax.tick_params(labelsize=fh)
         ax.set_ylabel('W/m$^2$/K',fontsize=fh)
         if idx == 0:
-            legend1 = ax.legend([L2],['amip4K'],fontsize=fh,loc='upper left')
-            ax.legend(fontsize=fh)
-            ax.add_artist(legend1) 
+            if Add_otherCMIPs:
+                legend1 = ax.legend([L2],['amip4K'],fontsize=fh,loc='upper left')
+                ax.legend(fontsize=fh)
+                ax.add_artist(legend1) 
+            else:
+                ax.legend(fontsize=fh)
 
     ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
     degrees = 70
     plt.xticks(x,df_plot.index,rotation=degrees)
     ax.set_title('Radiative Kernel feedback',fontsize=fh)
     
-    fig.savefig(figdir+'ScatterPlot-RadKernel-Feedback.pdf',bbox_inches='tight')
+    fig.savefig(figdir+'ScatterPlot-RadKernel-Feedback-'+cases[-1]+'.pdf',bbox_inches='tight')
     print('------------------------------------------------')
     print('ScatterPlot-RadKernel-Feedback is done!')
     print('------------------------------------------------')
@@ -741,7 +755,7 @@ if plot_RadKernel_zonalmean:
             num1 += 1
     
         plt.tight_layout()
-        fig.savefig(figdir+'Zonal-mean-Cloud-RadKernel-Feedback-'+str(np.round(ii,0))+'.pdf',bbox_inches='tight')
+        fig.savefig(figdir+'Zonal-mean-Cloud-RadKernel-Feedback-'+str(np.round(ii,0))+'-'+cases[-1]+'.pdf',bbox_inches='tight')
 
 
     print('------------------------------------------------')
@@ -944,7 +958,7 @@ if plot_CldRadKernel_globalmean:
             axes[ii].set_xticklabels("")
             
     plt.tight_layout()
-    fig.savefig(figdir+'ScatterPlot-Cloud-feedback-Decomposition.pdf',bbox_inches='tight')
+    fig.savefig(figdir+'ScatterPlot-Cloud-feedback-Decomposition-'+cases[-1]+'.pdf',bbox_inches='tight')
 
     print('------------------------------------------------')
     print('ScatterPlot-Cloud-feedback-Decomposition is done!')
@@ -1121,7 +1135,7 @@ if plot_CldRadKernel_zonalmean:
                     num1 += 1
     
                 plt.tight_layout()
-                fig.savefig(figdir+'ZonalMean-Cloud-feedback-Decomposition-'+lev+'-'+component+'-'+str(np.round(ii,0))+'.pdf',bbox_inches='tight')
+                fig.savefig(figdir+'ZonalMean-Cloud-feedback-Decomposition-'+lev+'-'+component+'-'+str(np.round(ii,0))+'-'+cases[-1]+'.pdf',bbox_inches='tight')
 
     print('------------------------------------------------')
     print('ZonalMean-Cloud-feedback-Decomposition is done!')
@@ -1234,7 +1248,7 @@ if plot_RadForcing_globalmean and any(case for case in cases if case == 'amip-4x
     plt.xticks(x,df_plot.index)
     
     ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
-    fig.savefig(figdir+'ScatterPlot-RadForcing.pdf',bbox_inches='tight')
+    fig.savefig(figdir+'ScatterPlot-RadForcing-'+cases[-1]+'.pdf',bbox_inches='tight')
     plt.show()
     del(df_all,df_plot)
     print('------------------------------------------------')
