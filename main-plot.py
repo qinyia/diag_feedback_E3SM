@@ -40,7 +40,7 @@ import copy
 
 # -------------- set up directories for all kinds of necessary data
 ## main directory. pls modify it based on your current script directory. 
-datadir = '/global/homes/q/qinyi/scripts/diag_feedback_E3SM/'
+datadir = '/g/g90/qin4/scripts/diag_feedback_E3SM/'
 
 ## data directory for E3SMv2 
 ## [it includes all data that you want to be plotted. If main.py runs successfully, this directory would be enough for further plot.]
@@ -49,22 +49,17 @@ datadir_v2 = datadir+'data/'
 figdir = datadir+'figure/'
 
 ## notion: if you also want to compare with default E3SM-1-0, please add 'v1_coupled' and 'v1_amip4K' below.
-cases = ['v1_coupled','amip-p4K','amip-future4K','amip-4xCO2']
-colors = ['tab:red','tab:blue','tab:orange','tab:purple','tab:green']
-linewidths = [2,2,2,2,2]
-linestyles = ['-','-','-','-','-']
+cases = ['v1_coupled','v1_amip4K','F2010-p4K','F1850-p4K','F2010-1850aero-p4K']
+colors = ['tab:red','tab:blue','tab:cyan','tab:orange','tab:purple','tab:green']
+linewidths = [2,2,2,4,4,2]
+linestyles = [':',':',':','-','-','-']
 
 lw_CESM2 = 2
 ls_CESM2 = ':'
 lc_CESM2 = 'blue'
 
-#cases = ['v1_coupled','amip-4xCO2']
-#colors = ['tab:red','tab:blue']
-#linewidths = [2,2]
-#linestyles = ['-','-']
-
 ## include option about whether adding results from other CMIP models 
-Add_otherCMIPs = True
+Add_otherCMIPs = False
 
 highlight_CESM2 = False
 
@@ -84,10 +79,10 @@ plot_CldRadKernel_globalmean = True
 plot_CldRadKernel_zonalmean = True
 
 ### scatter plot: amip-p4K vs Future-4K -- just CRE feedback [cannot be used if you don't have amip-future4K!!!!!]
-plot_CRE_globalmean_P4KvsFuture = True
+plot_CRE_globalmean_P4KvsFuture = False
 
 ### scatter plot: global mean radiative forcing --> intercept from abrupt-4xCO2; radiation anomaly from amip-4xCO2
-plot_RadForcing_globalmean = True
+plot_RadForcing_globalmean = False
 
 # ---------------- please set other optional setting for figure: start -------------------------------------------------
 
@@ -111,7 +106,7 @@ ncase = [len(cases)]
 ############################################################################################
 
 # ----------- set up directories for necessary data --------------------------
-datadir_CMIPs = '/global/project/projectdirs/mp193/www/qinyi/DATA/'
+datadir_CMIPs = '/p/lustre2/qin4/Data_cori/'
 # -- data for E3SMv1 [dont modify data in this directory.]
 datadir_v1 = datadir_CMIPs+'E3SMv1_data/'
 # -- data for other CMIP models from CRE feedback [dont' modify data in it.]
@@ -277,18 +272,24 @@ if plot_CRE_globalmean:
         ax.set_ylabel('W/m$^2$/K',fontsize=fh)
         if idx==0:
             if Add_amipFuture:
-                legend1 = ax.legend([L2,L3],['amip4K','amipFuture'],fontsize=fh,loc='upper left')
-                ax.legend(fontsize=fh)
-                ax.add_artist(legend1) 
+                if Add_otherCMIPs:
+                    legend1 = ax.legend([L2,L3],['amip4K','amipFuture'],fontsize=fh,loc='upper left')
+                    ax.legend(fontsize=fh)
+                    ax.add_artist(legend1) 
+                else:
+                    ax.legend(fontsize=fh)
             else:
-                legend1 = ax.legend([L2],['amip4K'],fontsize=fh,loc='upper left')
-                ax.legend(fontsize=fh)
-                ax.add_artist(legend1) 
+                if Add_otherCMIPs:
+                    legend1 = ax.legend([L2],['amip4K'],fontsize=fh,loc='upper left')
+                    ax.legend(fontsize=fh)
+                    ax.add_artist(legend1) 
+                else:
+                    ax.legend(fontsize=fh)
     
     plt.xticks(x,df_plot.index)
     
     ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
-    fig.savefig(figdir+'ScatterPlot-CRE-feedback.pdf',bbox_inches='tight')
+    fig.savefig(figdir+'ScatterPlot-CRE-feedback-'+cases[-1]+'.pdf',bbox_inches='tight')
     plt.show()
     del(df_all,df_plot)
     print('------------------------------------------------')
@@ -415,12 +416,12 @@ if plot_CRE_globalmean_P4KvsFuture:
         if Add_otherCMIPs:
             for icol,column in enumerate(df_p4K_plot.columns):
                 if column in models_cmip5:
-                    L1 = ax.scatter(df_p4K_plot.loc[index,column],df_future_plot.loc[index,column],s=s1-100,alpha=a1,label='_no_legend_',color='tab:blue',edgecolor='none')
+                    L1 = ax.scatter(df_p4K_plot.loc[index,column],df_future_plot.loc[index,column],s=s1-100,alpha=a1,label='_nolegend_',color='tab:blue',edgecolor='none')
                 else:
                     if highlight_CESM2 and column == 'CESM2':
                         L1 = ax.scatter(df_p4K_plot.loc[index,column],df_future_plot.loc[index,column],s=s1,alpha=a1,label=column,color='tab:red',marker='X',edgecolor='none')
                     else:
-                        L1 = ax.scatter(df_p4K_plot.loc[index,column],df_future_plot.loc[index,column],s=s1-100,alpha=a1,label='_no_legend_',color='tab:red',edgecolor='none')
+                        L1 = ax.scatter(df_p4K_plot.loc[index,column],df_future_plot.loc[index,column],s=s1-100,alpha=a1,label='_nolegend_',color='tab:red',edgecolor='none')
 
         ax.plot([valmin,valmax],[valmin,valmax],ls='--',lw=3,color='grey')
 
@@ -436,7 +437,7 @@ if plot_CRE_globalmean_P4KvsFuture:
 #    plt.xticks(x,df_plot.index)
     
     fig.tight_layout()
-    fig.savefig(figdir+'ScatterPlot-CRE-P4KvsFuture-feedback.pdf',bbox_inches='tight')
+    fig.savefig(figdir+'ScatterPlot-CRE-P4KvsFuture-feedback-'+cases[-1]+'.pdf',bbox_inches='tight')
     plt.show()
     del(df_all,df_plot)
     print('------------------------------------------------')
@@ -560,16 +561,19 @@ if plot_RadKernel_globalmean:
         ax.tick_params(labelsize=fh)
         ax.set_ylabel('W/m$^2$/K',fontsize=fh)
         if idx == 0:
-            legend1 = ax.legend([L2],['amip4K'],fontsize=fh,loc='upper left')
-            ax.legend(fontsize=fh)
-            ax.add_artist(legend1) 
+            if Add_otherCMIPs:
+                legend1 = ax.legend([L2],['amip4K'],fontsize=fh,loc='upper left')
+                ax.legend(fontsize=fh)
+                ax.add_artist(legend1) 
+            else:
+                ax.legend(fontsize=fh)
 
     ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
     degrees = 70
     plt.xticks(x,df_plot.index,rotation=degrees)
     ax.set_title('Radiative Kernel feedback',fontsize=fh)
     
-    fig.savefig(figdir+'ScatterPlot-RadKernel-Feedback.pdf',bbox_inches='tight')
+    fig.savefig(figdir+'ScatterPlot-RadKernel-Feedback-'+cases[-1]+'.pdf',bbox_inches='tight')
     print('------------------------------------------------')
     print('ScatterPlot-RadKernel-Feedback is done!')
     print('------------------------------------------------')
@@ -675,12 +679,12 @@ if plot_RadKernel_zonalmean:
                 clat = np.cos(np.deg2rad(lats))
                 clat1 = clat/MV.sum(clat)
                 clat1[0] = 0.
-    
+
                 clats = np.zeros(len(clat1))
     
                 for ilat in range(len(clat1)):
-                    clats[ilat] = np.sum(clat1[:ilat])
-                clats[0] = 0.
+                    clats[ilat] = np.sum(clat1[:ilat+1])
+#                clats[0] = 0.
     
                 #Needs = [-90,-50,-30,-15,0, 15,30,50,90]
                 Needs = [-85, -55, -35, -15, 15, 35, 55, 85]
@@ -688,7 +692,8 @@ if plot_RadKernel_zonalmean:
                 N = [i for i in range(len(lats)) if lats[i] in Needs]
                 spec_lats = Needs
                 spec_clats = list(np.array(clats)[N])
-
+                
+#                print('clat1=',clat1)
 #                print('lats=',lats)
 #                print('clats=',clats)
 #                print('spec_lats=',spec_lats)
@@ -741,7 +746,7 @@ if plot_RadKernel_zonalmean:
             num1 += 1
     
         plt.tight_layout()
-        fig.savefig(figdir+'Zonal-mean-Cloud-RadKernel-Feedback-'+str(np.round(ii,0))+'.pdf',bbox_inches='tight')
+        fig.savefig(figdir+'Zonal-mean-Cloud-RadKernel-Feedback-'+str(np.round(ii,0))+'-'+cases[-1]+'.pdf',bbox_inches='tight')
 
 
     print('------------------------------------------------')
@@ -846,42 +851,39 @@ if plot_CldRadKernel_globalmean:
     w = 0.25
     w2 = 0.08
     w3 = 0.08
-    
-    
+
     x = np.asarray([1,2,3,4,5])
     
     for ii in range(3): ## loop for each panel, ii reprents All, Non-Low and Low Cloud 
         for icol,column in enumerate(df_LW_all.columns):
             y1 = df_LW_all.iloc[ii*5:(ii+1)*5,icol]
             if column == 'v1_coupled':
-                axes[ii].scatter(x-w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label=column)
+                axes[ii].scatter(x-w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],alpha=a1,label=column)
             elif column == 'v1_amip4K':
-                axes[ii].scatter(x-w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label=column)
+                axes[ii].scatter(x-w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],alpha=a1,label=column)
             else:
-#                L1 = axes[ii].scatter(x-w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
-                axes[ii].scatter(x-w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
+#                L1 = axes[ii].scatter(x-w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],alpha=a1,label=column)
+                axes[ii].scatter(x-w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],alpha=a1,label=column)
 
-           
         for icol,column in enumerate(df_net_all.columns):
             y1 = df_net_all.iloc[ii*5:(ii+1)*5,icol]
             if column == 'v1_coupled':
-                axes[ii].scatter(x+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label='_no_legend_')
+                axes[ii].scatter(x+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],alpha=a1,label='_nolegend_')
             elif column == 'v1_amip4K':
-                axes[ii].scatter(x+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label='_no_legend_')
+                axes[ii].scatter(x+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],alpha=a1,label='_nolegend_')
             else:
-#                L2 = axes[ii].scatter(x+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
-                axes[ii].scatter(x+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label='_no_legend_')
+#                L2 = axes[ii].scatter(x+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],alpha=a1,label=column)
+                axes[ii].scatter(x+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],alpha=a1,label='_nolegend_')
 
-    
         for icol,column in enumerate(df_SW_all.columns):
             y1 = df_SW_all.iloc[ii*5:(ii+1)*5,icol]
             if column == 'v1_coupled':
-                axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label='_no_legend_')
+                axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],alpha=a1,label='_nolegend_')
             elif column == 'v1_amip4K':
-                axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label='_no_legend_')
+                axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],alpha=a1,label='_nolegend_')
             else:
- #               L3 = axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
-                axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label='_no_legend_')
+ #               L3 = axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],alpha=a1,label=column)
+                axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],alpha=a1,label='_nolegend_')
    
 
         # CMIP - other models
@@ -891,31 +893,31 @@ if plot_CldRadKernel_globalmean:
             for icol,column in enumerate(df_LW_others.columns):
                 y1 = df_LW_others.iloc[ii*5:(ii+1)*5,icol]
                 if highlight_CESM2 and 'CESM2' in column:
-                    axes[ii].scatter(x-w+w2-w3,y1.values.tolist(),marker='X',s=s3,color='red',linewidths=wf,alpha=a2,\
+                    axes[ii].scatter(x-w+w2-w3,y1.values.tolist(),marker='X',s=s3,color='red',alpha=a2,\
                     label=column.split('_')[0]+'_amip-p4K')
                 else:
-                    axes[ii].scatter(x-w+w2-w3,y1.values.tolist(),marker='o',s=s3,color='red',linewidths=wf,alpha=a2,label='_nolegend_')
+                    axes[ii].scatter(x-w+w2-w3,y1.values.tolist(),marker='o',s=s3,color='red',alpha=a2,label='_nolegend_')
 
             for icol,column in enumerate(df_net_others.columns):
                 y1 = df_net_others.iloc[ii*5:(ii+1)*5,icol]
                 if highlight_CESM2 and 'CESM2' in column:
-                    axes[ii].scatter(x+w2-w3,y1.values.tolist(),marker='X',s=s3,color='grey',linewidths=wf,alpha=a2,\
+                    axes[ii].scatter(x+w2-w3,y1.values.tolist(),marker='X',s=s3,color='grey',alpha=a2,\
                     label=column.split('_')[0]+'_amip-p4K')
                 else:
-                    axes[ii].scatter(x+w2-w3,y1.values.tolist(),marker='o',s=s3,color='grey',linewidths=wf,alpha=a2,label='_nolegend_')
+                    axes[ii].scatter(x+w2-w3,y1.values.tolist(),marker='o',s=s3,color='grey',alpha=a2,label='_nolegend_')
 
             for icol,column in enumerate(df_SW_others.columns):
                 y1 = df_SW_others.iloc[ii*5:(ii+1)*5,icol]
                 if highlight_CESM2 and 'CESM2' in column:
-                    axes[ii].scatter(x+w+w2-w3,y1.values.tolist(),marker='X',s=s3,color='blue',linewidths=wf,alpha=a2,\
+                    axes[ii].scatter(x+w+w2-w3,y1.values.tolist(),marker='X',s=s3,color='blue',alpha=a2,\
                     label=column.split('_')[0]+'_amip-p4K')
                 else:
-                    axes[ii].scatter(x+w+w2-w3,y1.values.tolist(),marker='o',s=s3,color='blue',linewidths=wf,alpha=a2,label='_nolegend_')
+                    axes[ii].scatter(x+w+w2-w3,y1.values.tolist(),marker='o',s=s3,color='blue',alpha=a2,label='_nolegend_')
 
 
-            L1 = axes[ii].scatter(x-w+w2-w3,df_LW_others.iloc[ii*5:(ii+1)*5,:].mean(axis=1),marker='o',s=s3,color='red',linewidths=wf,alpha=1.0,label='_nolegend_')
-            L2 = axes[ii].scatter(x+w2-w3,df_net_others.iloc[ii*5:(ii+1)*5,:].mean(axis=1),marker='o',s=s3,color='grey',linewidths=wf,alpha=1.0,label='_nolegend_')
-            L3 = axes[ii].scatter(x+w+w2-w3,df_SW_others.iloc[ii*5:(ii+1)*5,:].mean(axis=1),marker='o',s=s3,color='blue',linewidths=wf,alpha=1.0,label='_nolegend_')
+            L1 = axes[ii].scatter(x-w+w2-w3,df_LW_others.iloc[ii*5:(ii+1)*5,:].mean(axis=1),marker='o',s=s3,color='red',alpha=1.0,label='_nolegend_')
+            L2 = axes[ii].scatter(x+w2-w3,df_net_others.iloc[ii*5:(ii+1)*5,:].mean(axis=1),marker='o',s=s3,color='grey',alpha=1.0,label='_nolegend_')
+            L3 = axes[ii].scatter(x+w+w2-w3,df_SW_others.iloc[ii*5:(ii+1)*5,:].mean(axis=1),marker='o',s=s3,color='blue',alpha=1.0,label='_nolegend_')
 
             plt.legend((L1,L2,L3),["LW","NET","SW"],scatterpoints=1,bbox_to_anchor=(1,1),loc="best",fontsize=15)
 
@@ -944,12 +946,11 @@ if plot_CldRadKernel_globalmean:
             axes[ii].set_xticklabels("")
             
     plt.tight_layout()
-    fig.savefig(figdir+'ScatterPlot-Cloud-feedback-Decomposition.pdf',bbox_inches='tight')
+    fig.savefig(figdir+'ScatterPlot-Cloud-feedback-Decomposition-'+cases[-1]+'.pdf',bbox_inches='tight')
 
     print('------------------------------------------------')
     print('ScatterPlot-Cloud-feedback-Decomposition is done!')
     print('------------------------------------------------')
-
 
 #####################################################################
 ### 5. zonal mean cloud feedback based on cloud radiative kernel
@@ -1065,8 +1066,8 @@ if plot_CldRadKernel_zonalmean:
                         clats = np.zeros(len(clat1))
     
                         for ilat in range(len(clat1)):
-                            clats[ilat] = np.sum(clat1[:ilat])
-                        clats[0] = 0.
+                            clats[ilat] = np.sum(clat1[:ilat+1])
+#                        clats[0] = 0.
     
 #                        Needs = [-90,-50,-30,-15,0, 15,30,50,90]
                         Needs = [-85, -55, -35, -15, 15, 35, 55, 85]
@@ -1121,7 +1122,7 @@ if plot_CldRadKernel_zonalmean:
                     num1 += 1
     
                 plt.tight_layout()
-                fig.savefig(figdir+'ZonalMean-Cloud-feedback-Decomposition-'+lev+'-'+component+'-'+str(np.round(ii,0))+'.pdf',bbox_inches='tight')
+                fig.savefig(figdir+'ZonalMean-Cloud-feedback-Decomposition-'+lev+'-'+component+'-'+str(np.round(ii,0))+'-'+cases[-1]+'.pdf',bbox_inches='tight')
 
     print('------------------------------------------------')
     print('ZonalMean-Cloud-feedback-Decomposition is done!')
@@ -1219,7 +1220,7 @@ if plot_RadForcing_globalmean and any(case for case in cases if case == 'amip-4x
                     label=column.split('_')[0]+'_amip-p4K')
                 else:
                     ax.scatter(x[idx]-0.2,df_4xCO2_plot.loc[index,column].tolist(),edgecolor='none',facecolor='grey',alpha=a1,s=s2,\
-                    label='_no_legend_')
+                    label='_nolegend_')
 
             # ensemble mean
             L2 = ax.scatter(x[idx]-0.2,df_4xCO2_plot.loc[index,:].mean().tolist(),color='black',s=s2)
@@ -1234,7 +1235,7 @@ if plot_RadForcing_globalmean and any(case for case in cases if case == 'amip-4x
     plt.xticks(x,df_plot.index)
     
     ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
-    fig.savefig(figdir+'ScatterPlot-RadForcing.pdf',bbox_inches='tight')
+    fig.savefig(figdir+'ScatterPlot-RadForcing-'+cases[-1]+'.pdf',bbox_inches='tight')
     plt.show()
     del(df_all,df_plot)
     print('------------------------------------------------')
