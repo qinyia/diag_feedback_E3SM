@@ -3,6 +3,7 @@ import os
 import cal_global_radiation_feedback_E3SM as GRF
 import cal_RadKernel_E3SM as RK
 import cal_CloudRadKernel_E3SM as CRK
+import sys
 
 # ----------------------------
 # all required environments for this script:
@@ -20,45 +21,41 @@ CloudRadKernel = True
 
 # give one stamp for each pair experiment, like v1, v2, v3....
 case_stamp = [\
-#'TEST',\
-#'amip-p4K',\
-'amip-future4K',\
-'amip-4xCO2',\
+'F2010-p4K',\
+#'F1850-p4K',\
+#'F2010-1850aero-p4K',\
 ]
 # set the control case names
 run_id1s = [\
-#'cori-haswell.20190513.F2010C5-CMIP6-LR.ne30_oECv3',\
-#'20200428.DECKv1b_amip1-CFMIP.ne30_oEC.cori-knl-L',\
-'20200428.DECKv1b_amip1-CFMIP.ne30_oEC.cori-knl-L',\
-'20200428.DECKv1b_amip1-CFMIP.ne30_oEC.cori-knl-L',\
+'20200326.F2010C5-CMIP6-LR.ne30_oEC.cori-knl-M',\
+#'20201224.F1850C5-CMIP6.ne30_oECv3.syrah.1024',\
+#'20201224.F2010C5-CMIP6-LR.1850-aerosol.ne30_oECv3.syrah.1024',\
 ]
 # set the p4K case names
 run_id2s = [\
-#'cori-haswell.20190513.F2010C5-CMIP6-LR.plus4K.ne30_oECv3',\
-#'20200428.DECKv1b_amip1.plus4K-CFMIP.ne30_oEC.cori-knl-L',\
-'20201011.DECKv1b_amip1.future4K-CFMIP.ne30_oEC.cori-knl-L',\
-'20201010.DECKv1b_amip1.4xCO2-CFMIP.ne30_oEC.cori-knl-L',\
+'20200401.F2010C5-CMIP6-LR.plus4K.ne30_oEC.cori-knl-M',\
+#'20201224.F1850C5-CMIP6-p4K.ne30_oECv3.syrah.1024',\
+#'20201224.F2010C5-CMIP6-LR-p4K.1850-aerosol.ne30_oECv3.syrah.1024',\
 ]
 # set the regrid map from ne30np4 to lat-lon
-rgr_map = '~zender/data/maps/map_ne30np4_to_cmip6_72x144_aave.20181001.nc'
+rgr_map = '/p/lustre2/qin4/Data_cori/map_ne30np4_to_fv129x256_aave.20150901.nc'
+
 # set start year
-yearS = 1979
+yearS = 1
 # set end year
-yearE = 2014
+yearE = 5
 
 # set input directory 1 --- the directory before casename in the whole directory
-#datadir_in1 = '/global/cscratch1/sd/qinyi/E3SM_predata/'
-datadir_in1= '/global/cscratch1/sd/qinyi/E3SM_simulations/'
+datadir_in1= '/p/lustre2/qin4/E3SM_simulations/'
 # set input directory 2 --- the directory after casename in the whole directory
-datadir_in2 = 'archive/atm/hist/h0/'
+datadir_in2 = 'run/'
 
 # set output directory for necessary variables after post-processing E3SM raw data
-outdir_out = '/global/cscratch1/sd/qinyi/diag_feedback_E3SM_postdata/'
-
+outdir_out = '/p/lustre2/qin4/diag_feedback_E3SM_postdata/'
 
 ### NOTION: if you work on Cori, you should not change the below directories. If not, you should download data.
 # set RadKernel input kernel directory
-RadKernel_dir = '/global/project/projectdirs/mp193/www/qinyi/DATA/Huang_kernel_data/'
+RadKernel_dir = '/p/lustre2/qin4/Data_cori/Huang_kernel_data/'
 
 # ---------------------------- all modifications please stop here --------------------------------------------
 
@@ -114,13 +111,13 @@ for icase,case in enumerate(case_stamp):
     direc_data = outdir_out
     if Global_RadFeedback:
         result = GRF.Global_RadFeedback(direc_data,case_stamp[icase],yearS,yearE,run_id1,run_id2,outdir_final)
-    
+
     # special treatment to amip-4xCO2: it does not need RadKernel and CloudRadKernel analysis
     if case != 'amip-4xCO2':
         # Part 3: run radiative kernel analysis
         if RadKernel:
             result = RK.RadKernel(RadKernel_dir,direc_data,case_stamp[icase],yearS,yearE,run_id1,run_id2,outdir_final,figdir,exp1,exp2)
-        
+       
         # Part 4: run cloud radiative kernel analysis: decomposition 
         if CloudRadKernel:
             result = CRK.CloudRadKernel(CloudRadKernel_dir,direc_data,case_stamp[icase],yearS,yearE,run_id1,run_id2,outdir_final,figdir)
