@@ -12,11 +12,16 @@ import cal_CloudRadKernel_E3SM as CRK
 # NCO
 
 # ----------------------------Hi, all modifications please start here --------------------------------------------
-# if you run this script at the first time, set PreProcess = True; otherwise, PreProcess = False
-PreProcess = False
-Global_RadFeedback = True
-RadKernel = True
-CloudRadKernel = True
+
+## convert raw model output to desired data format for later analysis
+## if you run this script at the first time, set PreProcess = True; otherwise, PreProcess = False
+PreProcess = True
+# calculate radiative feedbacks
+Global_RadFeedback = False
+# calculate radiative kernel feedbacks (Soden et al., 2005), including non-cloud feedbacks like Planck, lapse rate, water vapor, albedo, adjusted cloud feedbacks.
+RadKernel = False
+# calculate cloud radiative kernel feedbacks (Zelinka et al., 2012, 2016), including the contribution of cloud properties (amount, altitude, altitude) on cloud feedbacks.
+CloudRadKernel = False
 
 # give one stamp for each pair experiment, like v1, v2, v3....
 case_stamp = [\
@@ -43,7 +48,8 @@ run_id2s = [\
 '20200401.F2010C5-CMIP6-LR.plus4K.ne30_oEC.cori-knl-M',\
 ]
 # set the regrid map from ne30np4 to lat-lon
-rgr_map = '~zender/data/maps/map_ne30np4_to_cmip6_72x144_aave.20181001.nc'
+#rgr_map = '~zender/data/maps/map_ne30np4_to_cmip6_72x144_aave.20181001.nc'
+rgr_map = '~zender/data/maps/map_ne30np4_to_fv129x256_aave.20150901.nc'
 # set start year
 yearS = 1
 # set end year
@@ -56,7 +62,7 @@ datadir_in1= '/global/cscratch1/sd/qinyi/E3SM_simulations/'
 #datadir_in2 = 'archive/atm/hist/h0/'
 datadir_in2 = 'archive/atm/hist/'
 
-# set output directory for necessary variables after post-processing E3SM raw data
+# set output directory for necessary variables after post-processing E3SM raw data -- caution: this data might be large.
 outdir_out = '/global/cscratch1/sd/qinyi/diag_feedback_E3SM_postdata/'
 
 
