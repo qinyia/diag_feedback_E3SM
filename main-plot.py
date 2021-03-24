@@ -36,7 +36,7 @@ import copy
 ############################################################################################
 ####Modification ends here #################################################################
 
-# ---------------- please set all these following directories and your prefered styles: start ----------------------
+# ---------------- Step 1: please set all these following directories and your prefered styles: start ----------------------
 
 # -------------- set up directories for all kinds of necessary data
 ## main directory. pls modify it based on your current script directory. 
@@ -49,11 +49,6 @@ datadir_v2 = datadir+'data/'
 figdir = datadir+'figure/'
 
 ## notion: if you also want to compare with default E3SM-1-0, please add 'v1_coupled' and 'v1_amip4K' below.
-#cases = ['v1_coupled','amip-p4K','amip-future4K','amip-4xCO2']
-#colors = ['tab:red','tab:blue','tab:orange','tab:purple','tab:green']
-#linewidths = [2,2,2,2,2]
-#linestyles = ['-','-','-','-','-']
-
 cases = ['v1_coupled','amip-p4K','F2010-p4K']
 colors = ['tab:red','tab:blue','tab:orange']
 linewidths = [2,2,4]
@@ -63,21 +58,16 @@ lw_CESM2 = 2
 ls_CESM2 = ':'
 lc_CESM2 = 'blue'
 
-#cases = ['v1_coupled','amip-4xCO2']
-#colors = ['tab:red','tab:blue']
-#linewidths = [2,2]
-#linestyles = ['-','-']
-
-## include option about whether adding results from other CMIP models 
-Add_otherCMIPs = False
+## include option about whether adding results from other CMIP models.
+Add_otherCMIPs = True
 
 highlight_CESM2 = False
 
 # ----------------- please set all these following directories and your prefered styles: End!!!!! ----------------------
 
-# ---------------- please set all plot types you want -----------------------------------------------------------------
+# ---------------- Step 2: please set all plot types you want -----------------------------------------------------------------
 ## choose which type figures you want to plot.
-### scatter plot: global mean CRE feedback
+### scatter plot: global mean radiative feedbacks. FTOA would be the net climate feedback as Cess experiment.
 plot_CRE_globalmean = True
 ### scatter plot: global mean RadKernel feedback --> non-cloud feedback and adjusted CRE feedback
 plot_RadKernel_globalmean = True
@@ -299,7 +289,7 @@ if plot_CRE_globalmean:
     plt.xticks(x,df_plot.index)
     
     ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
-    fig.savefig(figdir+'ScatterPlot-CRE-feedback-'+cases[-1]+'.pdf',bbox_inches='tight')
+    fig.savefig(figdir+'ScatterPlot-CRE-feedback-'+cases[-1]+'.png',bbox_inches='tight',dpi=300)
     plt.show()
     del(df_all,df_plot)
     print('------------------------------------------------')
@@ -447,7 +437,7 @@ if plot_CRE_globalmean_P4KvsFuture:
 #    plt.xticks(x,df_plot.index)
     
     fig.tight_layout()
-    fig.savefig(figdir+'ScatterPlot-CRE-P4KvsFuture-feedback-'+cases[-1]+'.pdf',bbox_inches='tight')
+    fig.savefig(figdir+'ScatterPlot-CRE-P4KvsFuture-feedback-'+cases[-1]+'.png',bbox_inches='tight',dpi=300)
     plt.show()
     del(df_all,df_plot)
     print('------------------------------------------------')
@@ -583,7 +573,7 @@ if plot_RadKernel_globalmean:
     plt.xticks(x,df_plot.index,rotation=degrees)
     ax.set_title('Radiative Kernel feedback',fontsize=fh)
     
-    fig.savefig(figdir+'ScatterPlot-RadKernel-Feedback-'+cases[-1]+'.pdf',bbox_inches='tight')
+    fig.savefig(figdir+'ScatterPlot-RadKernel-Feedback-'+cases[-1]+'.png',bbox_inches='tight',dpi=300)
     print('------------------------------------------------')
     print('ScatterPlot-RadKernel-Feedback is done!')
     print('------------------------------------------------')
@@ -755,7 +745,7 @@ if plot_RadKernel_zonalmean:
             num1 += 1
     
         plt.tight_layout()
-        fig.savefig(figdir+'Zonal-mean-Cloud-RadKernel-Feedback-'+str(np.round(ii,0))+'-'+cases[-1]+'.pdf',bbox_inches='tight')
+        fig.savefig(figdir+'Zonal-mean-Cloud-RadKernel-Feedback-'+str(np.round(ii,0))+'-'+cases[-1]+'.png',bbox_inches='tight',dpi=300)
 
 
     print('------------------------------------------------')
@@ -958,7 +948,7 @@ if plot_CldRadKernel_globalmean:
             axes[ii].set_xticklabels("")
             
     plt.tight_layout()
-    fig.savefig(figdir+'ScatterPlot-Cloud-feedback-Decomposition-'+cases[-1]+'.pdf',bbox_inches='tight')
+    fig.savefig(figdir+'ScatterPlot-Cloud-feedback-Decomposition-'+cases[-1]+'.png',bbox_inches='tight',dpi=300)
 
     print('------------------------------------------------')
     print('ScatterPlot-Cloud-feedback-Decomposition is done!')
@@ -1135,7 +1125,7 @@ if plot_CldRadKernel_zonalmean:
                     num1 += 1
     
                 plt.tight_layout()
-                fig.savefig(figdir+'ZonalMean-Cloud-feedback-Decomposition-'+lev+'-'+component+'-'+str(np.round(ii,0))+'-'+cases[-1]+'.pdf',bbox_inches='tight')
+                fig.savefig(figdir+'ZonalMean-Cloud-feedback-Decomposition-'+lev+'-'+component+'-'+str(np.round(ii,0))+'-'+cases[-1]+'.png',bbox_inches='tight',dpi=300)
 
     print('------------------------------------------------')
     print('ZonalMean-Cloud-feedback-Decomposition is done!')
@@ -1248,7 +1238,7 @@ if plot_RadForcing_globalmean and any(case for case in cases if case == 'amip-4x
     plt.xticks(x,df_plot.index)
     
     ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
-    fig.savefig(figdir+'ScatterPlot-RadForcing-'+cases[-1]+'.pdf',bbox_inches='tight')
+    fig.savefig(figdir+'ScatterPlot-RadForcing-'+cases[-1]+'.png',bbox_inches='tight',dpi=300)
     plt.show()
     del(df_all,df_plot)
     print('------------------------------------------------')
