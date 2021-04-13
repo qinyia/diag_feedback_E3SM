@@ -1,16 +1,21 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-'''
-This script is used to plot all kinds of figures for E3SMv2 developing versions via comparing with
-E3SMv1-amip, E3SMv1-piControl, and other available CMIP5 and CMIP6 models. 
+#****************************************************************
+#
+#    Filename: main-plot.py
+#
+#    Author: Yi Qin - qin4@llnl.gov
+#    Description: This script is used to plot all kinds of figures for E3SMv2 developing versions via comparing with
+#                 E3SMv1-amip, E3SMv1-piControl, and other available CMIP5 and CMIP6 models. 
+#    Input: 
+#    Output: 
+#    Create: 2020-08-04 
+#    Last Modified: 2021-02-18 16:14:27
 
-created by: Yi Qin on Aug 4, 2020
-modified: Nov 10, 2020
+#    Dec 29, 2020: add plot for radiative forcing, especially for amip-4xCO2 experiment
+#****************************************************************
 
-Dec 29, 2020: add plot for radiative forcing, especially for amip-4xCO2 experiment
-
-'''
 import cdms2 as cdms
 import cdutil
 import MV2 as MV
@@ -68,16 +73,25 @@ highlight_CESM2 = False
 # ---------------- Step 2: please set all plot types you want -----------------------------------------------------------------
 ## choose which type figures you want to plot.
 ### scatter plot: global mean radiative feedbacks. FTOA would be the net climate feedback as Cess experiment.
-plot_CRE_globalmean = True
+plot_CRE_globalmean = False
 ### scatter plot: global mean RadKernel feedback --> non-cloud feedback and adjusted CRE feedback
-plot_RadKernel_globalmean = True
+plot_RadKernel_globalmean = False
 ### zonal mean plot: RadKernel feedback --> adjusted CRE feedback
-plot_RadKernel_zonalmean = True
+plot_RadKernel_zonalmean = False
 ### scatter plot: global mean CldRadKernel feedback --> decomposition of cloud feedback
-plot_CldRadKernel_globalmean = True
+plot_CldRadKernel_globalmean = False
 ### zonal mean plot: CldRadKernel feedback --> decomposition of cloud feedback
-plot_CldRadKernel_zonalmean = True
+plot_CldRadKernel_zonalmean = False
 
+### latlon plot: CldRadKernel feedback 
+plot_CldRadKernel_latlon = False
+
+#<qinyi 2021-02-18 #------------------
+### lat-lon plot with zonal mean plot: surface air temperature normalized global-mean surface temperature change
+plot_tas_latlon = True
+#>qinyi 2021-02-18 #------------------
+
+# ============ others ==============================
 ### scatter plot: amip-p4K vs Future-4K -- just CRE feedback [cannot be used if you don't have amip-future4K!!!!!]
 plot_CRE_globalmean_P4KvsFuture = False
 
@@ -98,7 +112,9 @@ a1 = 0.4
 # for example, if you would like to show the first three cases, then first 6 cases, and all cases, pls set ncase = [3,6,7]
 # generally, if you want all lines in the same plot, just set ncase = [len(cases)]
 #ncase = [3,6,len(cases)]
-ncase = [len(cases)]
+#ncase = [len(cases)]
+ncase = range(2,len(cases)+1)
+print('ncase=',list(ncase))
 
 # ---------------- please set other optional setting for figure: end -------------------------------------------------
 
@@ -416,12 +432,12 @@ if plot_CRE_globalmean_P4KvsFuture:
         if Add_otherCMIPs:
             for icol,column in enumerate(df_p4K_plot.columns):
                 if column in models_cmip5:
-                    L1 = ax.scatter(df_p4K_plot.loc[index,column],df_future_plot.loc[index,column],s=s1-100,alpha=a1,label='_no_legend_',color='tab:blue',edgecolor='none')
+                    L1 = ax.scatter(df_p4K_plot.loc[index,column],df_future_plot.loc[index,column],s=s1-100,alpha=a1,label='_nolegend_',color='tab:blue',edgecolor='none')
                 else:
                     if highlight_CESM2 and column == 'CESM2':
                         L1 = ax.scatter(df_p4K_plot.loc[index,column],df_future_plot.loc[index,column],s=s1,alpha=a1,label=column,color='tab:red',marker='X',edgecolor='none')
                     else:
-                        L1 = ax.scatter(df_p4K_plot.loc[index,column],df_future_plot.loc[index,column],s=s1-100,alpha=a1,label='_no_legend_',color='tab:red',edgecolor='none')
+                        L1 = ax.scatter(df_p4K_plot.loc[index,column],df_future_plot.loc[index,column],s=s1-100,alpha=a1,label='_nolegend_',color='tab:red',edgecolor='none')
 
         ax.plot([valmin,valmax],[valmin,valmax],ls='--',lw=3,color='grey')
 
@@ -869,23 +885,23 @@ if plot_CldRadKernel_globalmean:
         for icol,column in enumerate(df_net_all.columns):
             y1 = df_net_all.iloc[ii*5:(ii+1)*5,icol]
             if column == 'v1_coupled':
-                axes[ii].scatter(x+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label='_no_legend_')
+                axes[ii].scatter(x+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label='_nolegend_')
             elif column == 'v1_amip4K':
-                axes[ii].scatter(x+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label='_no_legend_')
+                axes[ii].scatter(x+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label='_nolegend_')
             else:
 #                L2 = axes[ii].scatter(x+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
-                axes[ii].scatter(x+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label='_no_legend_')
+                axes[ii].scatter(x+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label='_nolegend_')
 
     
         for icol,column in enumerate(df_SW_all.columns):
             y1 = df_SW_all.iloc[ii*5:(ii+1)*5,icol]
             if column == 'v1_coupled':
-                axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label='_no_legend_')
+                axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label='_nolegend_')
             elif column == 'v1_amip4K':
-                axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label='_no_legend_')
+                axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='x',s=s1,color=colors[icol],linewidths=wf,alpha=a1,label='_nolegend_')
             else:
  #               L3 = axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label=column)
-                axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label='_no_legend_')
+                axes[ii].scatter(x+w+w2,y1.values.tolist(),marker='o',s=s2,color=colors[icol],linewidths=wf,alpha=a1,label='_nolegend_')
    
 
         # CMIP - other models
@@ -1069,8 +1085,8 @@ if plot_CldRadKernel_zonalmean:
                         clats = np.zeros(len(clat1))
     
                         for ilat in range(len(clat1)):
-                            clats[ilat] = np.sum(clat1[:ilat])
-                        clats[0] = 0.
+                            clats[ilat] = np.sum(clat1[:ilat+1])
+#                        clats[0] = 0.
     
 #                        Needs = [-90,-50,-30,-15,0, 15,30,50,90]
                         Needs = [-85, -55, -35, -15, 15, 35, 55, 85]
@@ -1223,7 +1239,7 @@ if plot_RadForcing_globalmean and any(case for case in cases if case == 'amip-4x
                     label=column.split('_')[0]+'_amip-p4K')
                 else:
                     ax.scatter(x[idx]-0.2,df_4xCO2_plot.loc[index,column].tolist(),edgecolor='none',facecolor='grey',alpha=a1,s=s2,\
-                    label='_no_legend_')
+                    label='_nolegend_')
 
             # ensemble mean
             L2 = ax.scatter(x[idx]-0.2,df_4xCO2_plot.loc[index,:].mean().tolist(),color='black',s=s2)
@@ -1246,5 +1262,271 @@ if plot_RadForcing_globalmean and any(case for case in cases if case == 'amip-4x
     print('------------------------------------------------')
 
 
+
+#####################################################################
+### 7. LAT-LON cloud feedback difference based on cloud radiative kernel
+#####################################################################
+if plot_CldRadKernel_latlon:
+
+    print('LatLon-Cloud-feedback-Decomposition starts ........')
+
+    cases_here = copy.deepcopy(cases)
+    if 'amip-4xCO2' in cases:
+        cases_here.remove('amip-4xCO2')
+
+
+    nlat = 90
+    nlon = 144
+    
+    # --- define variables 
+    sections = ['ALL','HI680','LO680']
+    components = ['NET','SW','LW']
+    decomps = ['tot','amt','alt','tau']
+    
+    # generate figure based on case categories
+    for icomp,component in enumerate(components):
+        for sec in sections:
+
+            # E3SM 
+            data_all = np.zeros((nlat,nlon,len(decomps),len(cases_here)))
+            avgdata = np.zeros((len(decomps),len(cases_here)))
+            data_all = cdms.asVariable(data_all)
+
+            for idecomp,decomp in enumerate(decomps):
+                varname = sec+'_'+component+'cld_'+decomp
+                if component == 'NET':
+                    varSW = sec+'_SWcld_'+decomp
+                    varLW = sec+'_LWcld_'+decomp
+
+                for icase,case in enumerate(cases_here):
+                    if case == 'v1_coupled':
+                        f1 = cdms.open(datadir_v1+'global_cloud_feedback_CMIP6_abrupt-4xCO2_E3SM-1-0_1yr-150yr.nc')
+                    elif case == 'v1_amip4K':
+                        f1 = cdms.open(datadir_v1+'global_cloud_feedback_CMIP6_amip-p4K_E3SM-1-0.nc')
+                    elif case == 'amip-4xCO2':
+                        continue
+                    else:
+                        f1 = cdms.open(datadir_v2+'global_cloud_feedback_'+case+'_E3SM-1-0'+'.nc')
+
+                    if component in ['LW','SW']:
+                        data = f1(varname)
+                    else:
+
+                        dataSW = f1(varSW)
+                        dataLW = f1(varLW)
+                        data = dataSW + dataLW
+                        data.setAxisList(dataSW.getAxisList())
+
+                    lats = data.getLatitude()
+                    lons = data.getLongitude()
+
+                    ######################################################
+                    data_all[:,:,idecomp,icase] = data
+                    # get global mean
+                    avgdata[idecomp,icase] = cdutil.averager(data,axis='xy',weights='weighted')
+
+            data_all.setAxis(0,lats)
+            data_all.setAxis(1,lons)
+
+            print(component,sec,'data_all.shape=',data_all.shape)
+            
+#            for icase, case in enumerate(cases_here):
+#                for idecomp,decomp in enumerate(decomps):
+#                    print(case,decomp,genutil.minmax(data_all[:,:,idecomp,icase]))
+
+            # -----------------------------------------------------------------
+            # start plotting ...
+            # -----------------------------------------------------------------
+
+            for icase,case in enumerate(cases_here):
+#                print('case=',case)
+
+                for inew in range(icase+1,len(cases_here)):
+
+                    #<qinyi 2021-02-21 #------------------
+                    if cases_here[icase] not in ['v1_coupled','F2010-p4K']:
+                        continue
+                    #>qinyi 2021-02-21 #------------------
+
+                    print('inew=',cases_here[inew],'icase=',cases_here[icase])
+
+                    fig=plt.figure(figsize=(18,12)) # this creates and increases the figure size
+                    plt.suptitle(sec+' CTP bins ['+cases_here[inew]+' minus '+cases_here[icase]+']',fontsize=16,y=0.95)
+                    bounds = np.arange(-2,2.2,0.2)
+                    cmap = plt.cm.RdBu_r
+                    bounds2 = np.append(np.append(-500,bounds),500) # This is only needed for norm if colorbar is extended
+                    norm = mpl.colors.BoundaryNorm(bounds2, cmap.N) # make sure the colors vary linearly even if the desired color boundaries are at varied intervals
+                    names = [component+'cld_tot',component+'cld_amt',component+'cld_alt',component+'cld_tau']
+    
+                    for n,name in enumerate(names):
+                        # difference b/t icase and v1-coupled
+                        DATA = data_all[:,:,n,inew] - data_all[:,:,n,icase]
+   
+                        DATA.setAxis(0,lats)
+                        DATA.setAxis(1,lons)
+    
+                        ax1 = fig.add_subplot(3,2,n+1,projection=ccrs.Robinson(central_longitude=180.))
+                        im1 = ax1.contourf(lons[:],lats[:],DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
+                        ax1.coastlines()
+                        ax1.set_global()
+    
+                        avgDATA = avgdata[n,inew] - avgdata[n,icase]
+                        plt.title(name+' ['+str(np.round(avgDATA,3))+']',fontsize=14)
+                        cb = plt.colorbar(im1,orientation='vertical',drawedges=True,ticks=bounds)
+                        cb.set_label('W/m$^2$/K')
+
+    
+                    fig.subplots_adjust(top=0.9)
+
+                    fig.savefig(figdir+'LatLon-Cloud-feedback-Decomposition-'+cases_here[inew]+'.minus.'+cases_here[icase]+'-'+component+'-'+sec+'.png',dpi=300,bbox_inches='tight')
+                    plt.close(fig)
+            
+            #sys.exit()
+
+#####################################################################
+### 8. LAT-LON tas anomaly based on radiative kernel output
+#####################################################################
+if plot_tas_latlon:
+    print('plot_tas_latlon starts ..........')
+
+    cases_here = copy.deepcopy(cases)
+    if 'amip-4xCO2' in cases:
+        cases_here.remove('amip-4xCO2')
+
+    variables = ['tas_ano_grd']
+    variables_out = ['TS']
+    
+    nlat = 73
+    nlon = 144
+    
+    # add other CMIP models
+    if Add_otherCMIPs:
+
+        phases = ['CMIP5','CMIP6']
+
+        exp_cntl = [['piControl','amip'],['piControl','amip']]
+        exp_new = [['abrupt4xCO2','amip4K'],['abrupt-4xCO2','amip-p4K']]
+        
+        prefix = 'FDBK'
+        suffix1 = '*1yr-150yr.csv'
+        suffix2 = '*.csv'
+        
+        models_all,cmip5_models,cmip6_models = PDF.get_intersect(exp_cntl,exp_new,prefix,suffix1,suffix2,datadir_RadKernel)
+        models = [cmip5_models, cmip6_models]
+        model_list = cmip5_models + cmip6_models
+
+    for ivar,svar in enumerate(variables):
+
+        # get other CMIP models
+        if Add_otherCMIPs:
+            data_others = np.zeros((nlat,nlon,len(model_list)))
+            data_others_zm = np.zeros((nlat,len(model_list)))
+
+            for iphase,phase in enumerate(phases):
+                if phase == 'CMIP5':
+                    suffix = '_Latest-Oct18_1yr-27yr'
+                else:
+                    suffix = '_Latest-Oct18_1yr-36yr'
+                
+                data1 = np.zeros((nlat,nlon,len(models[iphase])))
+                data1_zm = np.zeros((nlat,len(models[iphase])))
+
+                for imodel,model in enumerate(models[iphase]):
+                    if model == 'CanESM2':
+                        model_amip = 'CanAM4'
+                    elif model == 'HadGEM2-ES':
+                        model_amip = 'HadGEM2-A'
+                    else:
+                	    model_amip = model
+
+                    f1 = cdms.open(datadir_RadKernel+'lat-lon-gfdbk-'+phase+'-'+exp_new[iphase][1]+'-'+model_amip+suffix+'.nc')
+                    tmp1 = f1(svar)
+                
+                    lats = tmp1.getLatitude()[:]
+                    lons = tmp1.getLongitude()[:]
+                    data1[:,:,imodel] = tmp1
+                    data1_zm[:,imodel] = MV.average(tmp1,axis=1)
+
+                if iphase == 0:
+                    data_others[:,:,:len(cmip5_models)] = data1
+                    data_others_zm[:,:len(cmip5_models)] = data1_zm
+                else:
+                    data_others[:,:,len(cmip5_models):] = data1
+                    data_others_zm[:,len(cmip5_models):] = data1_zm
+
+        # E3SM
+        data_all = np.zeros((nlat,nlon,len(cases_here)))
+        data_all_zm = np.zeros((nlat,len(cases_here)))
+
+        for icase,case in enumerate(cases_here):
+            if case == 'v1_coupled':
+                f1 = cdms.open(datadir_v1+'lat-lon-gfdbk-CMIP6-abrupt-4xCO2-E3SM-1-0_Latest-Oct18_1yr-150yr.nc')
+            elif case == 'v1_amip4K':
+                f1 = cdms.open(datadir_v1+'lat-lon-gfdbk-CMIP6-amip-p4K-E3SM-1-0_Latest-Oct18_1yr-36yr.nc')
+            elif case == 'amip-4xCO2':
+                continue
+            else:
+                f1 = cdms.open(datadir_v2+'lat-lon-gfdbk-CMIP6-'+case+'-E3SM-1-0'+'.nc')
+
+            data = f1(svar)
+            lats = data.getLatitude()
+            lons = data.getLongitude()
+
+            # get zonal mean
+            data_all[:,:,icase] = data
+            data_all_zm[:,icase] = MV.average(data,axis=1)    
+
+        #----------------------------------------------------------
+        # start plotting ...
+        #----------------------------------------------------------
+
+        for icase,case in enumerate(cases_here):
+            print('case=',case)
+            for inew in range(icase+1,len(cases_here)):
+
+                #<qinyi 2021-02-21 #------------------
+                if cases_here[icase] not in ['v1_coupled','F2010-p4K']:
+                    continue
+                #>qinyi 2021-02-21 #------------------
+
+                print('inew=',inew,cases_here[inew],'icase=',icase,cases_here[icase])
+
+                fig=plt.figure(figsize=(18,12)) # this creates and increases the figure size
+                # plt.suptitle(sec+' CTP bins ['+cases_here[inew]+'-'+cases_here[icase]+']',fontsize=16,y=0.95)
+                bounds = np.arange(-0.8,0.85,0.05)
+                cmap = plt.cm.RdBu_r
+                bounds2 = np.append(np.append(-500,bounds),500) # This is only needed for norm if colorbar is extended
+                norm = mpl.colors.BoundaryNorm(bounds2, cmap.N) # make sure the colors vary linearly even if the desired color boundaries are at varied intervals
+
+                # difference b/t icase and v1-coupled
+                DATA = data_all[:,:,inew] - data_all[:,:,icase]
+                DATA = cdms.asVariable(DATA)
+
+                DATA.setAxis(0,lats)
+                DATA.setAxis(1,lons)
+
+                ax1 = fig.add_subplot(1,1,1,projection=ccrs.Robinson(central_longitude=180.))
+                im1 = ax1.contourf(lons[:],lats[:],DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
+                ax1.coastlines()
+                ax1.set_global()
+
+                plt.title(cases_here[inew]+' minus '+cases_here[icase],fontsize=14)
+
+#                cb = plt.colorbar(im1,orientation='vertical',drawedges=True,ticks=bounds)
+#                cb.set_label('K/K')
+ 
+                # add_common_colorbar(fig,im,axes,units,orientation='vertical',nbins=9,fontsize=15)
+                # PDF.add_common_colorbar(fig,im1,ax1,'K/K', orientation='vertical', nbins=9, fontsize=15)
+                PDF.make_colorbar(ax1, 'K/K', 15, im1, orientation='vertical')
+
+                fig.subplots_adjust(top=0.9)
+
+                fig.savefig(figdir+'LatLon-TAS-'+cases_here[inew]+'.minus.'+cases_here[icase]+'.png',bbox_inches='tight',dpi=300)
+                plt.close(fig)
+            
+
+    print('------------------------------------------------')
+    print('plot_tas_latlon is done!')
+    print('------------------------------------------------')
 
 
