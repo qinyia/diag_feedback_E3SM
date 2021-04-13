@@ -1,7 +1,7 @@
 
 module load nco
 
-regrid=True
+regrid=False
 
 run_id1=$1 #cori-haswell.20190513.F2010C5-CMIP6-LR.ne30_oECv3
 run_id2=$2 #cori-haswell.20190513.F2010C5-CMIP6-LR.plus4K.ne30_oECv3
@@ -33,9 +33,9 @@ echo $ncase
 #var_list=(FISCCP1_COSP FSDSC FSNSC TREFHT FSNT FSNTC FLUT FLUTC TS T CLOUD CLDLIQ CLDICE FSDS FSNS Q SOLIN FSUTOA FSUTOAC PSL PS)
 #var_new_list=(clisccp rsdscs rsnsc tas rsnt rsntcs rlut rlutcs ts ta CLOUD CLDLIQ CLDICE rsds rsns hus rsdt FSUTOA FSUTOAC psl ps)
 
-vars=(FISCCP1_COSP,FSDSC,FSNSC,TREFHT,FSNT,FSNTC,FLUT,FLUTC,TS,T,FSDS,FSNS,Q,SOLIN,FSUTOA,FSUTOAC,PSL,PS)
-var_list=(FISCCP1_COSP FSDSC FSNSC TREFHT FSNT FSNTC FLUT FLUTC TS T FSDS FSNS Q SOLIN FSUTOA FSUTOAC PSL PS)
-var_new_list=(clisccp rsdscs rsnsc tas rsnt rsntcs rlut rlutcs ts ta rsds rsns hus rsdt FSUTOA FSUTOAC psl ps)
+vars=(FISCCP1_COSP,FSDSC,FSNSC,TREFHT,FSNT,FSNTC,FLUT,FLUTC,TS,T,FSDS,FSNS,Q,SOLIN,FSUTOA,FSUTOAC,PSL,PS,OMEGA)
+var_list=(FISCCP1_COSP FSDSC FSNSC TREFHT FSNT FSNTC FLUT FLUTC TS T FSDS FSNS Q SOLIN FSUTOA FSUTOAC PSL OMEGA)
+var_new_list=(clisccp rsdscs rsnsc tas rsnt rsntcs rlut rlutcs ts ta rsds rsns hus rsdt FSUTOA FSUTOAC psl ps wap)
 
 
 nvar=${#var_list[@]}
