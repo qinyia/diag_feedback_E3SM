@@ -39,13 +39,14 @@ import PlotDefinedFunction as PDF
 import copy
 
 ############################################################################################
-####Modification ends here #################################################################
+####Modification starts here #################################################################
+
+## your current script directory. 
+datadir = os.path.abspath(os.getcwd())+'/'
 
 # ---------------- Step 1: please set all these following directories and your prefered styles: start ----------------------
 
 # -------------- set up directories for all kinds of necessary data
-## main directory. pls modify it based on your current script directory. 
-datadir = '/global/homes/q/qinyi/scripts/diag_feedback_E3SM/'
 
 ## data directory for E3SMv2 
 ## [it includes all data that you want to be plotted. If main.py runs successfully, this directory would be enough for further plot.]
@@ -54,40 +55,39 @@ datadir_v2 = datadir+'data/'
 figdir = datadir+'figure/'
 
 ## notion: if you also want to compare with default E3SM-1-0, please add 'v1_coupled' and 'v1_amip4K' below.
-cases = ['v1_coupled','amip-p4K','F2010-p4K']
+cases = ['v1_coupled','v1_amip4K','P4K-syrah']
 colors = ['tab:red','tab:blue','tab:orange']
 linewidths = [2,2,4]
-linestyles = [':',':','-']
+linestyles = ['--','--','-']
+
+## include option about whether adding results from other CMIP models.
+Add_otherCMIPs = True
+
+# if you'd like to highlight CESM2, turn it on.
+highlight_CESM2 = False
 
 lw_CESM2 = 2
 ls_CESM2 = ':'
 lc_CESM2 = 'blue'
 
-## include option about whether adding results from other CMIP models.
-Add_otherCMIPs = True
-
-highlight_CESM2 = False
-
-# ----------------- please set all these following directories and your prefered styles: End!!!!! ----------------------
-
 # ---------------- Step 2: please set all plot types you want -----------------------------------------------------------------
 ## choose which type figures you want to plot.
 ### scatter plot: global mean radiative feedbacks. FTOA would be the net climate feedback as Cess experiment.
-plot_CRE_globalmean = False
+plot_CRE_globalmean = True
 ### scatter plot: global mean RadKernel feedback --> non-cloud feedback and adjusted CRE feedback
-plot_RadKernel_globalmean = False
+plot_RadKernel_globalmean = True
 ### zonal mean plot: RadKernel feedback --> adjusted CRE feedback
-plot_RadKernel_zonalmean = False
+plot_RadKernel_zonalmean = True
 ### scatter plot: global mean CldRadKernel feedback --> decomposition of cloud feedback
-plot_CldRadKernel_globalmean = False
+plot_CldRadKernel_globalmean = True
 ### zonal mean plot: CldRadKernel feedback --> decomposition of cloud feedback
-plot_CldRadKernel_zonalmean = False
+plot_CldRadKernel_zonalmean = True
 
-### latlon plot: CldRadKernel feedback 
+### latlon plot: CldRadKernel feedback  [it is slightly time-consuming... If you need it, be patient :) ]
 plot_CldRadKernel_latlon = False
 
 #<qinyi 2021-02-18 #------------------
-### lat-lon plot with zonal mean plot: surface air temperature normalized global-mean surface temperature change
+### lat-lon plot: surface air temperature normalized global-mean surface temperature change
 plot_tas_latlon = True
 #>qinyi 2021-02-18 #------------------
 
@@ -98,7 +98,7 @@ plot_CRE_globalmean_P4KvsFuture = False
 ### scatter plot: global mean radiative forcing --> intercept from abrupt-4xCO2; radiation anomaly from amip-4xCO2
 plot_RadForcing_globalmean = False
 
-# ---------------- please set other optional setting for figure: start -------------------------------------------------
+# ---------------- Step 3: please set other optional setting for figures: start -------------------------------------------------
 
 # optional settings starts----------------
 # marker size for E3SMv2
@@ -132,8 +132,15 @@ datadir_RadKernel = datadir_CMIPs+'RadKernel/'
 # -- data for other CMIP models for CldRadKernel feedabck [ don't modify data in it.]
 datadir_CldRadKernel = datadir_CMIPs+'CldRadKernel/'
 
-
 Add_amipFuture = False
+
+# generated figure sizes
+fig_width = 18
+fig_height = 12
+# font size for labels
+fh = 15
+# font size for legends 
+fh1 = 13
 
 ####################################################################################
 ### 1. bar plot for global mean CRE feedback: including E3SMv1 piControl and amip
@@ -239,68 +246,67 @@ if plot_CRE_globalmean:
     
 
     # start plotting 
-    fig = plt.figure(figsize=(12,9))
-    ax = fig.add_subplot(1,1,1)
-    fh = 15
-    
-    drop_index = ['ts','SWCLR','LWCLR']
-    df_plot = df_all.drop(index=drop_index)
+        fig = plt.figure(figsize=(fig_width,fig_height))
+        ax = fig.add_subplot(1,1,1)
+        
+        drop_index = ['ts','SWCLR','LWCLR']
+        df_plot = df_all.drop(index=drop_index)
 
-    if Add_otherCMIPs:
-        df_p4K_plot = df_p4K.drop(index=drop_index)
-        df_future_plot = df_future.drop(index=drop_index)
-   
-    x = np.arange(1,len(df_plot.index)+1,1)
-    
-    for idx,index in enumerate(df_plot.index):
-        for icol,column in enumerate(df_plot.columns):
-            if column == 'v1_coupled':
-                L1 = ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=s1,alpha=a1,label=column,color=colors[icol],marker='x')
-            elif column == 'v1_amip4K':
-                ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=s1,alpha=a1,label=column,color=colors[icol],marker='x')
-            else:
-                ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=s1,alpha=a1,label=column,color=colors[icol])
-    
         if Add_otherCMIPs:
-            # add other CMIP models
-            for icol,column in enumerate(df_p4K_plot.columns):
-                if highlight_CESM2 and 'CESM2' in column:
-                    ax.scatter(x[idx]-0.2,df_p4K_plot.loc[index,column].tolist(),edgecolor='none',facecolor=lc_CESM2,alpha=1.0,s=s2,marker='X',\
-                    label=column.split('_')[0]+'_amip-p4K')
+            df_p4K_plot = df_p4K.drop(index=drop_index)
+            df_future_plot = df_future.drop(index=drop_index)
+       
+        x = np.arange(1,len(df_plot.index)+1,1)
+        
+        for idx,index in enumerate(df_plot.index):
+            for icol,column in enumerate(df_plot.columns):
+                if column == 'v1_coupled':
+                    L1 = ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=s1,alpha=a1,label=column,color=colors[icol],marker='x')
+                elif column == 'v1_amip4K':
+                    ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=s1,alpha=a1,label=column,color=colors[icol],marker='x')
                 else:
-                    ax.scatter(x[idx]-0.2,df_p4K_plot.loc[index,column].tolist(),edgecolor='none',facecolor='grey',alpha=a1,s=s2)
-
-            # ensemble mean
-            L2 = ax.scatter(x[idx]-0.2,df_p4K_plot.loc[index,:].mean().tolist(),color='black',s=s2)
-
-            if Add_amipFuture:
-                for icol,column in enumerate(df_future_plot.columns):
+                    ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=s1,alpha=a1,label=column,color=colors[icol])
+        
+            if Add_otherCMIPs:
+                # add other CMIP models
+                for icol,column in enumerate(df_p4K_plot.columns):
                     if highlight_CESM2 and 'CESM2' in column:
-                        ax.scatter(x[idx]+0.2,df_future_plot.loc[index,column].tolist(),edgecolor='none',facecolor=lc_CESM2,alpha=1.0,s=s2,marker='X',label=column.split('_')[0]+'_amip-future4K')
+                        ax.scatter(x[idx]-0.2,df_p4K_plot.loc[index,column].tolist(),edgecolor='none',facecolor=lc_CESM2,alpha=1.0,s=s2,marker='X',\
+                        label=column.split('_')[0]+'_amip-p4K')
                     else:
-                        ax.scatter(x[idx]+0.2,df_future_plot.loc[index,column].tolist(),edgecolor='none',facecolor='grey',alpha=a1,s=s2)
+                        ax.scatter(x[idx]-0.2,df_p4K_plot.loc[index,column].tolist(),edgecolor='none',facecolor='grey',alpha=a1,s=s2)
 
                 # ensemble mean
-                L3 = ax.scatter(x[idx]+0.2,df_future_plot.loc[index,:].mean().tolist(),color='red',s=s2)
+                L2 = ax.scatter(x[idx]-0.2,df_p4K_plot.loc[index,:].mean().tolist(),color='black',s=s2)
 
-            
-        ax.tick_params(labelsize=fh)
-        ax.set_ylabel('W/m$^2$/K',fontsize=fh)
-        if idx==0:
-            if Add_amipFuture:
-                if Add_otherCMIPs:
-                    legend1 = ax.legend([L2,L3],['amip4K','amipFuture'],fontsize=fh,loc='upper left')
-                    ax.legend(fontsize=fh)
-                    ax.add_artist(legend1) 
+                if Add_amipFuture:
+                    for icol,column in enumerate(df_future_plot.columns):
+                        if highlight_CESM2 and 'CESM2' in column:
+                            ax.scatter(x[idx]+0.2,df_future_plot.loc[index,column].tolist(),edgecolor='none',facecolor=lc_CESM2,alpha=1.0,s=s2,marker='X',label=column.split('_')[0]+'_amip-future4K')
+                        else:
+                            ax.scatter(x[idx]+0.2,df_future_plot.loc[index,column].tolist(),edgecolor='none',facecolor='grey',alpha=a1,s=s2)
+
+                    # ensemble mean
+                    L3 = ax.scatter(x[idx]+0.2,df_future_plot.loc[index,:].mean().tolist(),color='red',s=s2)
+
+                
+            ax.tick_params(labelsize=fh)
+            ax.set_ylabel('W/m$^2$/K',fontsize=fh)
+            if idx==0:
+                if Add_amipFuture:
+                    if Add_otherCMIPs:
+                        legend1 = ax.legend([L2,L3],['amip4K','amipFuture'],fontsize=fh1,loc='upper left')
+                        ax.legend(fontsize=fh1)
+                        ax.add_artist(legend1) 
+                    else:
+                        ax.legend(fontsize=fh1)
                 else:
-                    ax.legend(fontsize=fh)
-            else:
-                if Add_otherCMIPs:
-                    legend1 = ax.legend([L2],['amip4K'],fontsize=fh,loc='upper left')
-                    ax.legend(fontsize=fh)
-                    ax.add_artist(legend1) 
-                else:
-                    ax.legend(fontsize=fh)
+                    if Add_otherCMIPs:
+                        legend1 = ax.legend([L2],['amip4K'],fontsize=fh1,loc='upper left')
+                        ax.legend(fontsize=fh1)
+                        ax.add_artist(legend1) 
+                    else:
+                        ax.legend(fontsize=fh1)
     
     plt.xticks(x,df_plot.index)
     
@@ -394,10 +400,7 @@ if plot_CRE_globalmean_P4KvsFuture:
     
     # start plotting 
     
-    fig = plt.figure(figsize=(12,12))
-    fh = 15
-    a1 = 0.4
-    
+    fig = plt.figure(figsize=(fig_width,fig_height))
     
     drop_index = ['ts','SWCLR','LWCLR']
     df_plot = df_all.drop(index=drop_index)
@@ -448,7 +451,7 @@ if plot_CRE_globalmean_P4KvsFuture:
         ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
 
         if idx == 0:
-            ax.legend(fontsize=fh)
+            ax.legend(fontsize=fh1)
 
 #    plt.xticks(x,df_plot.index)
     
@@ -534,11 +537,8 @@ if plot_RadKernel_globalmean:
         
     # start plotting 
     
-    fig = plt.figure(figsize=(12,9))
+    fig = plt.figure(figsize=(fig_width,fig_height))
     ax = fig.add_subplot(1,1,1)
-    fh = 15
-    a1 = 0.6
-    
     
     drop_index = ['T','dLW_adj','dSW_adj','dnet_adj','LW_resd','SW_resd','net_resd',\
     'T_clr','Planck_clr','LR_clr','WV_clr','ALB_clr','WV_clr_SW','WV_clr_LW','WV_SW','WV_LW',\
@@ -578,11 +578,11 @@ if plot_RadKernel_globalmean:
         ax.set_ylabel('W/m$^2$/K',fontsize=fh)
         if idx == 0:
             if Add_otherCMIPs:
-                legend1 = ax.legend([L2],['amip4K'],fontsize=fh,loc='upper left')
-                ax.legend(fontsize=fh)
+                legend1 = ax.legend([L2],['amip4K'],fontsize=fh1,loc='upper left')
+                ax.legend(fontsize=fh1)
                 ax.add_artist(legend1) 
             else:
-                ax.legend(fontsize=fh)
+                ax.legend(fontsize=fh1)
 
     ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
     degrees = 70
@@ -619,10 +619,8 @@ if plot_RadKernel_zonalmean:
     
     # generate figure based on case categories
     for ii in ncase:
-        fig = plt.figure(figsize=(18,12))
-        fh = 15
+        fig = plt.figure(figsize=(fig_width,fig_height))
         num1 = 0
-        a1 = 0.7
 
         # add other CMIP models
         if Add_otherCMIPs:
@@ -748,15 +746,15 @@ if plot_RadKernel_zonalmean:
             ax.tick_params(axis='both', which='major', labelsize=fh)
 #            ax.set_xlim((-90,90))
     
-        #     ax.set_ylim((-3,2))
+            ax.set_ylim((-2.5,2.5))
             ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
     
             ax.axhline(y=0,color='grey',linestyle='--',lw=2)
             if ivar == len(variables)-1:
                 if highlight_CESM2:
-                    ax.legend(L1+L3,cases_here+['CESM2-amip4K'],fontsize=fh,bbox_to_anchor=(1.04,0), loc='lower left')
+                    ax.legend(L1+L3,cases_here+['CESM2-amip4K'],fontsize=fh1,bbox_to_anchor=(1.04,0), loc='lower left')
                 else:
-                    ax.legend(L1,cases_here,fontsize=fh,bbox_to_anchor=(1.04,0), loc='lower left')
+                    ax.legend(L1,cases_here,fontsize=fh1,bbox_to_anchor=(1.04,0), loc='lower left')
     
             num1 += 1
     
@@ -860,13 +858,9 @@ if plot_CldRadKernel_globalmean:
     wc = 1 # circle
     wf = 0 # filled 
     
-    fh = 15
-    a1 = 0.7
-    
     w = 0.25
     w2 = 0.08
     w3 = 0.08
-    
     
     x = np.asarray([1,2,3,4,5])
     
@@ -937,10 +931,10 @@ if plot_CldRadKernel_globalmean:
             L2 = axes[ii].scatter(x+w2-w3,df_net_others.iloc[ii*5:(ii+1)*5,:].mean(axis=1),marker='o',s=s3,color='grey',linewidths=wf,alpha=1.0,label='_nolegend_')
             L3 = axes[ii].scatter(x+w+w2-w3,df_SW_others.iloc[ii*5:(ii+1)*5,:].mean(axis=1),marker='o',s=s3,color='blue',linewidths=wf,alpha=1.0,label='_nolegend_')
 
-            plt.legend((L1,L2,L3),["LW","NET","SW"],scatterpoints=1,bbox_to_anchor=(1,1),loc="best",fontsize=15)
+            plt.legend((L1,L2,L3),["LW","NET","SW"],scatterpoints=1,bbox_to_anchor=(1,1),loc="best",fontsize=fh1)
 
         if ii == 0:
-            axes[ii].legend(fontsize=fh)
+            axes[ii].legend(fontsize=fh1)
  
         axes[ii].grid(which='major', linestyle=':', linewidth='1.0', color='grey')
         
@@ -1013,9 +1007,8 @@ if plot_CldRadKernel_zonalmean:
     for ii in ncase:
         for component in components:
             for lev in levs:
-                fig = plt.figure(figsize=(18,12))
+                fig = plt.figure(figsize=(fig_width,fig_height))
                 num1 = 0
-                fh = 15
     
                 for decomp in decomps:
                     varname = lev+'_'+component+'cld_'+decomp
@@ -1127,16 +1120,17 @@ if plot_CldRadKernel_zonalmean:
                     ax.set_title(varname,fontsize=fh)
                     ax.set_ylabel('W/m$^2$/K',fontsize=fh)
     
-        #             ax.set_ylim((-2,2))
                     ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
     
                     ax.axhline(y=0,color='grey',linestyle='--',lw=2)
     
                     ax.tick_params(axis='both', which='major', labelsize=fh)
                     #ax.set_xlim((-90,90))
-    
+
+                    ax.set_ylim((-2.5,2.5))
+
                     if 'tau' in varname:
-                        ax.legend(L1,cases_here,fontsize=fh,bbox_to_anchor=(1.04,0), loc='lower left')
+                        ax.legend(L1,cases_here,fontsize=fh1,bbox_to_anchor=(1.04,0), loc='lower left')
     
                     num1 += 1
     
@@ -1212,9 +1206,8 @@ if plot_RadForcing_globalmean and any(case for case in cases if case == 'amip-4x
     
 
     # start plotting 
-    fig = plt.figure(figsize=(12,12))
+    fig = plt.figure(figsize=(fig_width,fig_height))
     ax = fig.add_subplot(1,1,1)
-    fh = 15
     
     drop_index = ['ts','SWCLR','LWCLR']
     df_plot = df_all.drop(index=drop_index)
@@ -1247,8 +1240,8 @@ if plot_RadForcing_globalmean and any(case for case in cases if case == 'amip-4x
         ax.tick_params(labelsize=fh)
         ax.set_ylabel('Forcing/Adjustment [W/m$^2$]',fontsize=fh)
         if idx==0:
-            legend1 = ax.legend([L2],['amip4xCO2'],fontsize=fh,loc='lower right')
-            ax.legend(fontsize=fh)
+            legend1 = ax.legend([L2],['amip4xCO2'],fontsize=fh1,loc='lower right')
+            ax.legend(fontsize=fh1)
             ax.add_artist(legend1) 
     
     plt.xticks(x,df_plot.index)
@@ -1350,9 +1343,9 @@ if plot_CldRadKernel_latlon:
 
                     print('inew=',cases_here[inew],'icase=',cases_here[icase])
 
-                    fig=plt.figure(figsize=(18,12)) # this creates and increases the figure size
+                    fig = plt.figure(figsize=(18,12)) # this creates and increases the figure size
                     plt.suptitle(sec+' CTP bins ['+cases_here[inew]+' minus '+cases_here[icase]+']',fontsize=16,y=0.95)
-                    bounds = np.arange(-2,2.2,0.2)
+                    bounds = np.arange(-2,2.2,0.4)
                     cmap = plt.cm.RdBu_r
                     bounds2 = np.append(np.append(-500,bounds),500) # This is only needed for norm if colorbar is extended
                     norm = mpl.colors.BoundaryNorm(bounds2, cmap.N) # make sure the colors vary linearly even if the desired color boundaries are at varied intervals
@@ -1491,7 +1484,7 @@ if plot_tas_latlon:
 
                 print('inew=',inew,cases_here[inew],'icase=',icase,cases_here[icase])
 
-                fig=plt.figure(figsize=(18,12)) # this creates and increases the figure size
+                fig = plt.figure(figsize=(fig_width/1.5,fig_height/1.5)) # this creates and increases the figure size
                 # plt.suptitle(sec+' CTP bins ['+cases_here[inew]+'-'+cases_here[icase]+']',fontsize=16,y=0.95)
                 bounds = np.arange(-0.8,0.85,0.05)
                 cmap = plt.cm.RdBu_r
@@ -1510,7 +1503,7 @@ if plot_tas_latlon:
                 ax1.coastlines()
                 ax1.set_global()
 
-                plt.title(cases_here[inew]+' minus '+cases_here[icase],fontsize=14)
+                plt.title(cases_here[inew]+' minus '+cases_here[icase],fontsize=fh1)
 
 #                cb = plt.colorbar(im1,orientation='vertical',drawedges=True,ticks=bounds)
 #                cb.set_label('K/K')
