@@ -112,8 +112,8 @@ a1 = 0.4
 # for example, if you would like to show the first three cases, then first 6 cases, and all cases, pls set ncase = [3,6,7]
 # generally, if you want all lines in the same plot, just set ncase = [len(cases)]
 #ncase = [3,6,len(cases)]
-#ncase = [len(cases)]
-ncase = range(2,len(cases)+1)
+ncase = [len(cases)]
+#ncase = range(2,len(cases)+1)
 print('ncase=',list(ncase))
 
 # ---------------- please set other optional setting for figure: end -------------------------------------------------
