@@ -20,9 +20,10 @@
 
 #### How to use it?
 - main.py is the control script. Please modify it following all related settings in that script.
-- other cal_xxx.py files are defined functions used by main.py. Please don't modify them.
 - main-plot.py is used to get several plots for diagnosis. 
 - additionally, tropo.f90 is a fortran file. so, use f2py to convert it into one .so file: f2py -c tropo.f90 -m tropo
+
+- other cal_xxx.py files are defined functions used by main.py. Please don't modify them.
 
 #### outputs?
 - the directory "figure" includes some basic output figures.
