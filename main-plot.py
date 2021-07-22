@@ -83,12 +83,12 @@ plot_CldRadKernel_globalmean = True
 ### zonal mean plot: CldRadKernel feedback --> decomposition of cloud feedback
 plot_CldRadKernel_zonalmean = True
 
-### latlon plot: CldRadKernel feedback  [it is slightly time-consuming... If you need it, be patient :) ]
+### latlon plot: CldRadKernel feedback difference among experiments  [it is slightly time-consuming... If you need it, be patient :) ]
 plot_CldRadKernel_latlon = False
 
 #<qinyi 2021-02-18 #------------------
 ### lat-lon plot: surface air temperature normalized global-mean surface temperature change
-plot_tas_latlon = True
+plot_tas_latlon = False
 #>qinyi 2021-02-18 #------------------
 
 # ============ others ==============================
@@ -612,7 +612,7 @@ if plot_RadKernel_zonalmean:
     # variables_out = ['SWCRE','LWCRE','netCRE','SWCRE_adj','LWCRE_adj','netCRE_adj']
     
     variables = ['SWCRE_ano_grd_adj','LWCRE_ano_grd_adj','netCRE_ano_grd_adj']
-    variables_out = ['SWCRE_adj','LWCRE_adj','netCRE_adj']
+    variables_out = ['adjusted SWCRE Feedback','adjusted LWCRE Feedback','adjusted netCRE Feedback']
     
     nlat = 73
     nlon = 144
@@ -1001,17 +1001,23 @@ if plot_CldRadKernel_zonalmean:
     levs = ['ALL','HI680','LO680',]
     components = ['NET','SW','LW']
     decomps = ['tot','amt','alt','tau']
+
+    levs_out = ['ALL', 'High cloud', 'Low cloud']
+    components_out = ['NET','SW','LW']
+    decomps_out = ['Total','Amount','Altitude','Optical Depth']
     
     # generate figure based on case categories
 
     for ii in ncase:
-        for component in components:
-            for lev in levs:
+        for icomp,component in enumerate(components):
+            for ilev,lev in enumerate(levs):
                 fig = plt.figure(figsize=(fig_width,fig_height))
                 num1 = 0
     
-                for decomp in decomps:
+                for idecomp,decomp in enumerate(decomps):
                     varname = lev+'_'+component+'cld_'+decomp
+                    varname_out = components_out[icomp]+' '+levs_out[ilev]+' '+decomps_out[idecomp]+' Feedback'
+
                     if component == 'NET':
                         varSW = lev+'_SWcld_'+decomp
                         varLW = lev+'_LWcld_'+decomp
@@ -1117,7 +1123,7 @@ if plot_CldRadKernel_zonalmean:
                     ax.set_xlim((0,1))
 
                     plt.yticks(fontsize=fh)
-                    ax.set_title(varname,fontsize=fh)
+                    ax.set_title(varname_out,fontsize=fh)
                     ax.set_ylabel('W/m$^2$/K',fontsize=fh)
     
                     ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
@@ -1275,10 +1281,14 @@ if plot_CldRadKernel_latlon:
     sections = ['ALL','HI680','LO680']
     components = ['NET','SW','LW']
     decomps = ['tot','amt','alt','tau']
+
+    sections_out = ['ALL', 'High cloud', 'Low cloud']
+    components_out = ['NET','SW','LW']
+    decomps_out = ['Total','Amount','Altitude','Optical Depth']
     
     # generate figure based on case categories
     for icomp,component in enumerate(components):
-        for sec in sections:
+        for isec,sec in enumerate(sections):
 
             # E3SM 
             data_all = np.zeros((nlat,nlon,len(decomps),len(cases_here)))
@@ -1287,6 +1297,8 @@ if plot_CldRadKernel_latlon:
 
             for idecomp,decomp in enumerate(decomps):
                 varname = sec+'_'+component+'cld_'+decomp
+                varname_out = components_out[icomp]+' '+sections_out[isec]+' '+decomps_out[idecomp]+' Feedback'
+
                 if component == 'NET':
                     varSW = sec+'_SWcld_'+decomp
                     varLW = sec+'_LWcld_'+decomp
@@ -1350,6 +1362,8 @@ if plot_CldRadKernel_latlon:
                     bounds2 = np.append(np.append(-500,bounds),500) # This is only needed for norm if colorbar is extended
                     norm = mpl.colors.BoundaryNorm(bounds2, cmap.N) # make sure the colors vary linearly even if the desired color boundaries are at varied intervals
                     names = [component+'cld_tot',component+'cld_amt',component+'cld_alt',component+'cld_tau']
+                    names_out = [components_out[icomp]+ ' Total Feedback', components_out[icomp]+' Amount Feedback',
+                    components_out[icomp]+ ' Altitude Feedback', components_out[icomp]+ ' Optical Depth Feedback']
     
                     for n,name in enumerate(names):
                         # difference b/t icase and v1-coupled
@@ -1364,7 +1378,7 @@ if plot_CldRadKernel_latlon:
                         ax1.set_global()
     
                         avgDATA = avgdata[n,inew] - avgdata[n,icase]
-                        plt.title(name+' ['+str(np.round(avgDATA,3))+']',fontsize=14)
+                        plt.title(names_out[n]+' ['+str(np.round(avgDATA,3))+']',fontsize=14)
                         cb = plt.colorbar(im1,orientation='vertical',drawedges=True,ticks=bounds)
                         cb.set_label('W/m$^2$/K')
 
