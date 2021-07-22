@@ -5,3 +5,4 @@ data/
 figure/
 postdata/
 plot_data/
+*.so
