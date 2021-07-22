@@ -34,3 +34,5 @@
 - Aug 6, 2020: added plotting scripts as v1
 - Sep 30, 2020: use different color for LW,SW,NET in CldRadKernel plot; include amipFuture as a comparison
 - Nov 10, 2020: update input data for other CMIP models
+- Feb 18, 2021: add plot_tas_latlon
+- Mar, 2021: add plot_CldRadKernel_latlon 
