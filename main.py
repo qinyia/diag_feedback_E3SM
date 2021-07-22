@@ -16,51 +16,44 @@ import cal_CloudRadKernel_E3SM as CRK
 ## convert raw model output to desired data format for later analysis
 ## if you run this script at the first time, set PreProcess = True; otherwise, PreProcess = False
 PreProcess = True
-# calculate radiative feedbacks
-Global_RadFeedback = False
+# calculate pure radiative feedbacks (Cess feedbacks)
+Global_RadFeedback = True
 # calculate radiative kernel feedbacks (Soden et al., 2005), including non-cloud feedbacks like Planck, lapse rate, water vapor, albedo, adjusted cloud feedbacks.
-RadKernel = False
+RadKernel = True
 # calculate cloud radiative kernel feedbacks (Zelinka et al., 2012, 2016), including the contribution of cloud properties (amount, altitude, altitude) on cloud feedbacks.
-CloudRadKernel = False
+CloudRadKernel = True
 
-# give one stamp for each pair experiment, like v1, v2, v3....
+# give one stamp for each pair experiment, like v1, v2, v3..... Any names you like.
 case_stamp = [\
-#'TEST',\
-'amip-p4K',\
-#'amip-future4K',\
-#'amip-4xCO2',\
-#'F2010-p4K',\
+'P4K-syrah',\
+#'amip-p4K',\
 ]
 # set the control case names
 run_id1s = [\
-#'cori-haswell.20190513.F2010C5-CMIP6-LR.ne30_oECv3',\
-'20200428.DECKv1b_amip1-CFMIP.ne30_oEC.cori-knl-L',\
+'20210101.F2010C5-CMIP6-LR.ne30_oECv3.syrah.1024',\
 #'20200428.DECKv1b_amip1-CFMIP.ne30_oEC.cori-knl-L',\
-#'20200428.DECKv1b_amip1-CFMIP.ne30_oEC.cori-knl-L',\
-#'20200326.F2010C5-CMIP6-LR.ne30_oEC.cori-knl-M',\
 ]
 # set the p4K case names
 run_id2s = [\
-#'cori-haswell.20190513.F2010C5-CMIP6-LR.plus4K.ne30_oECv3',\
-'20200428.DECKv1b_amip1.plus4K-CFMIP.ne30_oEC.cori-knl-L',\
-#'20201011.DECKv1b_amip1.future4K-CFMIP.ne30_oEC.cori-knl-L',\
-#'20201010.DECKv1b_amip1.4xCO2-CFMIP.ne30_oEC.cori-knl-L',\
-#'20200401.F2010C5-CMIP6-LR.plus4K.ne30_oEC.cori-knl-M',\
+'20210101.F2010C5-CMIP6-LR-p4K.ne30_oECv3.syrah.1024',\
+#'20200428.DECKv1b_amip1.plus4K-CFMIP.ne30_oEC.cori-knl-L',\
 ]
 # set the regrid map from ne30np4 to lat-lon
 #rgr_map = '~zender/data/maps/map_ne30np4_to_cmip6_72x144_aave.20181001.nc'
 rgr_map = '~zender/data/maps/map_ne30np4_to_fv129x256_aave.20150901.nc'
 # set start year
-yearS = 1979
+yearS = 1
 # set end year
-yearE = 2014
+yearE = 2
 
 # set input directory 1 --- the directory before casename in the whole directory
 #datadir_in1 = '/global/cscratch1/sd/qinyi/E3SM_predata/'
-datadir_in1= '/global/cscratch1/sd/qinyi/E3SM_simulations/'
+#datadir_in1= '/global/cscratch1/sd/qinyi/E3SM_simulations/'
+datadir_in1 = '/global/cscratch1/sd/qinyi/From_syrah/'
 # set input directory 2 --- the directory after casename in the whole directory
-datadir_in2 = 'archive/atm/hist/h0/'
+#datadir_in2 = 'archive/atm/hist/h0/'
 #datadir_in2 = 'archive/atm/hist/'
+datadir_in2 = 'atm/hist/'
 
 # set output directory for necessary variables after post-processing E3SM raw data -- caution: this data might be large.
 outdir_out = '/global/cscratch1/sd/qinyi/diag_feedback_E3SM_postdata/'
