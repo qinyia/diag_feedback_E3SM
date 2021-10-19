@@ -9,6 +9,7 @@
 #    Create: 2020-??-??
 #    Last Modified: 2021-07-26 22:59:58
 #    Aug 11, 2021: only used to regrid all monthly data to FV grids, including all variables.
+#    Oct 19, 2021: add regrid_SE2FV as new parameter. If raw model is already on FV grid. Just copy data to outdir_out.
 #****************************************************************
 
 #module load nco
@@ -24,6 +25,7 @@ datadir_in1=$8
 datadir_in2=$9
 outdir_out=${10}
 comp=${11}
+regrid_SE2FV={12}
 
 echo ${run_id1}
 echo ${run_id2}
@@ -115,8 +117,12 @@ do
 
 			if [ $? != 0 -o ! -f "$outdir/${out_file}" ] ; then
             #>qinyi 2021-07-26 #------------------
-				echo "regrid file to", $out_file
-				ncremap -m ${rgr_map} ${file_tmp} $outdir/${out_file}
+                if [ "${regrid_SE2FV}" == "True" ] ; then
+				    echo "regrid file to", $out_file
+				    ncremap -m ${rgr_map} ${file_tmp} $outdir/${out_file}
+                else:
+                    cp ${file_tmp} $outdir/${out_file}
+                fi
             else
                 echo "The output file is ready:" $out_file
 			fi
