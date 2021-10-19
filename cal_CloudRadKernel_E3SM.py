@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#usr/bin/env python
 # coding: utf-8
 
 """
@@ -39,6 +39,8 @@ Zelinka, M. D., C. Zhou, and S. A. Klein, 2016: Insights from a Refined Decompos
 # July 1, 2020 modified by Yi Qin
 # change into a function to be used for E3SM; 
 # change 'exec' into dictionary type
+# Aug 12, 2021 -- make it work on FISCCP1_COSP not only isccp variable name.
+# Aug 21, 2021 -- change caselist if 'coupled' in case_stamp to run linear regression.
  
 #IMPORT STUFF:
 #=====================
@@ -51,14 +53,35 @@ import matplotlib as mpl
 mpl.use('Agg')
 import sys
 import pandas as pd
+import genutil
 
 ## qinyi 
 import cartopy.crs as ccrs
 import cartopy
 import matplotlib.pyplot as plt
+import os
  
 ###########################################################################
 # HELPFUL FUNCTIONS FOLLOW
+###########################################################################
+def YEAR(data):
+    """
+    Compute annual means without forcing it to be Jan through Dec
+    """
+    A=data.shape[0]
+    anndata0=nanarray(data.shape)
+    cnt=-1
+    for i in np.arange(0,A,12):
+        if len(data[i:i+12])==12: # only take full 12-month periods
+            cnt+=1
+            anndata0[cnt] = MV.average(data[i:i+12],0)
+    B=cnt+1
+    anndata = anndata0[:B]
+    if type(anndata)!=float:
+        anndata.setAxisList(data[:B*12:12].getAxisList())
+
+    return anndata
+
 ###########################################################################
 def add_cyclic(data):
     # Add Cyclic point around 360 degrees longitude:
@@ -183,6 +206,10 @@ def KT_decomposition_4D(c1,c2,Klw,Ksw):
 ###########################################################################
 def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir):
 
+    #if os.path.isfile(outdir+'global_cloud_feedback_'+case_stamp+'.nc'):
+    #    print('CloudRadKernel is already there.')
+    #    return
+
     yearS_4d = "{:04d}".format(yearS)
     yearE_4d = "{:04d}".format(yearE)
     nyears = yearE - yearS + 1
@@ -217,21 +244,31 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
     albcs=np.arange(0.0,1.5,0.5) # the clear-sky albedos over which the kernel is computed
     
     # LW kernel does not depend on albcs, just repeat the final dimension over longitudes:
-    LWkernel_map=np.tile(np.tile(LWkernel[:,:,:,:,0],(1,1,1,1,1)),(144,1,1,1,1))(order=[1,2,3,4,0])
-    
+    LWkernel_map=np.tile(np.tile(LWkernel[:,:,:,:,0],(1,nyears,1,1,1)),(144,1,1,1,1))(order=[1,2,3,4,0])
+
     # Define the cloud kernel axis attributes
     lats=LWkernel.getLatitude()[:]
     lons=np.arange(1.25,360,2.5)
     grid = cdms.createGenericGrid(lats,lons)
-    
+
+    # =======================================================================================
+    print('Start reading clisccp ...')
     # Load in clisccp from control and perturbed simulation
-    f=cdms.open(direc_data1+'clisccp_'+exp1+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc','r')
-    clisccp1=f('clisccp',order="02134") # the old order is: (time, CTP, TAU, LAT, LON)
+
+    #<qinyi 2021-08-12 #------------------
+    if not os.path.isfile(direc_data1+'clisccp_'+exp1+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc'):
+        svar_in = 'FISCCP1_COSP'
+    else:
+        svar_in = 'clisccp'
+    #<qinyi 2021-08-12 #------------------
+        
+    f=cdms.open(direc_data1+svar_in+'_'+exp1+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc','r')
+    clisccp1=f(svar_in,order="02134") # the old order is: (time, CTP, TAU, LAT, LON)
     f.close()
-    f=cdms.open(direc_data2+'clisccp_'+exp2+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc','r')
-    clisccp2=f('clisccp',order="02134")
+    f=cdms.open(direc_data2+svar_in+'_'+exp2+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc','r')
+    clisccp2=f(svar_in,order="02134")
     f.close()
-    
+
     # Make sure clisccp is in percent  
     sumclisccp1=MV.sum(MV.sum(clisccp1,2),1)
     sumclisccp2=MV.sum(MV.sum(clisccp2,2),1)   
@@ -240,14 +277,22 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
     if np.max(sumclisccp2) <= 1.:
         clisccp2 = clisccp2*100.
     
-    # Compute climatological annual cycle:
-    avgclisccp1=cdutil.ANNUALCYCLE.climatology(clisccp1) #(12, TAU, CTP, LAT, LON)
-    avgclisccp2=cdutil.ANNUALCYCLE.climatology(clisccp2) #(12, TAU, CTP, LAT, LON)
-    del(clisccp1,clisccp2)
-    
     # Compute clisccp anomalies
-    anomclisccp = avgclisccp2 - avgclisccp1
+    anomclisccp = clisccp2 - clisccp1
     
+    clisccp1 = add_cyclic(clisccp1)
+    clisccp1_grd = clisccp1.regrid(grid,regridTool="esmf",regridMethod = "linear")
+    del clisccp1
+    clisccp2 = add_cyclic(clisccp2)
+    clisccp2_grd = clisccp2.regrid(grid,regridTool="esmf",regridMethod = "linear")
+    del clisccp2
+    anomclisccp = add_cyclic(anomclisccp)
+    anomclisccp_grd = anomclisccp.regrid(grid,regridTool="esmf",regridMethod = "linear")
+    del anomclisccp
+
+    # =======================================================================================
+    print('Start reading albedo ...')
+
     # Compute clear-sky surface albedo
     f=cdms.open(direc_data1+'rsuscs_'+exp1+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc','r')
     rsuscs1 = f('rsuscs')
@@ -255,91 +300,120 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
     f=cdms.open(direc_data1+'rsdscs_'+exp1+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc','r')
     rsdscs1 = f('rsdscs')
     f.close()
-    
+
     albcs1=rsuscs1/rsdscs1
-    avgalbcs1=cdutil.ANNUALCYCLE.climatology(albcs1) #(12, 90, 144)
-    avgalbcs1=MV.where(avgalbcs1>1.,1,avgalbcs1) # where(condition, x, y) is x where condition is true, y otherwise
-    avgalbcs1=MV.where(avgalbcs1<0.,0,avgalbcs1)
-    del(rsuscs1,rsdscs1,albcs1)
-    
+    albcs1.setAxisList(rsuscs1.getAxisList())
+    albcs1=MV.where(albcs1>1.,1,albcs1) # where(condition, x, y) is x where condition is true, y otherwise
+    albcs1=MV.where(albcs1<0.,0,albcs1)
+
+    albcs1 = add_cyclic(albcs1)
+    albcs1_grd = albcs1.regrid(grid,regridTool="esmf",regridMethod = "linear")
+    del albcs1, rsuscs1, rsdscs1 
+ 
+    # =======================================================================================
+    print('Start reading surface air temperature ...')
+
     # Load surface air temperature
     f=cdms.open(direc_data1+'tas_'+exp1+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc','r')
     tas1 = f('tas')
     f.close()
     f=cdms.open(direc_data2+'tas_'+exp2+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc','r')
     tas2 = f('tas')
+
+    time = f['time']
+    calendar = time.getCalendar()
     f.close()
-    
-    # Compute climatological annual cycle:
-    avgtas1=cdutil.ANNUALCYCLE.climatology(tas1) #(12, 90, 144)
-    avgtas2=cdutil.ANNUALCYCLE.climatology(tas2) #(12, 90, 144)
+
+    # Compute tas anomaly and global annual mean 
+    anomtas = tas2 - tas1
+    anomtas = cdms.asVariable(anomtas)
+    anomtas.setAxisList(tas2.getAxisList())
+    print('anomtas shape is',anomtas.shape)
+
+    cdutil.setTimeBoundsMonthly(anomtas,1)
+    anomtas_ann = cdutil.YEAR(anomtas)
+    print('anomtas_ann shape is',anomtas_ann.shape)
+    anomtas_ann_gm = cdutil.averager(anomtas_ann,axis='xy',weights='weighted')
+    print('anomtas_ann_gm shape is ',anomtas_ann_gm.shape)
+
     del(tas1,tas2)
     
     # Compute global annual mean tas anomalies
-    anomtas = avgtas2 - avgtas1
-    avgdtas = cdutil.averager(MV.average(anomtas,axis=0), axis='xy', weights='weighted') # (scalar)
-    
-    # Regrid everything to the kernel grid:
-    avgalbcs1 = add_cyclic(avgalbcs1)
-    avgclisccp1 = add_cyclic(avgclisccp1)
-    avgclisccp2 = add_cyclic(avgclisccp2)
-    avganomclisccp = add_cyclic(anomclisccp)
-    avgalbcs1_grd = avgalbcs1.regrid(grid,regridTool="esmf",regridMethod = "linear")
-    avgclisccp1_grd = avgclisccp1.regrid(grid,regridTool="esmf",regridMethod = "linear")
-    avgclisccp2_grd = avgclisccp2.regrid(grid,regridTool="esmf",regridMethod = "linear")
-    avganomclisccp_grd = avganomclisccp.regrid(grid,regridTool="esmf",regridMethod = "linear")
-    
+    avgdtas = cdutil.averager(MV.average(anomtas_ann,axis=0), axis='xy', weights='weighted') # (scalar)
+    print('avgdtas = ',avgdtas)
+    print('MV.average(anomtas_ann_gm)=',MV.average(anomtas_ann_gm))
+   
+    # =======================================================================================
     # Use control albcs to map SW kernel to appropriate longitudes
-    SWkernel_map = map_SWkern_to_lon(SWkernel,avgalbcs1_grd)
+    # Jan 09, 2021: follow Mark's method -- use climatological control albedo to map SWkernel_map
+    # rather than the 150-yr annual cycle control albedo
+    cdutil.setTimeBoundsMonthly(albcs1_grd,1)
+    avgalbcs1 = cdutil.ANNUALCYCLE.climatology(albcs1_grd)
+    SWkernel_map_tmp = map_SWkern_to_lon(SWkernel,avgalbcs1)
+    SWkernel_map = np.tile(SWkernel_map_tmp,(nyears,1,1,1,1))
+    SWkernel_map.setAxisList(clisccp1_grd.getAxisList())
+    print('SWkernel_map.shape=',SWkernel_map.shape)
+    del SWkernel_map_tmp
+
     # The sun is down if every bin of the SW kernel is zero:
-    sundown=MV.sum(MV.sum(SWkernel_map,axis=2),axis=1)  #12,90,144
+    sundown=MV.sum(MV.sum(SWkernel_map,axis=2),axis=1)  #12*nyears,90,144
     night=np.where(sundown==0)
-    
-    # Compute clisccp anomalies normalized by global mean delta tas
-    anomclisccp = avganomclisccp_grd/avgdtas
-    
+    print('sundown.shape=',sundown.shape)
+
     print("data processing is done. Please continue.")
     
     ###########################################################################
     # Part 2: Compute cloud feedbacks and their breakdown into components
     ###########################################################################         
-    
+    print('Start computing cloud feedbacks ...')
+
     # Define a python dictionary containing the sections of the histogram to consider
     # These are the same as in Zelinka et al, GRL, 2016
     sections = ['ALL','HI680','LO680']
     Psections=[slice(0,7),slice(2,7),slice(0,2)]
+
+#    sections = ['ALL','HI680','LO680','HI560','LO560']
+#    Psections=[slice(0,7),slice(2,7),slice(0,2),slice(3,7),slice(0,3)]
+
     sec_dic=dict(zip(sections,Psections))
     
     df_sw_all = pd.DataFrame()
     df_lw_all = pd.DataFrame()
     
-    out1 = cdms.open(outdir+'global_cloud_feedback_'+case_stamp+'_'+used_models+'.nc','w')
 
-    dic_all = {}
-    
+    value = 0
+    cdms.setNetcdfShuffleFlag(value) ## where value is either 0 or 1
+    cdms.setNetcdfDeflateFlag(value) ## where value is either 0 or 1
+    cdms.setNetcdfDeflateLevelFlag(value) ## where value is a integer between 0 and 9 included
+
+    out1 = cdms.open(outdir+'global_cloud_feedback_'+case_stamp+'.nc','w')
+
+    #<qinyi 2021-02-25 #------------------
+    # add output of monthly radiation anomalies caused by different cloud properties
+    out2 = cdms.open(outdir+'global_cloud_anomaly_'+case_stamp+'.nc','w')
+
     for sec in sections:
         print ('Using '+sec+' CTP bins')
         choose=sec_dic[sec]
         LC = len(np.ones(100)[choose])
     
         # Preallocation of arrays:
-        LWcld_tot=nanarray((12,90,144))
-        LWcld_amt=nanarray((12,90,144))
-        LWcld_alt=nanarray((12,90,144))
-        LWcld_tau=nanarray((12,90,144))
-        LWcld_err=nanarray((12,90,144))
-        SWcld_tot=nanarray((12,90,144))
-        SWcld_amt=nanarray((12,90,144))
-        SWcld_alt=nanarray((12,90,144))
-        SWcld_tau=nanarray((12,90,144))
-        SWcld_err=nanarray((12,90,144))
-        dc_star=nanarray((12,7,LC,90,144))
-        dc_prop=nanarray((12,7,LC,90,144))
+        LWcld_tot=nanarray((12*nyears,90,144))
+        LWcld_amt=nanarray((12*nyears,90,144))
+        LWcld_alt=nanarray((12*nyears,90,144))
+        LWcld_tau=nanarray((12*nyears,90,144))
+        LWcld_err=nanarray((12*nyears,90,144))
+        SWcld_tot=nanarray((12*nyears,90,144))
+        SWcld_amt=nanarray((12*nyears,90,144))
+        SWcld_alt=nanarray((12*nyears,90,144))
+        SWcld_tau=nanarray((12*nyears,90,144))
+        SWcld_err=nanarray((12*nyears,90,144))
+        dc_star=nanarray((12*nyears,7,LC,90,144))
+        dc_prop=nanarray((12*nyears,7,LC,90,144))
     
-        for mm in range(12):
-    	    dcld_dT = anomclisccp[mm,:,choose,:]
-    
-    	    c1 = avgclisccp1_grd[mm,:,choose,:]
+        for mm in range(12*nyears):
+    	    dcld_dT = anomclisccp_grd[mm,:,choose,:]
+    	    c1 = clisccp1_grd[mm,:,choose,:]
     	    c2 = c1 + dcld_dT
     	    Klw = LWkernel_map[mm,:,choose,:]
     	    Ksw = SWkernel_map[mm,:,choose,:]
@@ -362,49 +436,18 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
         variables = [LWcld_tot,LWcld_amt,LWcld_alt,LWcld_tau,LWcld_err,\
         SWcld_tot,SWcld_amt,SWcld_alt,SWcld_tau,SWcld_err]
 
+        dic_all = {}
         for n,name in enumerate(names):
-            print(name)
             dic_all[name] = variables[n]
-    
-        AX=avgalbcs1_grd[0,:].getAxisList()         
-           
+
+        AX3 = albcs1_grd.getAxisList() #[coord_time,coord_lats,coord_lons]
+        AX= albcs1_grd[0,:,:].getAxisList() #[coord_lats,coord_lons]
+
+        # ==============================================
         # Plot Maps
-        lons=avgalbcs1_grd.getLongitude()[:]
-        lats=avgalbcs1_grd.getLatitude()[:]
+        lons=albcs1_grd.getLongitude()[:]
+        lats=albcs1_grd.getLatitude()[:]
         LON, LAT = np.meshgrid(lons,lats)
-    
-        # LW
-        fig=plt.figure(figsize=(18,12)) # this creates and increases the figure size
-        plt.suptitle(case_stamp+': '+sec+' CTP bins',fontsize=16,y=0.95)
-        bounds = np.arange(-4,4.5,0.5)
-        cmap = plt.cm.RdBu_r
-        bounds2 = np.append(np.append(-500,bounds),500) # This is only needed for norm if colorbar is extended
-        norm = mpl.colors.BoundaryNorm(bounds2, cmap.N) # make sure the colors vary linearly even if the desired color boundaries are at varied intervals
-        names = ['LWcld_tot','LWcld_amt','LWcld_alt','LWcld_tau','LWcld_err']
-        for n,name in enumerate(names):
-            ax1 = fig.add_subplot(3,2,n+1,projection=ccrs.Robinson(central_longitude=180.))
-            DATA = MV.average(dic_all[name],axis=0)
-            im1 = ax1.contourf(LON,LAT,DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
-            ax1.coastlines()
-            ax1.set_global()
-            DATA.setAxisList(AX)
-            avgDATA = cdutil.averager(DATA, axis='xy', weights='weighted')
-            pl.title(name+' ['+str(np.round(avgDATA,3))+']',fontsize=14)
-            cb = plt.colorbar(im1,orientation='vertical',drawedges=True,ticks=bounds)
-            cb.set_label('W/m$^2$/K')
-            
-            df_lw_tmp = pd.DataFrame([[sec,'CTP bins',name,str(np.round(avgDATA,3))]],columns=['type','bin','decomp',used_models])
-            print(df_lw_tmp.head())
-            df_lw_all = pd.concat([df_lw_all,df_lw_tmp])
-            print(df_lw_all.head())
-            
-        # Jan 27 -- yqin: output the spatial data to another NC file for further calculation zonal mean plot
-            tmp = DATA
-            tmp.id = sec+'_'+name
-            out1.write(tmp)
-            del(tmp)
-               
-        plt.savefig(figdir+'LW_'+sec+'_cld_fbk_maps-'+used_models+'-'+case_stamp+'.png', bbox_inches='tight')
     
         # SW
         fig=plt.figure(figsize=(18,12)) # this creates and increases the figure size
@@ -416,8 +459,25 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
         names = ['SWcld_tot','SWcld_amt','SWcld_alt','SWcld_tau','SWcld_err']
         for n,name in enumerate(names):
             ax1 = fig.add_subplot(3,2,n+1,projection=ccrs.Robinson(central_longitude=180.))
-            DATA = MV.average(dic_all[name],axis=0)
-            im1 = ax1.contourf(LON,LAT,DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
+            DATA_anom = dic_all[name]
+            DATA_anom.setAxisList(AX3)
+
+            cdutil.setTimeBoundsMonthly(DATA_anom,1)
+            DATA_am = cdutil.YEAR(DATA_anom)
+
+            if 'coupled' in case_stamp:
+                print('DATA_am.shape=',DATA_am.shape)
+                print('anomtas_ann_gm.shape=',anomtas_ann_gm.shape)
+                slope, intercept = genutil.statistics.linearregression(DATA_am,x=anomtas_ann_gm)
+            else:
+                slope = MV.average(cdutil.ANNUALCYCLE.climatology(DATA_anom),axis=0)/MV.average(anomtas_ann_gm)
+
+            DATA = slope
+            DATA.id = str(sec)+"_"+str(name)
+            DATA.long_name = str(sec)+"_"+str(name)
+            out1.write(DATA)
+
+            im1 = ax1.contourf(LON,LAT,DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both',corner_mask = False)
             ax1.coastlines()
             ax1.set_global()
             DATA.setAxisList(AX)
@@ -429,19 +489,58 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
             df_sw_tmp = pd.DataFrame([[sec,'CTP bins',name,str(np.round(avgDATA,3))]],columns=['type','bin','decomp',used_models])
             df_sw_all = pd.concat([df_sw_all,df_sw_tmp])
         
-        # Jan 27 -- yqin: output the spatial data to another NC file for further calculation zonal mean plot
-            tmp = DATA
-            tmp.id = sec+'_'+name
-            out1.write(tmp)
-            del(tmp)
-            
         plt.savefig(figdir+'SW_'+sec+'_cld_fbk_maps-'+used_models+'-'+case_stamp+'.png', bbox_inches='tight')
+ 
+        # LW
+        fig=plt.figure(figsize=(18,12)) # this creates and increases the figure size
+        plt.suptitle(case_stamp+': '+sec+' CTP bins',fontsize=16,y=0.95)
+        bounds = np.arange(-4,4.5,0.5)
+        cmap = plt.cm.RdBu_r
+        bounds2 = np.append(np.append(-500,bounds),500) # This is only needed for norm if colorbar is extended
+        norm = mpl.colors.BoundaryNorm(bounds2, cmap.N) # make sure the colors vary linearly even if the desired color boundaries are at varied intervals
+        names = ['LWcld_tot','LWcld_amt','LWcld_alt','LWcld_tau','LWcld_err']
+        for n,name in enumerate(names):
+            ax1 = fig.add_subplot(3,2,n+1,projection=ccrs.Robinson(central_longitude=180.))
+            DATA_anom = dic_all[name]
+            DATA_anom.setAxisList(AX3)
+
+            cdutil.setTimeBoundsMonthly(DATA_anom,1)
+            DATA_am = cdutil.YEAR(DATA_anom)
+
+            if 'coupled' in case_stamp:
+                print('DATA_am.shape=',DATA_am.shape)
+                print('anomtas_ann_gm.shape=',anomtas_ann_gm.shape)
+                slope, intercept = genutil.statistics.linearregression(DATA_am,x=anomtas_ann_gm)
+            else:
+                slope = MV.average(cdutil.ANNUALCYCLE.climatology(DATA_anom),axis=0)/MV.average(anomtas_ann_gm)
+
+            DATA = slope
+            DATA.id = str(sec)+"_"+str(name)
+            DATA.long_name = str(sec)+"_"+str(name)
+            out1.write(DATA)
+
+            im1 = ax1.contourf(LON,LAT,DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both',corner_mask = False)
+            ax1.coastlines()
+            ax1.set_global()
+            DATA.setAxisList(AX)
+            avgDATA = cdutil.averager(DATA, axis='xy', weights='weighted')
+            pl.title(name+' ['+str(np.round(avgDATA,3))+']',fontsize=14)
+            cb = plt.colorbar(im1,orientation='vertical',drawedges=True,ticks=bounds)
+            cb.set_label('W/m$^2$/K')
+            
+            df_lw_tmp = pd.DataFrame([[sec,'CTP bins',name,str(np.round(avgDATA,3))]],columns=['type','bin','decomp',used_models])
+            df_lw_all = pd.concat([df_lw_all,df_lw_tmp])
+              
+        plt.savefig(figdir+'LW_'+sec+'_cld_fbk_maps-'+used_models+'-'+case_stamp+'.png', bbox_inches='tight')
     
+   
     out1.close()
+    out2.close()
     
     print(df_lw_all.head())
     print(df_sw_all.head())
     
-    df_lw_all.to_csv(outdir+'decomp_global_mean_lw_'+case_stamp+'_'+used_models+'.csv')
-    df_sw_all.to_csv(outdir+'decomp_global_mean_sw_'+case_stamp+'_'+used_models+'.csv')
+    df_lw_all.to_csv(outdir+'decomp_global_mean_lw_'+case_stamp+'.csv')
+    df_sw_all.to_csv(outdir+'decomp_global_mean_sw_'+case_stamp+'.csv')
 
+    
