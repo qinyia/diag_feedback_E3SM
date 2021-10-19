@@ -19,6 +19,7 @@ import allplots as AP
 # ----------------------------Hi, all modifications please start here --------------------------------------------
 # if you run this script at the first time, set PreProcess = True; otherwise, PreProcess = False
 PreProcess = False
+regrid_SE2FV = 0 # 0: need regrid from SE2FV; otherwise, no need regrid.
 
 cal_types = [
 'RadFeedback',
@@ -32,60 +33,16 @@ cal_types = [
 # give one stamp for each pair experiment, like v1, v2, v3....
 case_stamp = [\
 'F2010-p4K-all',\
-#'F2010-p4K-all.IC',
-#'v2-coupled',
-#'F2010-v2rc1c',
-#'F2010-abrupt4xCO2-E3SM',\
-#'F2010-p4K',\
-#'F2010-tk1-berg_eff',\
-#'F2010-tk1',\
-#'F2010-berg_eff',\
-#'F2010-p4K-Cori',\
-#'F1850-p4K',\
-#'F2010-1850aero-p4K',\
-#'F2010-1pctCO2-E3SM',\
-#'F2010-1pctCO2-CESM2',\
-#'F2010-abrupt4xCO2-CESM2',\
-#'F2010-abrupt4xCO2-E3SM-1850aero',\
-#'F1850-piSST',\
 ]
+
 # set the control case names
 run_id1s = [\
-#'20210829.F2010C5-CMIP6-LR.IC.ne30_oECv3.syrah.1024',\
-#'20210105.F2010C5-CMIP6-LR-p4K-all.ne30_oECv3.syrah.1024',\
-#'v2.LR.piControl',\
-#'20210422.maint-1.0.F2010C5-CMIP6-LR.IC.ne30_oECv3.chrysalis',\
-#'20210423.v2rc1c.F2010.ne30pg2_oECv3.chrysalis',\
 '20210101.F2010C5-CMIP6-LR.ne30_oECv3.syrah.1024',\
-#'20210101.F2010C5-CMIP6-LR.ne30_oECv3.syrah.1024',\
-#'20210713.F2010C5-CMIP6-LR-tk1-berg_eff.ne30_oECv3.syrah.1024',\
-#'20210714.F2010C5-CMIP6-LR-tk1.ne30_oECv3.syrah.1024',\
-#'20210715.F2010C5-CMIP6-LR-berg_eff.ne30_oECv3.syrah.1024',\
-#'20200326.F2010C5-CMIP6-LR.ne30_oEC.cori-knl-M',\
-#'20201224.F1850C5-CMIP6.ne30_oECv3.syrah.1024',\
-#'20201224.F2010C5-CMIP6-LR.1850-aerosol.ne30_oECv3.syrah.1024',\
-#'20210219.F1850C5-CMIP6-piSST.ne30_oECv3.syrah.1024',\
 ]
 
 # set the p4K case names
 run_id2s = [\
 '20210105.F2010C5-CMIP6-LR-p4K-all.ne30_oECv3.syrah.1024',\
-#'20210910.F2010C5-CMIP6-LR-p4K-all.IC.ne30_oECv3.syrah.1024',\
-#'20210422.maint-1.0.F2010C5-CMIP6-LRplus4K.IC.ne30_oECv3.chrysalis',\
-#'v2.LR.abrupt-4xCO2_0101',\
-#'20210423.v2rc1c.F2010plus4K.ne30pg2_oECv3.chrysalis',\
-#'20210101.F2010C5-CMIP6-LR-p4K.ne30_oECv3.syrah.1024',\
-#'20210204.F2010C5-CMIP6-LR-fut-abrupt-4xCO2.ne30_oECv3.syrah.1024',\
-#'20210713.F2010C5-CMIP6-LR-p4K-tk1-berg_eff.ne30_oECv3.syrah.1024',\
-#'20210714.F2010C5-CMIP6-LR-p4K-tk1.ne30_oECv3.syrah.1024',\
-#'20210715.F2010C5-CMIP6-LR-p4K-berg_eff.ne30_oECv3.syrah.1024',\
-#'20200401.F2010C5-CMIP6-LR.plus4K.ne30_oEC.cori-knl-M',\
-#'20201224.F1850C5-CMIP6-p4K.ne30_oECv3.syrah.1024',\
-#'20201224.F2010C5-CMIP6-LR-p4K.1850-aerosol.ne30_oECv3.syrah.1024',\
-#'20210105.F2010C5-CMIP6-LR-p4K-all.ne30_oECv3.syrah.1024',\
-#'20210219.F2010C5-CMIP6-LR-fut-abrupt-4xCO2-CESM2.ne30_oECv3.syrah.1024',\
-#'20210219.F2010C5-CMIP6-LR-fut-abrupt-4xCO2-1850-aerosol.ne30_oECv3.syrah.1024',\
-#'20210219.F1850C5-CMIP6-piSST-p4K.ne30_oECv3.syrah.1024',\
 ]
 
 # set start year
@@ -117,7 +74,7 @@ curdir = os. getcwd()
 # set CloudRadKernel input kernel directory
 CloudRadKernel_dir = curdir+'/CloudRadKernel_input/'
 
-# set final output directory 
+# set final output directory
 outdir_final = curdir+'/data/'
 # set output figure directory
 figdir = curdir+'/figure/'
@@ -136,7 +93,7 @@ for icase,case in enumerate(case_stamp):
     run_id2 = run_id2s[icase]
 
     #################################################################
-    # add option to select component -- for processing E3SMv2 data, 
+    # add option to select component -- for processing E3SMv2 data,
     # which uses 'eam.hx' rather than 'cam.hx'
     #################################################################
     if 'v2rc1c' in case or 'v2_coupled' in case:
@@ -146,27 +103,29 @@ for icase,case in enumerate(case_stamp):
     else:
         comp = 'cam.h0'
         rgr_map = '/p/lustre2/qin4/Data_cori/map_ne30np4_to_fv129x256_aave.20150901.nc'
-
+        
     #################################################################
-    # pre-process model output to get necessary input files 
+    # pre-process model output to get necessary input files
     #################################################################
     if PreProcess:
-        # Part 0: regrid model output
-        os.system('sh regrid_data.sh '+ run_id1 + ' '+run_id2+' '+rgr_map+' '+str(yearS1)+' '+str(yearE1)+' '+str(yearS2)+' '+str(yearE2)+' '+datadir_in1+' '+datadir_in2+' '+outdir_out+' '+comp)
-        # Part 1: pre-process model output to generate necessary files for further diagnostics 
+        # Part 0: regrid model output if your data in on SE grid. Otherwise, this step can be skipped. 
+        os.system('sh regrid_data.sh '+ run_id1 + ' '+run_id2+' '+rgr_map+' '+str(yearS1)+' '+str(yearE1)+' '+str(yearS2)+' '+str(yearE2)+' '+datadir_in1+' '+datadir_in2+' '+outdir_out+' '+comp+' '+regrid_SE2FV)
+        # Part 1: pre-process model output to generate necessary files for further diagnostics
         os.system('sh get_data.sh '+ run_id1 + ' '+run_id2+' '+rgr_map+' '+str(yearS1)+' '+str(yearE1)+' '+str(yearS2)+' '+str(yearE2)+' '+datadir_in1+' '+datadir_in2+' '+outdir_out+' '+comp)
         exit()
 
     #################################################################
-    # run diagnostics 
+    # run diagnostics
     #################################################################
     direc_data = outdir_out
 
     dics_cal = AP.get_cal_dics(direc_data, case_stamp[icase], yearS2, yearE2, run_id1, run_id2, outdir_final,
-                      RadKernel_dir, figdir, exp1, exp2, 
+                      RadKernel_dir, figdir, exp1, exp2,
                       CloudRadKernel_dir)
-    
+
     for key in dics_cal:
         if key in cal_types:
             dics_cal[key]()
-
+            
+            
+            

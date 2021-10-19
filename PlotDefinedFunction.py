@@ -431,6 +431,7 @@ def make_colorbar(ax, units, fh, mappable,nbins=11, **kwargs):
 
     cb.set_label(units,fontsize=fh)
     cb.ax.tick_params(labelsize=fh)
+
     tick_locator = ticker.MaxNLocator(nbins=nbins)
     cb.locator = tick_locator
     cb.update_ticks()
@@ -609,4 +610,3 @@ def remove_F2010(case):
     return case_out
 
 # =========================================================================================
-

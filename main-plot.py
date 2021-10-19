@@ -1,7 +1,4 @@
 
-#!/usr/bin/env python
-# coding: utf-8
-
 #****************************************************************
 #
 #    Filename: main-plot.py
@@ -18,27 +15,17 @@
 #    Jul 18, 2021: add calculation of LCF
 #    Jul 27, 2021: add plot_latlon_CLOUD; change plot_CLOUD to plot_zm_CLOUD
 #    Aug 05, 2021: add plot_webb_decomp
+
 #****************************************************************
 
 import cdms2 as cdms
 import cdutil
 import MV2 as MV
 import numpy as np
-import pylab as pl
-import matplotlib as mpl
-mpl.use('Agg')
 import sys
 
-import cartopy.crs as ccrs
-import cartopy
-import matplotlib.pyplot as plt
 import os
-import pandas as pd
-import cdtime
 import genutil
-from matplotlib import ticker
-from genutil import statistics
-import scipy.stats
 import PlotDefinedFunction as PDF
 import copy
 
@@ -47,23 +34,11 @@ import allplots as AP
 ########################################## Modification starts here #################################
 ## notion: if you also want to compare with default E3SM-1-0, please add 'v1_coupled' and 'v1_amip4K' below.
 
-#cases = ['a4SSTice-CESM2','amip-p4K-CESM2','F2010-abrupt4xCO2-CESM2','F2010-1pctCO2-CESM2']
-#cases = ['v1_coupled','F2010-p4K','F2010-abrupt4xCO2-E3SM','F2010-1pctCO2-E3SM']
-#cases = ['v1_coupled','F2010-p4K','F2010-tk1-berg_eff','F2010-tk1','F2010-berg_eff']
-#cases = ['F2010-p4K','F2010-abrupt4xCO2-E3SM']
-#cases = ['F2010-p4K', 'F2010-v2rc1c']
-
-#cases = ['v1_coupled', 'v2-coupled']
-#ref_casesA = [ [], ['v1_coupled'] ]
-
 cases = ['F2010-p4K-all', 'F2010-p4K-all.IC']
 ref_casesA = [[], ['F2010-p4K-all']]
 
-#cases = ['F2010-p4K','v1_coupled','F2010-v2rc1c','v2-coupled']
-#ref_casesA = [ [], ['F2010-p4K'], ['F2010-p4K'], ['v1_coupled','F2010-v2rc1c'] ]
-
 # -------------------------
-Add_otherCMIPs = False ## include option about whether adding results from other CMIP models 
+Add_otherCMIPs = False ## include option about whether adding results from other CMIP models
 
 # ---------------- please set all plot types you want -----------------------------------------------------------------
 ## choose which type figures you want to plot. If not, just comment them out.
@@ -77,11 +52,10 @@ plot_types = [
 'CldRadKernel_latlon',              # lat-lon plot of CldRadKernel feedback difference between case and reference case
 'tas_latlon',                       # lat-lon plot of surface air temperature and the difference between case and reference case
 'LCF',                              # Temperature - Liquid Condensate Fraction
-'zm_CLOUD',                         # zonal mean plot of cloud varaibles 
-'latlon_CLOUD',                     # lat-lon plot of cloud varaibles 
+'zm_CLOUD',                         # zonal mean plot of cloud varaibles
+'latlon_CLOUD',                     # lat-lon plot of cloud varaibles
 'webb_decomp',                      # decomposition of adjusted CRE feedback into low and non-low clouds
 ]
-
 
 # ---------------- please set other optional setting for figure: start -------------------------------------------------
 colors = PDF.get_color('tab10',len(cases)) #['tab:red','tab:blue','tab:cyan','tab:orange','tab:purple','tab:green']
@@ -117,10 +91,10 @@ datadir_RadKernel = datadir_CMIPs+'RadKernel/'
 datadir_CldRadKernel = datadir_CMIPs+'CldRadKernel/'
 
 # ----------- please set all these following directories and your prefered styles: start ----------------------
-## main directory. pls modify it based on your current script directory. 
+## main directory. pls modify it based on your current script directory.
 datadir = os.getcwd()
 
-## data directory for E3SMv2 
+## data directory for E3SMv2
 ## [it includes all data that you want to be plotted. If main.py runs successfully, this directory would be enough for further plot.]
 datadir_v2 = datadir+'/data/'
 ## figure directory
@@ -133,7 +107,7 @@ except OSError:
     print("Creation of the directory %s failed" % figdir)
 else:
     print("Successfully created the directory %s " % figdir)
- 
+
 # the following lines might be removed later....
 Add_amipFuture = False
 highlight_CESM2 = False
@@ -150,3 +124,4 @@ for key in dics_plots:
     if key in plot_types:
         dics_plots[key]()
 
+print('Well Done.')
