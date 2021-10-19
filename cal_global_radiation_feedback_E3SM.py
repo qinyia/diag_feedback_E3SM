@@ -5,6 +5,18 @@
 # June 5, 2020 --- created by Yi Qin
 # June 30, 2020 --- modified into a function to be called by main.py 
 
+# Aug 24, 2021: 
+# -------------------------------------------------------------------------------
+# https://cdat.llnl.gov/documentation/utilities/utilities-1.html
+# "The default action of the setTimeBoundsMonthly function assumes that the
+# time point is at the beginning of the month. To compute bounds assuming that
+# the time point at the end of the month."
+# Line 170 -- the time point show at the end of the month. so I need to add '1' 
+# there to keep the result correctly.
+# -------------------------------------------------------------------------------
+
+
+
 #IMPORT STUFF:
 #=====================
 import cdms2 as cdms
@@ -29,6 +41,10 @@ from genutil import statistics
 
 ########## MAIN SUBROUTINE STARTS HERE ....
 def Global_RadFeedback(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir):
+
+    if os.path.isfile(outdir+'global_mean_features_'+case_stamp+'.csv'):
+        print('Global_RadFeedback is done.')
+        return 
 
     yearS_4d = "{:04d}".format(yearS)
     yearE_4d = "{:04d}".format(yearE)
@@ -154,6 +170,7 @@ def Global_RadFeedback(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir):
         
                 thesevars = []
                 thesevars = np.append(thesevars, ['ts','SWCRE','LWCRE','netCRE','SWCLR','LWCLR','FTOA','FSNT','FLNT','FTOACLR','FSNTCLR','FLNTCLR'])  
+
                 df_gavg = pd.DataFrame()
 
                 dic_new = {}
@@ -162,57 +179,45 @@ def Global_RadFeedback(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir):
                     print('here we are processing ',svar)
   
                     # Mar 11: add setting time bounds to avoid the 'Nontype error from time.py' while get annual mean using cdutil.YEAR
-                    cdutil.setTimeBoundsMonthly(dic_all[svar+'_ano'])
+                    cdutil.setTimeBoundsMonthly(dic_all[svar+'_ano'],1)
     
                     # get regression onto global mean surface air temperature anomaly
                     # 0. get annual mean of each variable
-                    dic_new[svar+'_ano_annual'] = cdutil.YEAR(dic_all[svar+'_ano'])
+                    dic_new[svar+'_ano_ann'] = cdutil.YEAR(dic_all[svar+'_ano'])
                 
                     # 1. get global mean surface air temperature series 
                     if svar=='ts':
-                        dic_new[svar+'_ano_annual_gavg'] = cdutil.averager(dic_new[svar+'_ano_annual'],axis='xy',weights='weighted')
+                        dic_new[svar+'_ano_ann_gavg'] = cdutil.averager(dic_new[svar+'_ano_ann'],axis='xy',weights='weighted')
+
+                    # get global and climatological mean 
+                    #dic_new[svar+'_ano_gaavg'] = cdutil.averager(MV.average(dic_new[svar+'_ano_ann'],axis=0), axis='xy', weights='weighted')
+                    dic_new[svar+'_ano_gaavg'] = cdutil.averager(MV.average(dic_all[svar+'_ano'],axis=0), axis='xy', weights='weighted')
 
                     # 2. regression on ts anomaly loop over each variable
-                    dic_new[svar+'_ano_slope'],dic_new[svar+'_ano_intercept'] = statistics.linearregression(dic_new[svar+'_ano_annual'],x=dic_new['ts_ano_annual_gavg'])
-                    print(dic_new['ts_ano_slope'].shape, dic_new['ts_ano_intercept'].shape)
+                    dic_new[svar+'_ano_slope'],dic_new[svar+'_ano_intercept'] = statistics.linearregression(dic_new[svar+'_ano_ann'],x=dic_new['ts_ano_ann_gavg'])
 
                     # 3. get global mean of slope
                     dic_new[svar+'_ano_slope_gavg'] = cdutil.averager(dic_new[svar+'_ano_slope'],axis='xy',weights='weighted')
 
-                    # 4. print and test 
-                    if ivar == len(thesevars)-1:
-                        print(dic_new['ts_ano_slope_gavg'],dic_new['SWCRE_ano_slope_gavg'], dic_new['LWCRE_ano_slope_gavg'])
-                    
-                    ### get climatology 
-                    dic_new[svar+'_ano_aavg'] = MV.average(dic_all[svar+'_ano'], axis=0)
-                    dic_new[svar+'_pi_aavg'] = MV.average(dic_all[svar+'_pi'], axis=0)
-                    dic_new[svar+'_ab_aavg'] = MV.average(dic_all[svar+'_ab'], axis=0)
-
                     ### get global mean climatology
-                    dic_new[svar+'_ano_gaavg'] = cdutil.averager(dic_new[svar+'_ano_aavg'], axis='xy',weights='weighted')
-                    dic_new[svar+'_pi_gaavg'] = cdutil.averager(dic_new[svar+'_pi_aavg'], axis='xy',weights='weighted')
-                    dic_new[svar+'_ab_gaavg'] = cdutil.averager(dic_new[svar+'_ab_aavg'], axis='xy',weights='weighted')
+                    dic_new[svar+'_ano_gaavg_perK'] = dic_new[svar+'_ano_gaavg']/dic_new['ts_ano_gaavg']
                     
-                    ### get annual mean anomaly per K
-                    dic_new[svar+'_ano_aavg_perK'] = dic_new[svar+'_ano_aavg']/dic_new['ts_ano_gaavg']
-                    
-                    ### print them
-                    ano_gaavg = dic_new[svar+'_ano_gaavg']
-                    pi_gaavg = dic_new[svar+'_pi_gaavg']
-                    ab_gaavg = dic_new[svar+'_ab_gaavg']
-                    
-                    print(svar+'_ano_gaavg is: '+str(np.round(ano_gaavg,3)))
-                    print(svar+'_pi_gaavg is: '+str(np.round(pi_gaavg,3)))
-                    print(svar+'_ab_gaavg is: '+str(np.round(ab_gaavg,3)))
-                    
+
                     ## output to CSV file for further check
-                    tmp = pd.DataFrame([[svar,str(np.round(ano_gaavg,3)),str(np.round(ano_gaavg/dic_new['ts_ano_gaavg'],3))]],columns=['varname','anomaly','anomaly_perK'])
+                    if 'coupled' in case_stamp:
+                        ano_out = dic_new[svar+'_ano_gaavg']
+                        ano_perK_out = dic_new[svar+'_ano_slope_gavg']
+                    else:
+                        ano_out = dic_new[svar+'_ano_gaavg']
+                        ano_perK_out = dic_new[svar+'_ano_gaavg_perK']
+
+                    tmp = pd.DataFrame([[svar,str(np.round(ano_out,3)),str(np.round(ano_perK_out,3))]],columns=['varname','anomaly','anomaly_perK'])
+
                     print(tmp)
                     df_gavg = pd.concat([df_gavg,tmp])
                     print(df_gavg)
                     
                 print(df_gavg)
     
-                df_gavg.to_csv(outdir+'global_mean_features_'+case_stamp+'_'+used_models[imod]+'.csv')
-
+                df_gavg.to_csv(outdir+'global_mean_features_'+case_stamp+'.csv')
 

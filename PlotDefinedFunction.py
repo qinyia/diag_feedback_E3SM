@@ -408,7 +408,7 @@ def get_intersect_withripf(exp_cntl,exp_new,prefix,suffix1,suffix2,datadir):
 
 
 # ==========================================================================================================================
-def make_colorbar(ax, units, fh, mappable, **kwargs):
+def make_colorbar(ax, units, fh, mappable,nbins=11, **kwargs):
     '''
     Nov 23, 2020: a function to add colorbar fitted well with the figure
     Referred from: https://github.com/pydata/xarray/issues/619
@@ -431,7 +431,8 @@ def make_colorbar(ax, units, fh, mappable, **kwargs):
 
     cb.set_label(units,fontsize=fh)
     cb.ax.tick_params(labelsize=fh)
-    tick_locator = ticker.MaxNLocator(nbins=9)
+
+    tick_locator = ticker.MaxNLocator(nbins=nbins)
     cb.locator = tick_locator
     cb.update_ticks()
 # ==========================================================================================================================
@@ -575,30 +576,37 @@ def pearsonr_nd(x, y):
     return r, prob
 
 # ===================================================================================
-def get_scaled_lat(nlat, latS, latE, spec_lats,spec_lats_str):
-
+def get_scaled_lat(lats, spec_lats):
     '''
     Feb 8, 2021: get scaled latitude values based on number of lats and specified latitudes. 
-    
-    samples:
-        nlat = 73
-        latS = -90
-        latE = 90
-        spec_lats = [-90,-50,-30,-15,0,15,30,50,90]
-        spec_lats_str = ['90S','50S','30S','15S','EQ','15N','30N','50N','90N']
-        lats,spec_clats = get_scaled_lat(nlat,latS,latE,spec_lats, spec_lats_str)
     '''
-    lats = np.linspace(latS, latE, nlat)
-
-    # Compute weights and take weighted average over latitude dimension
     clat = np.cos(np.deg2rad(lats))
     clat1 = clat/MV.sum(clat)
-
-    # get weighted lats 
+    clat1[0] = 0.
+    
     clats = np.zeros(len(clat1))
-    for ilat in range(1,len(clat1)):
-        clats[ilat] = np.sum(clat1[:ilat])
+    
+    for ilat in range(len(clat1)):
+        clats[ilat] = np.sum(clat1[:ilat+1])
+    
+    clats[0] = 0.
+    
+    N = [i for i in range(len(lats)) if lats[i] in spec_lats]
+    spec_clats = list(np.array(clats)[N])
 
-    spec_clats = [np.array(clats)[i] for i in range(len(lats)) if lats[i] in spec_lats]
+    return clats,spec_clats
 
-    return lats,spec_clats
+# =========================================================================================
+def remove_F2010(case):
+    # eleminate F2010 for output title to shorten the output case name 
+    if 'F2010' in case:
+        if len(case.split('-')) > 2:
+            case_out = '-'.join(case.split('-')[1:])
+        else:
+            case_out = case.split('-')[1]
+    else:
+        case_out = case
+
+    return case_out
+
+# =========================================================================================
