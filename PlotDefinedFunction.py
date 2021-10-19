@@ -408,7 +408,7 @@ def get_intersect_withripf(exp_cntl,exp_new,prefix,suffix1,suffix2,datadir):
 
 
 # ==========================================================================================================================
-def make_colorbar(ax, units, fh, mappable, **kwargs):
+def make_colorbar(ax, units, fh, mappable,nbins=11, **kwargs):
     '''
     Nov 23, 2020: a function to add colorbar fitted well with the figure
     Referred from: https://github.com/pydata/xarray/issues/619
@@ -426,10 +426,12 @@ def make_colorbar(ax, units, fh, mappable, **kwargs):
         loc = 'bottom'
         
     cax = divider.append_axes(loc, '5%', pad='5%', axes_class=mpl.pyplot.Axes)
-    cb = ax.get_figure().colorbar(mappable, cax=cax, orientation=orientation,extend='both')
+#    cb = ax.get_figure().colorbar(mappable, cax=cax, orientation=orientation,extend='both')
+    cb = ax.get_figure().colorbar(mappable, cax=cax, orientation=orientation)
+
     cb.set_label(units,fontsize=fh)
     cb.ax.tick_params(labelsize=fh)
-    tick_locator = ticker.MaxNLocator(nbins=9)
+    tick_locator = ticker.MaxNLocator(nbins=nbins)
     cb.locator = tick_locator
     cb.update_ticks()
 # ==========================================================================================================================
@@ -453,7 +455,7 @@ def add_common_colorbar(fig,im,axes,units,orientation='vertical',nbins=9,fontsiz
     if orientation == 'vertical':
         pos2 = [pos1.x0 + pos1.width + 0.01, pos1.y0,  pos1.width / 20.0, pos1.height ]   
     else:
-        pos2 = [pos1.x0, pos1.y0 - 0.01, pos1.width, pos1.height / 25.0]
+        pos2 = [pos1.x0, pos1.y0 - 0.10, pos1.width, pos1.height / 25.0]
         
     cbar_ax = fig.add_axes(pos2)
     cb = fig.colorbar(im,ax=axes, orientation=orientation, cax=cbar_ax)
@@ -462,4 +464,149 @@ def add_common_colorbar(fig,im,axes,units,orientation='vertical',nbins=9,fontsiz
     tick_locator = ticker.MaxNLocator(nbins=nbins)
     cb.locator = tick_locator
     cb.update_ticks()
+
+# ==========================================================================================================================
+
+def create_nested_dict_ND(n, type):
+    '''
+    Jan 27, 2021:
+    create a nested dictionary with number of dimensions and type.
+    inputs:
+    n -- number of dimension for new dictionary
+    type -- type of each element, like float, str
+    '''
+    from collections import defaultdict
+    if n == 1:
+        return defaultdict(type)
+    else:
+        return defaultdict(lambda: create_nested_dict_ND(n-1, type))
+
+# ==========================================================================================================================
+
+def create_nested_dict():
+    ''' 
+    Jan 27, 2021:
+    create a nested dictionary with no limit on dimensions and type.
+    ref: https://stackoverflow.com/questions/5369723/multi-level-defaultdict-with-variable-depth/8702435#8702435
+    '''
+    from collections import defaultdict
+    return defaultdict(lambda: create_nested_dict())
+
+
+#----------------------------------------------------------
+#----------------------------------------------------------
+#----------------------------------------------------------
+def betai(a, b, x):
+    import scipy.special as special
+    x = np.asarray(x)
+    x = np.where(x < 1.0, x, 1.0)  # if x > 1 then return 1.0
+    return special.betainc(a, b, x)
+
+def _chk_asarray(a, axis):
+    if axis is None:
+        a = np.ravel(a)
+        outaxis = 0
+    else:
+        a = np.asarray(a)
+        outaxis = axis
+    return a, outaxis
+
+def ss(a, axis=0):
+    """
+    Squares each element of the input array, and returns the sum(s) of that.
+    ref: https://github.com/scipy/scipy/blob/f2ec91c4908f9d67b5445fbfacce7f47518b35d1/scipy/stats/stats.py#L4274
+    Parameters
+    ----------
+    """
+    a, axis = _chk_asarray(a, axis)
+    return np.sum(a*a, axis)
+
+def pearsonr_nd(x, y):
+    """
+    Parameters
+    ----------
+    x : (N,,,) array_like
+        Input
+    y : (N,,,) array_like
+        Input
+    #<qinyi 2021-02-12 #------------------
+    Description: revised based on 1D pearsonr function. Please keep the correlation axis at the most left.
+    #>qinyi 2021-02-12 #------------------
+    Returns
+    -------
+    (Pearson's correlation coefficient,
+     2-tailed p-value)
+    References
+    ----------
+    http://www.statsoft.com/textbook/glosp.html#Pearson%20Correlation
+    """
+    # x and y should have same length.
+    x = np.asarray(x)
+    y = np.asarray(y)
+    n = x.shape[0]
+    mx = np.mean(x,axis=0)
+    my = np.mean(y,axis=0)
+    
+    if len(x.shape) == 1:
+        newshape = n
+    if len(x.shape) == 2:
+        newshape = np.append(n,1)
+    elif len(x.shape) == 3:
+        newshape = np.append(n,[1,1])
+        
+    mx_new = np.tile(mx,newshape)
+    my_new = np.tile(my,newshape)
+    
+    xm, ym = x-mx_new, y-my_new    
+    r_num = np.add.reduce(xm * ym,axis=0)
+    r_den = np.sqrt(ss(xm,axis=0) * ss(ym,axis=0))
+    r = r_num / r_den
+
+    # Presumably, if abs(r) > 1, then it is only some small artifact of floating
+    # point arithmetic.
+    r = np.where(r>1.0, 1.0, r)
+    r = np.where(r<-1.0, -1.0, r)
+
+    df = n-2
+    t_squared = r*r * (df / ((1.0 - r) * (1.0 + r)))
+    prob = betai(0.5*df, 0.5, df / (df + t_squared))    
+    prob = np.where(r==1.0,0.0,prob)
+    
+    return r, prob
+
+# ===================================================================================
+def get_scaled_lat(lats, spec_lats):
+    '''
+    Feb 8, 2021: get scaled latitude values based on number of lats and specified latitudes. 
+    '''
+    clat = np.cos(np.deg2rad(lats))
+    clat1 = clat/MV.sum(clat)
+    clat1[0] = 0.
+    
+    clats = np.zeros(len(clat1))
+    
+    for ilat in range(len(clat1)):
+        clats[ilat] = np.sum(clat1[:ilat+1])
+    
+    clats[0] = 0.
+    
+    N = [i for i in range(len(lats)) if lats[i] in spec_lats]
+    spec_clats = list(np.array(clats)[N])
+
+    return clats,spec_clats
+
+# =========================================================================================
+def remove_F2010(case):
+    # eleminate F2010 for output title to shorten the output case name 
+    if 'F2010' in case:
+        if len(case.split('-')) > 2:
+            case_out = '-'.join(case.split('-')[1:])
+        else:
+            case_out = case.split('-')[1]
+    else:
+        case_out = case
+
+    return case_out
+
+# =========================================================================================
 
