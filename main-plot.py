@@ -38,6 +38,8 @@ cases = ['F2010-p4K-all', 'F2010-p4K-all.IC']
 ref_casesA = [[], ['F2010-p4K-all']]
 
 # -------------------------
+# If you are not on cori or LC machines, please set it as False. The comparison with other CMIP models are not 
+# supported on other machines currently. 
 Add_otherCMIPs = False ## include option about whether adding results from other CMIP models
 
 # ---------------- please set all plot types you want -----------------------------------------------------------------
