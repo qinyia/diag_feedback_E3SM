@@ -98,7 +98,7 @@ datadir = os.getcwd()
 ## [it includes all data that you want to be plotted. If main.py runs successfully, this directory would be enough for further plot.]
 datadir_v2 = datadir+'/data/'
 ## figure directory
-figdir = datadir+'/figure2/'
+figdir = datadir+'/figure/'
 
 ## create figure directory if it does not exist
 try:
