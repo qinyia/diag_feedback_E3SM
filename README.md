@@ -18,6 +18,9 @@
 - sklearn [conda install -c conda-forge scikit-learn]
 - statsmodels [conda install -c conda-forge statsmodels]
 
+#### Pre-needed data
+- please download radiative kernel data (Huang et al., 2017) from: https://www.dropbox.com/sh/ngfb7bxhwcbxwu8/AAC6AIha5rLjsl3lUZPiLO6Ua/toa?dl=0&subfolder_nav_tracking=1 first. Then, set RadKernel_dir = *datadir* in main.py.
+
 #### How to use it?
 - main.py is the control script. Please modify it following all related settings in that script.
 - main-plot.py is used to get several plots for diagnosis. 
@@ -35,4 +38,6 @@
 - Sep 30, 2020: use different color for LW,SW,NET in CldRadKernel plot; include amipFuture as a comparison
 - Nov 10, 2020: update input data for other CMIP models
 - Feb 18, 2021: add plot_tas_latlon
-- Mar, 2021: add plot_CldRadKernel_latlon 
+- Mar 21, 2021: add plot_CldRadKernel_latlon 
+- Jul 20, 2021: re-organize  
+- Oct 10, 2021: clear-up and re-organize main.py and main-plot.py 
