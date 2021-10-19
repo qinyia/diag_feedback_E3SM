@@ -7,6 +7,9 @@
 ## created: March 12, 2020 by Yi Qin
 ## modified on June 30, 2020 --- change into a function used by main.py
 ## modified on Oct 17, 2020 -- update the method to calcuate nonclodu feedbacks 
+## modified on Jul 16, 2021 -- change output file name: eleminate used_models[imodel]
+## modified on Aug 12, 2021 -- let read_data_e3sm also work on T and Q. Not only for ta and hus.
+## modified on Aug 21, 2021 -- change caselist if 'coupled' in case_stamp to run linear regression.
 
 import cdms2 as cdms
 import cdutil
@@ -38,20 +41,32 @@ import gc
 cdms.axis.latitude_aliases.append("Y")
 cdms.axis.longitude_aliases.append("X")
 
-########## MAIN SUBROUTINE STARTS HERE ....
 
 def read_data_e3sm(var,var2d,var3d,direc_data1,direc_data2,exp1,exp2,yrS_4d,monS_2d,yrE_4d,monE_2d,dic_invar,nyears):
 
     for svar in var:
         if svar in var:
+
+            #<qinyi 2021-08-12 #------------------
+            if not os.path.isfile(direc_data1+svar+'_'+exp1+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc'):
+                if svar == 'ta':
+                    svar_in = 'T'
+                elif svar == 'hus':
+                    svar_in = 'Q'
+                else:
+                    svar_in = svar
+            else:
+                svar_in = svar
+            #>qinyi 2021-08-12 #------------------
+
             print(" =================== we are processing E3SM amip data", svar, " locally ====================")
 
-            f1 = cdms.open(direc_data1+svar+'_'+exp1+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc','r')
-            dic_invar[svar+'_pi'] = f1(svar)[:nyears*12,:,:]
+            f1 = cdms.open(direc_data1+svar_in+'_'+exp1+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc','r')
+            dic_invar[svar+'_pi'] = f1(svar_in)[:nyears*12,:,:]
             f1.close()
  
-            f2 = cdms.open(direc_data2+svar+'_'+exp2+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc','r')
-            dic_invar[svar+'_ab'] = f2(svar)[:nyears*12,:,:]
+            f2 = cdms.open(direc_data2+svar_in+'_'+exp2+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc','r')
+            dic_invar[svar+'_ab'] = f2(svar_in)[:nyears*12,:,:]
             f2.close()
  
             # reverse lev direction
@@ -224,6 +239,7 @@ def VertSum(varin,dp_4d):
 
 def get_feedback(exp_cntl,DATA,tas_ano_grd_ann,AXL2d):
     if exp_cntl == 'amip':
+        print('---------Doing amip feedback calculation-----------------')
         DATA_ann = DATA
         newdata1 = MV.average(DATA_ann,axis=0)/MV.average(tas_ano_grd_ann)
         newdata1.setAxisList(AXL2d)
@@ -233,6 +249,7 @@ def get_feedback(exp_cntl,DATA,tas_ano_grd_ann,AXL2d):
         newdata4 = cdutil.averager(newdata3,axis='xy',weights='weighted')
         del DATA_ann
     elif exp_cntl == 'piControl':
+        print('---------Doing coupled feedback calculation-----------------')
         cdutil.setTimeBoundsMonthly(DATA)
         DATA_ann = cdutil.YEAR(DATA)
         slope,intercept = genutil.statistics.linearregression(DATA_ann,x = tas_ano_grd_ann)
@@ -243,8 +260,14 @@ def get_feedback(exp_cntl,DATA,tas_ano_grd_ann,AXL2d):
         del slope, intercept, DATA_ann
     return newdata1,newdata2,newdata3,newdata4
 
+
+########## MAIN SUBROUTINE STARTS HERE ....
 # Oct 17, 2020: add exp1 and exp2 to denote the casetag, like 'FC5' and 'FC5_4K', or 'amip' and 'amip_4K'
 def RadKernel(kernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1,exp2):
+
+    if os.path.isfile(outdir+'FDBK_CMIP6_'+case_stamp+'.csv'):
+        print('RadKenel is already there.')
+        return 
 
     yearS_4d = "{:04d}".format(yearS)
     yearE_4d = "{:04d}".format(yearE)
@@ -292,7 +315,7 @@ def RadKernel(kernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,
         if phase == 'CMIP5':
             All_nyears=[150,27]
         else:
-            All_nyears=[150,nyears]
+            All_nyears=[nyears,nyears]
         
         comp='atmos'
         freq='mon'
@@ -303,8 +326,12 @@ def RadKernel(kernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,
     
         used_models = ['E3SM-1-0']
     
-    #    for icase in range(0,1): # piControl
-        for icase in range(1,2): # amip
+        if 'coupled' in case_stamp:
+            caselist = range(0,1)
+        else:
+            caselist = range(1,2) # amip
+
+        for icase in caselist:
         
             project_cntl = All_project_cntl[icase]
             exp_cntl = All_exp_cntl[icase]
@@ -730,6 +757,8 @@ def RadKernel(kernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,
                 for ivar,svar in enumerate(invar1):
                     ovar = outvar[ivar]
                     dic_invar[ovar] = dic_invar[invar1[ivar]] * dic_invar[invar2[ivar]]
+                    #<qinyi 2021-08-21 #------------------
+                    dic_invar[ovar].setAxisList(AXL3d)
             
                 sub_name = 'Getting Albedo feedback '
                 print_memory_status(sub_name)
@@ -1363,10 +1392,12 @@ def RadKernel(kernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,
 
                 # output variables to csv file
                 df_all = pd.DataFrame(outputs,index=final_index,columns=[used_models[imod]])
-                df_all.to_csv(outdir+'FDBK_'+phase+'_'+case_stamp+'_'+used_models[imod]+'.csv')
+                #df_all.to_csv(outdir+'FDBK_'+phase+'_'+case_stamp+'_'+used_models[imod]+'.csv')
+                df_all.to_csv(outdir+'FDBK_'+phase+'_'+case_stamp+'.csv')
 
                 df_all_forcing = pd.DataFrame(outputs_forcing,index=final_index,columns=[used_models[imod]])
-                df_all_forcing.to_csv(outdir+'FDBK_forcing_'+phase+'_'+case_stamp+'_'+used_models[imod]+'.csv')
+                #df_all_forcing.to_csv(outdir+'FDBK_forcing_'+phase+'_'+case_stamp+'_'+used_models[imod]+'.csv')
+                df_all_forcing.to_csv(outdir+'FDBK_forcing_'+phase+'_'+case_stamp+'.csv')
 
                 del final_index, df_all, df_all_forcing, outputs, outputs_forcing
             
@@ -1375,8 +1406,13 @@ def RadKernel(kernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,
                 # ---------------------------------------------------------------#
                 invars2 = invars1 + ['tas_ano_grd']
              
-                out1 = cdms.open(outdir+'lat-lon-gfdbk-'+phase+'-'+case_stamp+'-'+used_models[imod]+'.nc','w')
-                out2 = cdms.open(outdir+'lat-lon-gfdbk-forcing-'+phase+'-'+case_stamp+'-'+used_models[imod]+'.nc','w')
+                value = 0
+                cdms.setNetcdfShuffleFlag(value) ## where value is either 0 or 1
+                cdms.setNetcdfDeflateFlag(value) ## where value is either 0 or 1
+                cdms.setNetcdfDeflateLevelFlag(value) ## where value is a integer between 0 and 9 included
+
+                out1 = cdms.open(outdir+'lat-lon-gfdbk-'+phase+'-'+case_stamp+'.nc','w')
+                out2 = cdms.open(outdir+'lat-lon-gfdbk-forcing-'+phase+'-'+case_stamp+'.nc','w')
               
                 for ivar,svar in enumerate(invars2):
                     print('Writing',svar,'_gfdbk to file')
