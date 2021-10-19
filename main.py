@@ -18,8 +18,8 @@ import allplots as AP
 
 # ----------------------------Hi, all modifications please start here --------------------------------------------
 # if you run this script at the first time, set PreProcess = True; otherwise, PreProcess = False
-PreProcess = False
-regrid_SE2FV = 0 # 0: need regrid from SE2FV; otherwise, no need regrid.
+PreProcess = True
+regrid_SE2FV = "True" # True: need regrid from SE2FV; otherwise, no need regrid.
 
 cal_types = [
 'RadFeedback',
