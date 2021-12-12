@@ -38,7 +38,7 @@ import multiprocessing
 ###########################################################################
 # HELPFUL FUNCTIONS FOLLOW
 ###########################################################################
-def cal_cloud(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir):
+def cal_cloud(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1,exp2):
 
     outfile = outdir+'global_cloud_'+case_stamp+'.nc'
 
@@ -52,9 +52,6 @@ def cal_cloud(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir):
         direc_data1 = direc_data+'/'+fname1+'/'
         direc_data2 = direc_data+'/'+fname2+'/'
     
-        exp1='FC5'
-        exp2='FC5_4K'
-        
         used_models = 'E3SM-1-0'
         
         yrS=yearS
