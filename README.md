@@ -17,6 +17,7 @@
 - NCO [conda install -c conda-forge nco]
 - sklearn [conda install -c conda-forge scikit-learn]
 - statsmodels [conda install -c conda-forge statsmodels]
+- global-land-mask [pip install global-land-mask]
 
 #### Pre-needed data
 - please download radiative kernel data (Huang et al., 2017) from: https://www.dropbox.com/sh/ngfb7bxhwcbxwu8/AAC6AIha5rLjsl3lUZPiLO6Ua/toa?dl=0&subfolder_nav_tracking=1 first. Then, set RadKernel_dir = *datadir* in main.py.
