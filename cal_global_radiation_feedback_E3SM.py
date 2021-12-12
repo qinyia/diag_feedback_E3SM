@@ -40,7 +40,7 @@ import numpy.ma as ma
 from genutil import statistics
 
 ########## MAIN SUBROUTINE STARTS HERE ....
-def Global_RadFeedback(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir):
+def Global_RadFeedback(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,exp1,exp2):
 
     if os.path.isfile(outdir+'global_mean_features_'+case_stamp+'.csv'):
         print('Global_RadFeedback is done.')
@@ -101,11 +101,11 @@ def Global_RadFeedback(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir):
         
                     if svar in var:
                         print(svar)
-                        f1 = cdms.open(direc_data+fname1+'/'+svar+'_FC5_'+yearS_4d+'01-'+yearE_4d+'12.nc')
+                        f1 = cdms.open(direc_data+fname1+'/'+svar+'_'+exp1+'_'+yearS_4d+'01-'+yearE_4d+'12.nc')
                         pi_raw = f1(svar)
                         f1.close()
     
-                        f2 = cdms.open(direc_data+fname2+'/'+svar+'_FC5_4K_'+yearS_4d+'01-'+yearE_4d+'12.nc')
+                        f2 = cdms.open(direc_data+fname2+'/'+svar+'_'+exp2+'_'+yearS_4d+'01-'+yearE_4d+'12.nc')
                         ab_raw = f2(svar)
                         f2.close()
     

@@ -79,7 +79,7 @@ class calculation:
         self.CloudRadKernel_dir = CloudRadKernel_dir 
 
     def cal_Global_RadFeedback(self):
-        result = GRF.Global_RadFeedback(self.direc_data, self.case_stamp, self.yearS2, self.yearE2, self.run_id1, self.run_id2, self.outdir_final)
+        result = GRF.Global_RadFeedback(self.direc_data, self.case_stamp, self.yearS2, self.yearE2, self.run_id1, self.run_id2, self.outdir_final,self.exp1,self.exp2)
         
     def cal_RadKernel(self):
         result = RK.RadKernel(self.RadKernel_dir,self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir,self.exp1,self.exp2)
@@ -94,7 +94,7 @@ class calculation:
         result = LCF.cal_LCF(self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir)
 
     def cal_cloud(self):
-        result = CLOUD.cal_cloud(self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir)
+        result = CLOUD.cal_cloud(self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir,self.exp1,self.exp2)
 
 
 #############################################################################################
@@ -242,12 +242,12 @@ class plots:
             elif case == 'v1_amip4K':
                 # read v1-amip
                 df_amip = pd.read_csv(self.datadir_v1+'global_mean_features_CMIP6_amip-p4K_E3SM-1-0_r2i1p1f1.csv',index_col=0)
-                df_amip.index = df_coupled.loc[:,'varname']
+                df_amip.index = df_amip.loc[:,'varname']
                 df_all['v1_amip4K'] = df_amip.loc[:,'anomaly_perK']
             elif case == 'v1_future4K':
                 # read v1-amip
                 df_amip = pd.read_csv(self.datadir_v1+'global_mean_features_CMIP6_amip-future4K_E3SM-1-0_r2i1p1f1.csv',index_col=0)
-                df_amip.index = df_coupled.loc[:,'varname']
+                df_amip.index = df_amip.loc[:,'varname']
                 df_all['v1_future4K'] = df_amip.loc[:,'anomaly_perK']
             elif case == 'amip-4xCO2':   
                 continue
@@ -262,8 +262,8 @@ class plots:
         fig = plt.figure(figsize=(18,12))
         ax = fig.add_subplot(1,1,1)
         
-    #    drop_index = ['tas','SWCLR','LWCLR']
-        drop_index = ['ts','SWCLR','LWCLR']
+        drop_index = ['tas','SWCLR','LWCLR']
+        #drop_index = ['ts','SWCLR','LWCLR']
     
         df_plot = df_all.drop(index=drop_index)
     
@@ -401,11 +401,11 @@ class plots:
             elif case == 'v1_amip4K':
                 # read v1-amip
                 df_amip = pd.read_csv(self.datadir_v1+'FDBK_CMIP6_amip-p4K_E3SM-1-0_r2i1p1f1_1yr-36yr.csv',index_col=0)
-                df_all['v1_amip4K'] = df_amip.iloc[:,:]
+                df_all['v1_amip4K'] = df_amip.iloc[:,0]
             elif case == 'v1_future4K':
                 # read v1-amip
                 df_amip = pd.read_csv(self.datadir_v1+'FDBK_CMIP6_amip-future4K_E3SM-1-0_r2i1p1f1_1yr-36yr.csv',index_col=0)
-                df_all['v1_future4K'] = df_amip.iloc[:,:]
+                df_all['v1_future4K'] = df_amip.iloc[:,0]
             elif case == 'amip-4xCO2':
                 continue
             else:    
@@ -1206,7 +1206,18 @@ class plots:
                             ax1.set_global()
         
                             avgDATA = avgdata[n,icase] - avgdata[n,iref]
-                            plt.title(name+' ['+str(np.round(avgDATA,3))+']',fontsize=self.fh)
+
+                            # get spatial correlation, NRMSE and RMSE
+                            wts = np.cos(np.deg2rad(lats[:]))
+                            daa = data_all[:,:,n,icase]
+                            dbb = data_all[:,:,n,iref]
+                            cor,NRMSE, RMSE = PDF.pattern_cor(daa,dbb,wts,1)
+                            print('cor=',cor, 'NRMSE=',NRMSE, 'RMSE=',RMSE)
+ 
+                            #plt.title(name+' ['+str(np.round(avgDATA,3))+']\nNRMSE='+str(np.round(NRMSE,2))+', COR='+str(np.round(cor,2)),fontsize=self.fh)
+                            plt.title(name+' ['+str(np.round(avgDATA,3))+' '+str(np.round(avgDATA/avgdata[n,iref],3))+']\nNRMSE='+str(np.round(NRMSE,2))+', COR='+str(np.round(cor,2)),fontsize=self.fh)
+
+
                             cb = plt.colorbar(im1,orientation='vertical',drawedges=True,ticks=bounds)
                             cb.set_label('W/m$^2$/K')
     
@@ -1433,37 +1444,55 @@ class plots:
                 #----------------------------------------------------------
                 # define figures                         
                 #----------------------------------------------------------
-                nrow = 2; ncol = 2
+                nrow = 3; ncol = 3
                 fig = plt.figure(figsize=(ncol*8,nrow*4)) # this creates and increases the figure size
     
                 bounds = np.arange(-3,3.5,0.25)
+
                 cmap = plt.cm.RdBu_r
                 bounds2 = np.append(np.append(-500,bounds),500) # This is only needed for norm if colorbar is extended
                 norm = mpl.colors.BoundaryNorm(bounds2, cmap.N) # make sure the colors vary linearly even if the desired color boundaries are at varied intervals
+
+                case_out = cases_here[icase]
+                ref_case_out = cases_here[iref]
     
                 for ivar,svar in enumerate(variables):
-                    # difference b/t icase and v1-coupled
-                    DATA = data_all[:,:,ivar,icase] - data_all[:,:,ivar,iref]
-                    print('minmax DATA1=',genutil.minmax(DATA))
+
+                    data_plot = [data_all[:,:,ivar,icase], data_all[:,:,ivar,iref], data_all[:,:,ivar,icase] - data_all[:,:,ivar,iref] ]
+                    title_plot = [case_out, ref_case_out, case_out+' minus '+ref_case_out]
+
+                    num0 = 0
+                    for DATA in data_plot:
+
+                        print('minmax DATA=',genutil.minmax(DATA))
+                        DATA = cdms.asVariable(DATA)
+                        DATA.setAxis(0,lats)
+                        DATA.setAxis(1,lons)
     
-                    DATA = cdms.asVariable(DATA)
-                    DATA.setAxis(0,lats)
-                    DATA.setAxis(1,lons)
+                        ax1 = fig.add_subplot(nrow,ncol,ivar*ncol+num0+1,projection=ccrs.Robinson(central_longitude=180.))
+                        im1 = ax1.contourf(lons[:],lats[:],DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
+                        ax1.coastlines()
+                        ax1.set_global()
     
-                    ax1 = fig.add_subplot(nrow,ncol,ivar+1,projection=ccrs.Robinson(central_longitude=180.))
-                    im1 = ax1.contourf(lons[:],lats[:],DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
-                    ax1.coastlines()
-                    ax1.set_global()
+                        # global-mean 
+                        avgDATA = cdutil.averager(DATA,axis='xy',weights='weighted')
+
+                        if num0 == 2: # only for different plot
+                            # get spatial correlation, NRMSE and RMSE
+                            wts = np.cos(np.deg2rad(lats[:]))
+                            daa = data_all[:,:,ivar,icase]
+                            dbb = data_all[:,:,ivar,iref]
+                            cor,NRMSE, RMSE = PDF.pattern_cor(daa,dbb,wts,1)
+                            print('cor=',cor, 'NRMSE=',NRMSE, 'RMSE=',RMSE)
     
-                    # global-mean 
-                    avgDATA = cdutil.averager(DATA,axis='xy',weights='weighted')
-    
-                    case_out = cases_here[icase]
-                    ref_case_out = cases_here[iref]
-    
-                    ax1.set_title(case_out+' minus '+ref_case_out+'\n'+variables_out[ivar]+' ['+str(np.round(avgDATA,2))+']',fontsize=self.fh)
-    
-                    PDF.make_colorbar(ax1, 'W/m$^2$/K', self.fh-5, im1, orientation='vertical')
+                            ax1.set_title(title_plot[num0]+'\n'+variables_out[ivar]+' ['+str(np.round(avgDATA,2))+']\nNRMSE='+str(np.round(NRMSE,2))+', COR='+str(np.round(cor,2)),fontsize=self.fh)
+
+                            PDF.make_colorbar(ax1, 'W/m$^2$/K', self.fh-5, im1, orientation='vertical')
+
+                        else:
+                            ax1.set_title(title_plot[num0]+'\n'+variables_out[ivar]+' ['+str(np.round(avgDATA,2))+']',fontsize=self.fh)
+
+                        num0 += 1
     
                 fig.subplots_adjust(top=0.9)
     
@@ -1970,12 +1999,12 @@ class plots:
             elif case == 'v1_amip4K':
                 # read v1-amip
                 df_amip = pd.read_csv(self.datadir_v1+'global_mean_features_CMIP6_amip-p4K_E3SM-1-0_r2i1p1f1.csv',index_col=0)
-                df_amip.index = df_coupled.loc[:,'varname']
+                df_amip.index = df_amip.loc[:,'varname']
                 df_all['v1_amip4K'] = df_amip.loc[:,'anomaly_perK']
             elif case == 'v1_future4K':
                 # read v1-amip
                 df_amip = pd.read_csv(self.datadir_v1+'global_mean_features_CMIP6_amip-future4K_E3SM-1-0_r2i1p1f1.csv',index_col=0)
-                df_amip.index = df_coupled.loc[:,'varname']
+                df_amip.index = df_amip.loc[:,'varname']
                 df_all['v1_future4K'] = df_amip.loc[:,'anomaly_perK']
             elif case == 'amip-4xCO2':
                 continue

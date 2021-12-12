@@ -437,7 +437,6 @@ def make_colorbar(ax, units, fh, mappable,nbins=11, **kwargs):
     cb.update_ticks()
 # ==========================================================================================================================
 
-
 def add_common_colorbar(fig,im,axes,units,orientation='vertical',nbins=9,fontsize=15):
     '''
     Feb 12, 2021: generate a common colorbar for several specific subplots.
@@ -610,3 +609,107 @@ def remove_F2010(case):
     return case_out
 
 # =========================================================================================
+
+def pattern_cor(x,y,wts,opt):
+    '''
+    Revised from contributed.ncl by Yi Qin
+    This function is used to compute the pattern correlation between two fileds.
+    (lat,lon),...,wgt(lat)
+
+    also, calculate normalized root mean square error.
+    NRMSE = sqrt ( sum ( (X_obs - X_simulate) ** 2) / sum (X_obs**2) )
+
+    added RMSE output
+
+    note: input x should be the 'truth', for NRMSE calculation.
+
+    '''
+    import numpy as np
+
+    x = np.ma.array(x)
+    y = np.ma.array(y)
+
+    # if all are missing...
+    if np.all(x.mask):
+        rFill = np.nan
+        return rFill
+
+    if np.all(y.mask):
+        rFill = np.nan
+        return rFill
+
+    dimx = x.shape
+    dimy = y.shape
+
+    if dimx != dimy:
+        print("pattern_cor: Fatal: x and y do not have the same dimension sizes")
+        print("dimx: ", dimx, "dimy: ", dimy)
+        exit()
+
+    dimw = wts.shape
+    rankw = len(dimw)
+
+    if rankw > 2:
+        print("pattern_cor: Fatal: wts can be a scalar, w[*] or w[*][*]")
+        print("rankw: ", rankw)
+        exit()
+
+    if rankw == 2 and dimx != dimw:
+        print("pattern_cor: Fatal: w[*][*] must have the same dimensions as x[*][*]")
+        print("dimx: ", dimx, "    dimw=", dimw)
+        exit()
+
+    #print('rankw=',rankw)
+    #print('dimw=',dimw[0])
+    #print('dimx=',dimx[0])
+
+    if rankw == 1:
+        if dimw == 1:
+            WGT = np.empty((dimx))
+            WGT = 1.0
+
+        if dimx[0] == dimw[0]: # broadcaset into 2d
+            WGT = np.transpose(np.tile(wts,(dimx[1],1)),(1,0))
+    else:
+        WGT = wts
+
+    #print(WGT)
+
+    # if x/y  has _Fillvalue attribute; set WGT=0.0 where x or y = _FillValue
+    WGT = np.where(x.mask, 0.0, WGT)
+    WGT = np.where(y.mask, 0.0, WGT)
+    #print(WGT)
+
+    if opt == 0: # centered correlation
+        sumWGT = np.ma.sum(WGT)
+        xAvgArea = np.ma.sum(x*WGT)/sumWGT
+        yAvgArea = np.ma.sum(y*WGT)/sumWGT
+
+        xAnom = x - xAvgArea
+        yAnom = y - yAvgArea
+
+        xyCov = np.ma.sum(WGT*xAnom*yAnom)
+        xAnom2 = np.ma.sum(WGT*xAnom**2)
+        yAnom2 = np.ma.sum(WGT*yAnom**2)
+
+    else:
+        xyCov = np.ma.sum(WGT*x*y)
+        xAnom2 = np.ma.sum(WGT*x**2)
+        yAnom2 = np.ma.sum(WGT*x**2)
+
+    NRMSE = np.sqrt(np.ma.sum(WGT*(x - y)**2) / np.ma.sum(WGT*x**2))
+
+    RMSE = np.sqrt(np.ma.sum(WGT*(x - y)**2))
+
+    if xAnom2 > 0.0 and yAnom2 > 0.0:
+        r = xyCov/(np.sqrt(xAnom2)*np.sqrt(yAnom2))
+
+    else:
+        r = np.nan
+
+    return r,NRMSE,RMSE
+
+# =========================================================================================
+
+
+

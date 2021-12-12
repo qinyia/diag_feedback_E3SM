@@ -130,7 +130,7 @@ do
     #<qinyi 2021-07-26 #------------------
     # change checkfile variable from 'rsuscs' to the last variable in var_new_list to ensure all variables are processed.
     checkfile=${var_new_list[-1]}_${exp_id[ii]}_${int_year2_4d}${int_mon_2d}-${end_year2_4d}${end_mon_2d}.nc
-    echo $checkfile
+    echo "checkfile=" $checkfile
     #>qinyi 2021-07-26 #------------------
 
     if [ ! -f "$outdir/$checkfile" ] ; then

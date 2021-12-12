@@ -25,7 +25,7 @@ datadir_in1=$8
 datadir_in2=$9
 outdir_out=${10}
 comp=${11}
-regrid_SE2FV={12}
+regrid_SE2FV=${12}
 
 echo ${run_id1}
 echo ${run_id2}
@@ -107,20 +107,23 @@ do
 		do
 			iyr_4d=`printf %04d $iyr`
 			imon_2d=`printf %02d $imon`
-			echo "yr=" ${iyr_4d},"month=" ${imon_2d}
+			echo ${run_id[ii]}, "yr=" ${iyr_4d},"month=" ${imon_2d}
 			file_tmp=`ls $datadir/${run_id[ii]}.${comp}.${iyr_4d}-${imon_2d}.nc`
 			out_file=${run_id[ii]}.${comp}.${iyr_4d}-${imon_2d}_regrid.nc
 	
             #<qinyi 2021-07-26 #------------------
             # check whether the last variable is in the file. If not, still need run the regrid process to generate the new xxx_regrid.nc
             ncks -O -v ${var_list[-1]} $outdir/${out_file} $outdir/tmp.nc >& /dev/null
+            echo $?
 
 			if [ $? != 0 -o ! -f "$outdir/${out_file}" ] ; then
+                echo $outdir/${out_file}
+                echo ${regrid_SE2FV}
             #>qinyi 2021-07-26 #------------------
                 if [ "${regrid_SE2FV}" == "True" ] ; then
 				    echo "regrid file to", $out_file
 				    ncremap -m ${rgr_map} ${file_tmp} $outdir/${out_file}
-                else:
+                else
                     cp ${file_tmp} $outdir/${out_file}
                 fi
             else
