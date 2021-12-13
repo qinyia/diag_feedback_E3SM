@@ -99,13 +99,13 @@ class calculation:
 
 #############################################################################################
 
-def get_plot_dics(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir,ncase, linestyles, linewidths,Add_amipFutue,highlight_CESM2,lw_CESM2,ls_CESM2,lc_CESM2):
+def get_plot_dics(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir,ncase, linestyles, linewidths,Add_amipFutue,highlight_CESM2,lw_CESM2,ls_CESM2,lc_CESM2, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel):
     '''
     Aug 20, 201: get the plot dictionary for all plot types.
     '''
     dics_plots = {}
 
-    my_plot = plots(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir,ncase, linestyles, linewidths,Add_amipFutue,highlight_CESM2,lw_CESM2,ls_CESM2,lc_CESM2)
+    my_plot = plots(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir,ncase, linestyles, linewidths,Add_amipFutue,highlight_CESM2,lw_CESM2,ls_CESM2,lc_CESM2, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel)
 
     dics_plots['CRE_globalmean']             = my_plot.plot_CRE_globalmean
     dics_plots['RadKernel_globalmean']       = my_plot.plot_RadKernel_globalmean
@@ -130,7 +130,7 @@ def get_plot_dics(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2
 
 
 class plots:
-    def __init__(self, cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors,figdir,ncase, linestyles, linewidths,Add_amipFuture,highlight_CESM2,lw_CESM2,ls_CESM2,lc_CESM2):
+    def __init__(self, cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors,figdir,ncase, linestyles, linewidths,Add_amipFuture,highlight_CESM2,lw_CESM2,ls_CESM2,lc_CESM2, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel):
         self.cases = cases
         self.ref_casesA = ref_casesA
         self.Add_otherCMIPs = Add_otherCMIPs
@@ -151,6 +151,9 @@ class plots:
         self.lw_CESM2 = lw_CESM2
         self.ls_CESM2 = ls_CESM2
         self.lc_CESM2 = lc_CESM2
+        self.datadir_Ringer = datadir_Ringer
+        self.datadir_RadKernel = datadir_RadKernel
+        self.datadir_CldRadKernel = datadir_CldRadKernel
 
     ####################################################################################
     ### bar plot for global mean CRE feedback: including E3SMv1 piControl and amip
@@ -175,12 +178,12 @@ class plots:
             suffix1 = '*.csv'
             suffix2 = '*.csv'
             
-            models_all,cmip5_models,cmip6_models = PDF.get_intersect_withripf(exp_cntl,exp_new,prefix,suffix1,suffix2,datadir_Ringer)
+            models_all,cmip5_models,cmip6_models = PDF.get_intersect_withripf(exp_cntl,exp_new,prefix,suffix1,suffix2,self.datadir_Ringer)
     
             exp_cntl = [['piControl','amip'],['piControl','amip']]
             exp_new = [['abrupt4xCO2','amipFuture'],['abrupt-4xCO2','amip-future4K']]
            
-            models_all_future,cmip5_models_future,cmip6_models_future = PDF.get_intersect_withripf(exp_cntl,exp_new,prefix,suffix1,suffix2,datadir_Ringer)
+            models_all_future,cmip5_models_future,cmip6_models_future = PDF.get_intersect_withripf(exp_cntl,exp_new,prefix,suffix1,suffix2,self.datadir_Ringer)
             
             #print('models_all',models_all,len(models_all))
             #print('cmip5_models', cmip5_models,len(cmip5_models))
@@ -202,9 +205,9 @@ class plots:
                     else:
                 	    model_amip = model
     
-                    filename = datadir_Ringer+'global_mean_features_CMIP5_amip4K_'+model_amip+'.csv'
+                    filename = self.datadir_Ringer+'global_mean_features_CMIP5_amip4K_'+model_amip+'.csv'
                 else:
-                    filename = datadir_Ringer+'global_mean_features_CMIP6_amip-p4K_'+model+'.csv'
+                    filename = self.datadir_Ringer+'global_mean_features_CMIP6_amip-p4K_'+model+'.csv'
             
                 df = pd.read_csv(filename,index_col=0)
                 df.index = df.loc[:,'varname']
@@ -223,9 +226,9 @@ class plots:
                     else:
                 	    model_amip = model
     
-                    filename = datadir_Ringer+'global_mean_features_CMIP5_amipFuture_'+model_amip+'.csv'
+                    filename = self.datadir_Ringer+'global_mean_features_CMIP5_amipFuture_'+model_amip+'.csv'
                 else:
-                    filename = datadir_Ringer+'global_mean_features_CMIP6_amip-future4K_'+model+'.csv'
+                    filename = self.datadir_Ringer+'global_mean_features_CMIP6_amip-future4K_'+model+'.csv'
             
                 df = pd.read_csv(filename,index_col=0)
                 df.index = df.loc[:,'varname']
@@ -262,8 +265,8 @@ class plots:
         fig = plt.figure(figsize=(18,12))
         ax = fig.add_subplot(1,1,1)
         
-        drop_index = ['tas','SWCLR','LWCLR']
-        #drop_index = ['ts','SWCLR','LWCLR']
+        #drop_index = ['tas','SWCLR','LWCLR']
+        drop_index = ['ts','SWCLR','LWCLR']
     
         df_plot = df_all.drop(index=drop_index)
     
@@ -363,7 +366,7 @@ class plots:
             suffix1 = '*1yr-150yr.csv'
             suffix2 = '*.csv'
             
-            models_all,cmip5_models,cmip6_models = PDF.get_intersect(exp_cntl,exp_new,prefix,suffix1,suffix2,datadir_RadKernel)
+            models_all,cmip5_models,cmip6_models = PDF.get_intersect(exp_cntl,exp_new,prefix,suffix1,suffix2,self.datadir_RadKernel)
             #print('models_all',models_all,len(models_all))
             #print('cmip5_models',cmip5_models,len(cmip5_models))
             #print('cmip6_models',cmip6_models,len(cmip6_models))
@@ -387,7 +390,7 @@ class plots:
                     else:
                 	    model_amip = model
     
-                    df = pd.read_csv(datadir_RadKernel+'FDBK_'+phase+'_'+exp_new[iphase][1]+'_'+model_amip+suffix+'.csv',index_col=0)
+                    df = pd.read_csv(self.datadir_RadKernel+'FDBK_'+phase+'_'+exp_new[iphase][1]+'_'+model_amip+suffix+'.csv',index_col=0)
                     df2 = df.iloc[:,0]
                     df_others[model] = df2
     
@@ -515,7 +518,7 @@ class plots:
                 suffix1 = '*1yr-150yr.csv'
                 suffix2 = '*.csv'
                 
-                models_all,cmip5_models,cmip6_models = PDF.get_intersect(exp_cntl,exp_new,prefix,suffix1,suffix2,datadir_RadKernel)
+                models_all,cmip5_models,cmip6_models = PDF.get_intersect(exp_cntl,exp_new,prefix,suffix1,suffix2,self.datadir_RadKernel)
                 #print('models_all',models_all,len(models_all))
                 #print('cmip5_models',cmip5_models,len(cmip5_models))
                 #print('cmip6_models',cmip6_models,len(cmip6_models))
@@ -543,7 +546,7 @@ class plots:
                             else:
                         	    model_amip = model
     
-                            f1 = cdms.open(datadir_RadKernel+'lat-lon-gfdbk-'+phase+'-'+exp_new[iphase][1]+'-'+model_amip+suffix+'.nc')
+                            f1 = cdms.open(self.datadir_RadKernel+'lat-lon-gfdbk-'+phase+'-'+exp_new[iphase][1]+'-'+model_amip+suffix+'.nc')
                             tmp1 = f1(svar)
                         
                             lats = tmp1.getLatitude()[:]
@@ -678,7 +681,7 @@ class plots:
             suffix1 = '*1yr-150yr.csv'
             suffix2 = '*.csv'
             
-            models_all,cmip5_models,cmip6_models = PDF.get_intersect(exp_cntl,exp_new,prefix,suffix1,suffix2,datadir_CldRadKernel)
+            models_all,cmip5_models,cmip6_models = PDF.get_intersect(exp_cntl,exp_new,prefix,suffix1,suffix2,self.datadir_CldRadKernel)
             models = [cmip5_models, cmip6_models]
             model_list = cmip5_models + cmip6_models
     
@@ -691,11 +694,11 @@ class plots:
     
             for iphase,phase in enumerate(phases):
                 for imodel,model in enumerate(models[iphase]):
-                    df = pd.read_csv(datadir_CldRadKernel+'decomp_global_mean_lw_'+phase+'_'+exp_new[iphase][1]+'_'+model+'.csv',index_col=0)
+                    df = pd.read_csv(self.datadir_CldRadKernel+'decomp_global_mean_lw_'+phase+'_'+exp_new[iphase][1]+'_'+model+'.csv',index_col=0)
                     df2 = df.loc[:,model]
                     df_LW_others[model] = df2
     
-                    df = pd.read_csv(datadir_CldRadKernel+'decomp_global_mean_sw_'+phase+'_'+exp_new[iphase][1]+'_'+model+'.csv',index_col=0)
+                    df = pd.read_csv(self.datadir_CldRadKernel+'decomp_global_mean_sw_'+phase+'_'+exp_new[iphase][1]+'_'+model+'.csv',index_col=0)
                     df2 = df.loc[:,model]
                     df_SW_others[model] = df2
     
@@ -899,7 +902,7 @@ class plots:
             suffix1 = '*1yr-150yr.csv'
             suffix2 = '*.csv'
             
-            models_all,cmip5_models,cmip6_models = PDF.get_intersect(exp_cntl,exp_new,prefix,suffix1,suffix2,datadir_CldRadKernel)
+            models_all,cmip5_models,cmip6_models = PDF.get_intersect(exp_cntl,exp_new,prefix,suffix1,suffix2,self.datadir_CldRadKernel)
             #print('models_all',models_all,len(models_all))
             #print('cmip5_models',cmip5_models,len(cmip5_models))
             #print('cmip6_models',cmip6_models,len(cmip6_models))
@@ -946,7 +949,7 @@ class plots:
                                 data1 = np.zeros((nlat,len(models[iphase])))
                                 avgdata1 = np.zeros((len(models[iphase])))
                                 for imodel,model in enumerate(models[iphase]):
-                                    f1 = cdms.open(datadir_CldRadKernel+'global_cloud_feedback_'+phase+'_'+exp_new[iphase][1]+'_'+model+'.nc')
+                                    f1 = cdms.open(self.datadir_CldRadKernel+'global_cloud_feedback_'+phase+'_'+exp_new[iphase][1]+'_'+model+'.nc')
                                     if component in ['LW','SW']:
                                         tmp1 = f1(varname)
                                     else:
@@ -1214,9 +1217,7 @@ class plots:
                             cor,NRMSE, RMSE = PDF.pattern_cor(daa,dbb,wts,1)
                             print('cor=',cor, 'NRMSE=',NRMSE, 'RMSE=',RMSE)
  
-                            #plt.title(name+' ['+str(np.round(avgDATA,3))+']\nNRMSE='+str(np.round(NRMSE,2))+', COR='+str(np.round(cor,2)),fontsize=self.fh)
-                            plt.title(name+' ['+str(np.round(avgDATA,3))+' '+str(np.round(avgDATA/avgdata[n,iref],3))+']\nNRMSE='+str(np.round(NRMSE,2))+', COR='+str(np.round(cor,2)),fontsize=self.fh)
-
+                            plt.title(name+' ['+str(np.round(avgDATA,3))+']\nNRMSE='+str(np.round(NRMSE,2))+', COR='+str(np.round(cor,2)),fontsize=self.fh)
 
                             cb = plt.colorbar(im1,orientation='vertical',drawedges=True,ticks=bounds)
                             cb.set_label('W/m$^2$/K')
@@ -1256,7 +1257,7 @@ class plots:
             suffix1 = '*1yr-150yr.csv'
             suffix2 = '*.csv'
             
-            models_all,cmip5_models,cmip6_models = PDF.get_intersect(exp_cntl,exp_new,prefix,suffix1,suffix2,datadir_RadKernel)
+            models_all,cmip5_models,cmip6_models = PDF.get_intersect(exp_cntl,exp_new,prefix,suffix1,suffix2,self.datadir_RadKernel)
             models = [cmip5_models, cmip6_models]
             model_list = cmip5_models + cmip6_models
     
@@ -1284,7 +1285,7 @@ class plots:
                         else:
                     	    model_amip = model
     
-                        f1 = cdms.open(datadir_RadKernel+'lat-lon-gfdbk-'+phase+'-'+exp_new[iphase][1]+'-'+model_amip+suffix+'.nc')
+                        f1 = cdms.open(self.datadir_RadKernel+'lat-lon-gfdbk-'+phase+'-'+exp_new[iphase][1]+'-'+model_amip+suffix+'.nc')
                         tmp1 = f1(svar)
                     
                         lats = tmp1.getLatitude()[:]
@@ -1957,14 +1958,14 @@ class plots:
     
             for model in models_all:
                 if model in models_cmip5:
-                    filename = datadir_Ringer+'global_mean_features_CMIP5_amip4K_'+model+'_r1i1p1.csv'
+                    filename = self.datadir_Ringer+'global_mean_features_CMIP5_amip4K_'+model+'_r1i1p1.csv'
                 else:
                     if model == 'CNRM-CM6-1':
-                        filename = datadir_Ringer+'global_mean_features_CMIP6_amip-p4K_'+model+'_r1i1p1f2.csv'
+                        filename = self.datadir_Ringer+'global_mean_features_CMIP6_amip-p4K_'+model+'_r1i1p1f2.csv'
                     elif model == 'CanESM5':
-                        filename = datadir_Ringer+'global_mean_features_CMIP6_amip-p4K_'+model+'_r1i1p2f1.csv'
+                        filename = self.datadir_Ringer+'global_mean_features_CMIP6_amip-p4K_'+model+'_r1i1p2f1.csv'
                     else:
-                        filename = datadir_Ringer+'global_mean_features_CMIP6_amip-p4K_'+model+'_r1i1p1f1.csv'
+                        filename = self.datadir_Ringer+'global_mean_features_CMIP6_amip-p4K_'+model+'_r1i1p1f1.csv'
             
                 df = pd.read_csv(filename,index_col=0)
                 df.index = df.loc[:,'varname']
@@ -1974,14 +1975,14 @@ class plots:
             df_future = pd.DataFrame()
             for model in models_all:
                 if model in models_cmip5:
-                    filename = datadir_Ringer+'global_mean_features_CMIP5_amipFuture_'+model+'_r1i1p1.csv'
+                    filename = self.datadir_Ringer+'global_mean_features_CMIP5_amipFuture_'+model+'_r1i1p1.csv'
                 else:
                     if model == 'CNRM-CM6-1':
-                        filename = datadir_Ringer+'global_mean_features_CMIP6_amip-future4K_'+model+'_r1i1p1f2.csv'
+                        filename = self.datadir_Ringer+'global_mean_features_CMIP6_amip-future4K_'+model+'_r1i1p1f2.csv'
                     elif model == 'CanESM5':
-                        filename = datadir_Ringer+'global_mean_features_CMIP6_amip-future4K_'+model+'_r1i1p2f1.csv'
+                        filename = self.datadir_Ringer+'global_mean_features_CMIP6_amip-future4K_'+model+'_r1i1p2f1.csv'
                     else:
-                        filename = datadir_Ringer+'global_mean_features_CMIP6_amip-future4K_'+model+'_r1i1p1f1.csv'
+                        filename = self.datadir_Ringer+'global_mean_features_CMIP6_amip-future4K_'+model+'_r1i1p1f1.csv'
             
                 df = pd.read_csv(filename,index_col=0)
                 df.index = df.loc[:,'varname']
@@ -2104,7 +2105,7 @@ class plots:
             suffix1 = '*.csv'
             suffix2 = '*.csv'
             
-            models_all,cmip5_models,cmip6_models = PDF.get_intersect_withripf(exp_cntl,exp_new,prefix,suffix1,suffix2,datadir_Ringer)
+            models_all,cmip5_models,cmip6_models = PDF.get_intersect_withripf(exp_cntl,exp_new,prefix,suffix1,suffix2,self.datadir_Ringer)
     
     #        print('models_all',models_all,len(models_all))
     #        print('cmip5_models', cmip5_models,len(cmip5_models))
@@ -2122,9 +2123,9 @@ class plots:
                     else:
                 	    model_amip = model
     
-                    filename = datadir_Ringer+'global_mean_features_CMIP5_amip4xCO2_'+model_amip+'.csv'
+                    filename = self.datadir_Ringer+'global_mean_features_CMIP5_amip4xCO2_'+model_amip+'.csv'
                 else:
-                    filename = datadir_Ringer+'global_mean_features_CMIP6_amip-4xCO2_'+model+'.csv'
+                    filename = self.datadir_Ringer+'global_mean_features_CMIP6_amip-4xCO2_'+model+'.csv'
             
                 df = pd.read_csv(filename,index_col=0)
                 df.index = df.loc[:,'varname']
