@@ -265,8 +265,10 @@ class plots:
         fig = plt.figure(figsize=(18,12))
         ax = fig.add_subplot(1,1,1)
         
-        #drop_index = ['tas','SWCLR','LWCLR']
-        drop_index = ['ts','SWCLR','LWCLR']
+        if 'ts' in df_all.index:
+            drop_index = ['ts','SWCLR','LWCLR']
+        else:
+            drop_index = ['tas','SWCLR','LWCLR']
     
         df_plot = df_all.drop(index=drop_index)
     
@@ -278,7 +280,7 @@ class plots:
         
         for idx,index in enumerate(df_plot.index):
             for icol,column in enumerate(df_plot.columns):
-                if column == 'v1_coupled':
+                if column == 'v1_coupled' or column == 'v2_coupled':
                     L1 = ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=self.s1,alpha=self.a1,label=column,color=self.colors[icol],marker='x')
                 elif column == 'v1_amip4K':
                     ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=self.s1,alpha=self.a1,label=column,color=self.colors[icol],marker='x')
@@ -442,7 +444,7 @@ class plots:
         
         for idx,index in enumerate(df_plot.index):
             for icol,column in enumerate(df_plot.columns):
-                if column == 'v1_coupled':
+                if column == 'v1_coupled' or column == 'v2_coupled':
                     L1 = ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=self.s1,alpha=self.a1,label=column,color=self.colors[icol],marker='x')
                 elif column == 'v1_amip4K':
                     ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=self.s1,alpha=self.a1,label=column,color=self.colors[icol],marker='x')
@@ -773,7 +775,7 @@ class plots:
             for jj in range(3): ## loop for each panel, jj reprents All, Non-Low and Low Cloud 
                 for icol,column in enumerate(df_LW_all.columns):
                     y1 = df_LW_all.iloc[jj*5:(jj+1)*5,icol]
-                    if column == 'v1_coupled':
+                    if column == 'v1_coupled' or column == 'v2_coupled':
                         axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label=column)
                     elif column == 'v1_amip4K':
                         axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label=column)
@@ -786,7 +788,7 @@ class plots:
         
                 for icol,column in enumerate(df_net_all.columns):
                     y1 = df_net_all.iloc[jj*5:(jj+1)*5,icol]
-                    if column == 'v1_coupled':
+                    if column == 'v1_coupled' or column == 'v2_coupled':
                         axes[jj].scatter(x+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
                     elif column == 'v1_amip4K':
                         axes[jj].scatter(x+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
@@ -799,7 +801,7 @@ class plots:
         
                 for icol,column in enumerate(df_SW_all.columns):
                     y1 = df_SW_all.iloc[jj*5:(jj+1)*5,icol]
-                    if column == 'v1_coupled':
+                    if column == 'v1_coupled' or column == 'v2_coupled':
                         axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
                     elif column == 'v1_amip4K':
                         axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
@@ -1192,7 +1194,7 @@ class plots:
     
                         fig=plt.figure(figsize=(18,12)) # this creates and increases the figure size
                         plt.suptitle(sec+' CTP bins ['+cases_here[icase]+' minus '+cases_here[iref]+']',fontsize=self.fh,y=0.95)
-                        bounds = np.arange(-2,2.2,0.2)
+                        bounds = np.arange(-3,3.25,0.25)
                         cmap = plt.cm.RdBu_r
                         bounds2 = np.append(np.append(-500,bounds),500) # This is only needed for norm if colorbar is extended
                         norm = mpl.colors.BoundaryNorm(bounds2, cmap.N) # make sure the colors vary linearly even if the desired color boundaries are at varied intervals
@@ -1221,7 +1223,7 @@ class plots:
  
                             plt.title(name+' ['+str(np.round(avgDATA,3))+']\nNRMSE='+str(np.round(NRMSE,2))+', COR='+str(np.round(cor,2)),fontsize=self.fh)
 
-                            cb = plt.colorbar(im1,orientation='vertical',drawedges=True,ticks=bounds)
+                            cb = plt.colorbar(im1,orientation='vertical',drawedges=True,ticks=bounds[::2])
                             cb.set_label('W/m$^2$/K')
     
         
@@ -1342,12 +1344,12 @@ class plots:
                     nrow = 3; ncol = 1
     
                     cmap0 = plt.cm.Reds
-                    bounds0 = np.arange(0,1.7,0.05)
+                    bounds0 = np.arange(0,1.7,0.1)
                     bounds01 = np.append(np.append(-500,bounds0),500) # This is only needed for norm if colorbar is extended
                     norm0 = mpl.colors.BoundaryNorm(bounds01, cmap0.N) # make sure the colors vary linearly even if the desired color boundaries are at varied intervals
     
                     cmap1 = plt.cm.RdBu_r
-                    bounds1 = np.arange(-0.8,0.85,0.05)
+                    bounds1 = np.arange(-0.8,0.85,0.1)
                     bounds11 = np.append(np.append(-500,bounds1),500) # This is only needed for norm if colorbar is extended
                     norm1 = mpl.colors.BoundaryNorm(bounds11, cmap1.N) # make sure the colors vary linearly even if the desired color boundaries are at varied intervals
     
@@ -1373,7 +1375,7 @@ class plots:
         
                         plt.title(titles[iDATA],fontsize=17)
     
-                        PDF.make_colorbar(ax1, 'K/K', 17, im1, orientation='vertical')
+                        PDF.make_colorbar(ax1, 'K/K', 13, im1, nbins = 9, orientation='vertical')
     
     #                cb = plt.colorbar(im1,orientation='vertical',drawedges=True,ticks=bounds)
     #                cb.set_label('K/K')
@@ -1450,7 +1452,7 @@ class plots:
                 nrow = 3; ncol = 3
                 fig = plt.figure(figsize=(ncol*8,nrow*4)) # this creates and increases the figure size
     
-                bounds = np.arange(-3,3.5,0.25)
+                bounds = np.arange(-3,3.25,0.25)
 
                 cmap = plt.cm.RdBu_r
                 bounds2 = np.append(np.append(-500,bounds),500) # This is only needed for norm if colorbar is extended
@@ -1904,7 +1906,7 @@ class plots:
                 #----------------------------------------------------------
                 # start plotting ...
                 #----------------------------------------------------------
-                bounds = np.arange(-3,3.5,0.25)
+                bounds = np.arange(-3,3.25,0.25)
                 cmap = plt.cm.RdBu_r
                 bounds2 = np.append(np.append(-500,bounds),500) # This is only needed for norm if colorbar is extended
                 norm = mpl.colors.BoundaryNorm(bounds2, cmap.N) # make sure the colors vary linearly even if the desired color boundaries are at varied intervals
