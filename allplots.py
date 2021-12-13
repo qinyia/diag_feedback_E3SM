@@ -782,7 +782,7 @@ class plots:
     
                     else:
         #                L1 = axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='o',s=self.s2,color=self.colors[icol],alpha=self.a1,label=column)
-                        axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='o',s=self.s2,color=self.colors[icol],alpha=self.a1,label=column)
+                        La = axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='v',s=self.s2,color=self.colors[icol],alpha=self.a1,label=column)
         
                 for icol,column in enumerate(df_net_all.columns):
                     y1 = df_net_all.iloc[jj*5:(jj+1)*5,icol]
@@ -795,7 +795,7 @@ class plots:
     
                     else:
         #                L2 = axes[jj].scatter(x+w2,y1.values.tolist(),marker='o',s=self.s2,color=self.colors[icol],alpha=self.a1,label=column)
-                        axes[jj].scatter(x+w2,y1.values.tolist(),marker='o',s=self.s2,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
+                        Lb = axes[jj].scatter(x+w2,y1.values.tolist(),marker='o',s=self.s2,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
         
                 for icol,column in enumerate(df_SW_all.columns):
                     y1 = df_SW_all.iloc[jj*5:(jj+1)*5,icol]
@@ -808,9 +808,11 @@ class plots:
     
                     else:
          #               L3 = axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='o',s=self.s2,color=self.colors[icol],alpha=self.a1,label=column)
-                        axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='o',s=self.s2,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
+                        Lc = axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='^',s=self.s2,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
            
         
+                plt.legend([La,Lb,Lc],["LW","NET","SW"],scatterpoints=1,loc="upper left",fontsize=self.fh1)
+
                 # CMIP - other models
                 if self.Add_otherCMIPs:
                     a2 = 0.3
@@ -821,7 +823,7 @@ class plots:
                             axes[jj].scatter(x-w+w2-w3,y1.values.tolist(),marker='X',s=s3,color='red',alpha=a2,\
                             label=column.split('_')[0]+'_amip-p4K')
                         else:
-                            axes[jj].scatter(x-w+w2-w3,y1.values.tolist(),marker='o',s=s3,color='red',alpha=a2,label='_nolegend_')
+                            axes[jj].scatter(x-w+w2-w3,y1.values.tolist(),marker='v',s=s3,color='red',alpha=a2,label='_nolegend_')
         
                     for icol,column in enumerate(df_net_others.columns):
                         y1 = df_net_others.iloc[jj*5:(jj+1)*5,icol]
@@ -837,14 +839,14 @@ class plots:
                             axes[jj].scatter(x+w+w2-w3,y1.values.tolist(),marker='X',s=s3,color='blue',alpha=a2,\
                             label=column.split('_')[0]+'_amip-p4K')
                         else:
-                            axes[jj].scatter(x+w+w2-w3,y1.values.tolist(),marker='o',s=s3,color='blue',alpha=a2,label='_nolegend_')
+                            axes[jj].scatter(x+w+w2-w3,y1.values.tolist(),marker='^',s=s3,color='blue',alpha=a2,label='_nolegend_')
         
         
-                    L1 = axes[jj].scatter(x-w+w2-w3,df_LW_others.iloc[jj*5:(jj+1)*5,:].mean(axis=1),marker='o',s=s3,color='red',alpha=1.0,label='_nolegend_')
+                    L1 = axes[jj].scatter(x-w+w2-w3,df_LW_others.iloc[jj*5:(jj+1)*5,:].mean(axis=1),marker='v',s=s3,color='red',alpha=1.0,label='_nolegend_')
                     L2 = axes[jj].scatter(x+w2-w3,df_net_others.iloc[jj*5:(jj+1)*5,:].mean(axis=1),marker='o',s=s3,color='grey',alpha=1.0,label='_nolegend_')
-                    L3 = axes[jj].scatter(x+w+w2-w3,df_SW_others.iloc[jj*5:(jj+1)*5,:].mean(axis=1),marker='o',s=s3,color='blue',alpha=1.0,label='_nolegend_')
+                    L3 = axes[jj].scatter(x+w+w2-w3,df_SW_others.iloc[jj*5:(jj+1)*5,:].mean(axis=1),marker='^',s=s3,color='blue',alpha=1.0,label='_nolegend_')
         
-                    plt.legend((L1,L2,L3),["LW","NET","SW"],scatterpoints=1,bbox_to_anchor=(1,1),loc="best",fontsize=self.fh1)
+                    #plt.legend((L1,L2,L3),["LW","NET","SW"],scatterpoints=1,bbox_to_anchor=(1,1),loc="best",fontsize=self.fh1)
         
                 if jj == 0:
                     axes[jj].legend(fontsize=self.fh1,ncol=2)
