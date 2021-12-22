@@ -695,7 +695,7 @@ def pattern_cor(x,y,wts,opt):
     else:
         xyCov = np.ma.sum(WGT*x*y)
         xAnom2 = np.ma.sum(WGT*x**2)
-        yAnom2 = np.ma.sum(WGT*x**2)
+        yAnom2 = np.ma.sum(WGT*y**2)
 
     NRMSE = np.sqrt(np.ma.sum(WGT*(x - y)**2) / np.ma.sum(WGT*x**2))
 
