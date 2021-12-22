@@ -336,7 +336,7 @@ class plots:
         
         ax.set_ylim(-2.5,2.5)
         ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
-        fig.savefig(self.figdir+'ScatterPlot-CRE-feedback-'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
+        fig.savefig(self.figdir+'ScatterPlot-CRE-feedback_'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
         plt.close(fig)
     
         del(df_all,df_plot)
@@ -480,7 +480,7 @@ class plots:
         plt.xticks(x,df_plot.index,rotation=degrees)
         ax.set_title('Radiative Kernel feedback',fontsize=self.fh)
         
-        fig.savefig(self.figdir+'ScatterPlot-RadKernel-Feedback-'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
+        fig.savefig(self.figdir+'ScatterPlot-RadKernel-Feedback_'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
         plt.close(fig)
     
         print('------------------------------------------------')
@@ -650,7 +650,7 @@ class plots:
                 num1 += 1
         
             plt.tight_layout()
-            fig.savefig(self.figdir+'Zonal-mean-Cloud-RadKernel-Feedback-'+str(np.round(ii,0))+'-'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
+            fig.savefig(self.figdir+'Zonal-mean-Cloud-RadKernel-Feedback_'+str(np.round(ii,0))+'-'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
             plt.close(fig)
     
     
@@ -875,7 +875,7 @@ class plots:
                     axes[jj].set_xticklabels("")
                     
             plt.tight_layout()
-            fig.savefig(self.figdir+'ScatterPlot-Cloud-feedback-Decomposition-'+str(np.round(ii,0))+'-'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
+            fig.savefig(self.figdir+'ScatterPlot-Cloud-feedback-Decomposition_'+str(np.round(ii,0))+'-'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
             plt.close(fig)
     
         print('------------------------------------------------')
@@ -1094,12 +1094,12 @@ class plots:
                         #<qinyi 2021-05-19 #------------------
     
                     plt.tight_layout()
-                    fig.savefig(self.figdir+'ZonalMean-Cloud-feedback-Decomposition-'+lev+'-'+component+'-'+str(np.round(ii,0))+'-'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
+                    fig.savefig(self.figdir+'ZonalMean-Cloud-feedback-Decomposition_'+lev+'-'+component+'-'+str(np.round(ii,0))+'-'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
                     plt.close(fig)
     
             #<qinyi 2021-05-19 #------------------
             plt.tight_layout()
-            fig1.savefig(self.figdir+'ZonalMean-Cloud-feedback-Decomposition-KeyComponents-'+str(np.round(ii,0))+'-'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
+            fig1.savefig(self.figdir+'ZonalMean-Cloud-feedback-Decomposition-KeyComponents_'+str(np.round(ii,0))+'-'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
             plt.close(fig)
             #>qinyi 2021-05-19 #------------------
     
@@ -1229,7 +1229,7 @@ class plots:
         
                         fig.subplots_adjust(top=0.9)
     
-                        fig.savefig(self.figdir+'LatLon-Cloud-feedback-Decomposition-'+cases_here[icase]+'.minus.'+cases_here[iref]+'-'+component+'-'+sec+'.png',dpi=300,bbox_inches='tight')
+                        fig.savefig(self.figdir+'LatLon-Cloud-feedback-Decomposition_'+cases_here[icase]+'.minus.'+cases_here[iref]+'-'+component+'-'+sec+'.png',dpi=300,bbox_inches='tight')
                         plt.close(fig)
                 
     
@@ -1385,7 +1385,7 @@ class plots:
     
                     fig.subplots_adjust(top=0.9)
     
-                    fig.savefig(self.figdir+'LatLon-TAS-'+cases_here[icase]+'.minus.'+cases_here[iref]+'.png',bbox_inches='tight',dpi=300)
+                    fig.savefig(self.figdir+'LatLon-TAS_'+cases_here[icase]+'.minus.'+cases_here[iref]+'.png',bbox_inches='tight',dpi=300)
                     plt.close(fig)
                 
     
@@ -1501,7 +1501,7 @@ class plots:
     
                 fig.subplots_adjust(top=0.9)
     
-                fig.savefig(self.figdir+'LatLon-adjusted-CRE-'+case_out+'.minus.'+ref_case_out+'.png',bbox_inches='tight',dpi=300)
+                fig.savefig(self.figdir+'LatLon-adjusted-CRE_'+case_out+'.minus.'+ref_case_out+'.png',bbox_inches='tight',dpi=300)
                 plt.close(fig)
                 
         print('------------------------------------------------')
@@ -1551,7 +1551,7 @@ class plots:
     
         ax.legend(fontsize=self.fh-3)
     
-        fig.savefig(self.figdir+'LCF-vs-temperature-'+cases_here[-1]+'.png',bbox_inches='tight',dpi=300)
+        fig.savefig(self.figdir+'LCF-vs-temperature_'+cases_here[-1]+'.png',bbox_inches='tight',dpi=300)
         plt.close(fig)
                 
         print('------------------------------------------------')
@@ -1698,7 +1698,7 @@ class plots:
                             ax.set_title(title, loc='right')
     
                         fig.tight_layout()
-                        fig.savefig(self.figdir+'LatLev-'+svar+'-'+case+'-vs-'+ref_case+'.png',bbox_inches='tight',dpi=300)
+                        fig.savefig(self.figdir+'LatLev_'+svar+'-'+case+'-vs-'+ref_case+'.png',bbox_inches='tight',dpi=300)
                         plt.close(fig)
                 
         print('------------------------------------------------')
@@ -1853,7 +1853,7 @@ class plots:
                         ax.set_title(title+'\n'+var1_out[ivar]+' ['+str(np.round(avgdata1,2))+']')
     
                     fig.tight_layout()
-                    fig.savefig(self.figdir+'LatLon-'+svar+'-'+case+'-vs-'+ref_case+'.png',bbox_inches='tight',dpi=300)
+                    fig.savefig(self.figdir+'LatLon_'+svar+'-'+case+'-vs-'+ref_case+'.png',bbox_inches='tight',dpi=300)
                     plt.close(fig)
                 
         print('------------------------------------------------')
@@ -1928,7 +1928,7 @@ class plots:
             fig.subplots_adjust(top=0.9)
             plt.suptitle(case_out,fontsize=self.fh,y=0.95)
     
-            fig.savefig(self.figdir+'LatLon-'+case+'-webb-decomp.png',bbox_inches='tight',dpi=300)
+            fig.savefig(self.figdir+'LatLon_'+case+'_webb-decomp.png',bbox_inches='tight',dpi=300)
             plt.close(fig)
                 
         print('------------------------------------------------')
@@ -2078,7 +2078,7 @@ class plots:
     #    plt.xticks(x,df_plot.index)
         
         fig.tight_layout()
-        fig.savefig(self.figdir+'ScatterPlot-CRE-P4KvsFuture-feedback-'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
+        fig.savefig(self.figdir+'ScatterPlot-CRE-P4KvsFuture-feedback_'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
         plt.close(fig)
     
         del(df_all,df_plot)
@@ -2195,7 +2195,7 @@ class plots:
         plt.xticks(x,df_plot.index)
         
         ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
-        fig.savefig(self.figdir+'ScatterPlot-RadForcing-'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
+        fig.savefig(self.figdir+'ScatterPlot-RadForcing_'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
         plt.close(fig)
     
         del(df_all,df_plot)
