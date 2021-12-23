@@ -42,3 +42,5 @@
 - Mar 21, 2021: add plot_CldRadKernel_latlon 
 - Jul 20, 2021: re-organize  
 - Oct 10, 2021: clear-up and re-organize main.py and main-plot.py 
+- Dec 22, 2021: generate a web page to better organize and visualize all figures.
+
