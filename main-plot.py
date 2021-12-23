@@ -102,6 +102,9 @@ datadir_v2 = datadir+'/data/'
 ## figure directory
 figdir = datadir+'/figure/'
 
+## csv directory
+csvdir = datadir+'/csvfile/'
+
 ## create figure directory if it does not exist
 try:
     os.mkdir(figdir)
@@ -109,6 +112,13 @@ except OSError:
     print("Creation of the directory %s failed" % figdir)
 else:
     print("Successfully created the directory %s " % figdir)
+
+try:
+    os.mkdir(csvdir)
+except OSError:
+    print("Creation of the directory %s failed" % csvdir)
+else:
+    print("Successfully created the directory %s " % csvdir)
 
 # the following lines might be removed later....
 Add_amipFuture = False
@@ -120,10 +130,12 @@ lc_CESM2 = 'blue'
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # get dictionary of all plot type lists
-dics_plots = AP.get_plot_dics(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir, ncase, linestyles, linewidths,Add_amipFuture,highlight_CESM2,lw_CESM2, ls_CESM2, lc_CESM2)
+dics_plots = AP.get_plot_dics(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir, ncase, linestyles, linewidths,Add_amipFuture,highlight_CESM2,lw_CESM2, ls_CESM2, lc_CESM2, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel)
 
 for key in dics_plots:
     if key in plot_types:
-        dics_plots[key]()
+        pd2html = dics_plots[key]()
+        # save pandas dataframe to csv file
+        pd2html.to_csv(csvdir+"pd2html_"+key+".csv")
 
 print('Well Done.')
