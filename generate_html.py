@@ -1,11 +1,12 @@
 
 
-def generate_html(webdir=None):
+def generate_html(casedir,webdir=None):
 
     '''
     Dec 22, 2021: generate html page to visualize all plots.
 
     input:
+    casedir -- the directory where related files are saved.
     webdir -- the directory where you can open the html file.
               Both compy and nersc have such web server. 
               You can also download the final tar file in the 
@@ -24,6 +25,8 @@ def generate_html(webdir=None):
     dic['CldRadKernel_zonalmean'] = {}
     dic['RadKernel_latlon'] = {}
     dic['CldRadKernel_latlon'] = {}
+    dic['RadKernel_latlon_dif'] = {}
+    dic['CldRadKernel_latlon_dif'] = {}
     dic['tas_latlon'] = {}
     dic['LCF'] = {}
     dic['zm_CLOUD'] = {}
@@ -33,9 +36,13 @@ def generate_html(webdir=None):
     for key in dic.keys():
         dic[key] = pd.DataFrame()
      
-        fname = 'csvfile/pd2html_'+key+'.csv'
+        fname = casedir+'csvfile/pd2html_'+key+'.csv'
         if os.path.isfile(fname):
             dic[key] = pd.read_csv(fname,index_col=0)
+
+            # if the dict is empty, don't show the empty table only with columns.
+            if len(dic[key]) == 0:
+                dic[key] = pd.DataFrame()
     
     # convert into html files 
     html_string = '''
@@ -64,8 +71,12 @@ def generate_html(webdir=None):
       <h3>Zonal Mean Cloud Radiative Kernel Feedback</h3>
         {table5}
       <h3>LAT-LON Radiative Kernel Feedback</h3>
-        {table6}
+        {table13}
       <h3>LAT-LON Cloud Radiative Kernel Feedback</h3>
+        {table14}
+      <h3>LAT-LON Radiative Kernel Feedback Difference</h3>
+        {table6}
+      <h3>LAT-LON Cloud Radiative Kernel Feedback Difference</h3>
         {table7}
       <h3>LAT-LON Surface Air Temperature Response</h3>
         {table8}
@@ -83,14 +94,16 @@ def generate_html(webdir=None):
     </html>.
     '''
     
-    with open('viewer/index.html','w') as f:
+    with open(casedir+'viewer/index.html','w') as f:
         f.write(html_string.format(table1=dic['CRE_globalmean'].to_html(escape=False,index=False,border=0),
                                    table2=dic['RadKernel_globalmean'].to_html(escape=False,index=False,border=0),
                                    table3=dic['CldRadKernel_globalmean'].to_html(escape=False,index=False,border=0),
                                    table4=dic['RadKernel_zonalmean'].to_html(escape=False,index=False,border=0),
                                    table5=dic['CldRadKernel_zonalmean'].to_html(escape=False,index=False,border=0),
-                                   table6=dic['RadKernel_latlon'].to_html(escape=False,index=False,border=0),
-                                   table7=dic['CldRadKernel_latlon'].to_html(escape=False,index=False,border=0),
+                                   table13=dic['RadKernel_latlon'].to_html(escape=False,index=False,border=0),
+                                   table14=dic['CldRadKernel_latlon'].to_html(escape=False,index=False,border=0),
+                                   table6=dic['RadKernel_latlon_dif'].to_html(escape=False,index=False,border=0),
+                                   table7=dic['CldRadKernel_latlon_dif'].to_html(escape=False,index=False,border=0),
                                    table8=dic['tas_latlon'].to_html(escape=False,index=False,border=0),
                                    table9=dic['LCF'].to_html(escape=False,index=False,border=0),
                                    table10=dic['zm_CLOUD'].to_html(escape=False,index=False,border=0),
@@ -103,22 +116,11 @@ def generate_html(webdir=None):
     
     print("=============Well done. check viewer/index.html for all plots.==============")
     
-    bashCommand = "tar cvf view.tar viewer figure"
-    process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
-    output, error = process.communicate()
+    bashCommand = 'sh copy2webdir.sh '+casedir+' '+webdir
+    #process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+    #output, error = process.communicate()
+
+    os.system(bashCommand)
     
-    if webdir != None:
-        bashCommand = "cp view.tar "+webdir
-        process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
-        output, error = process.communicate()
-        
-        bashCommand = "rm -f view.tar"
-        process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
-        output, error = process.communicate()
-
-        bashCommand = "tar xvf "+webdir+"view.tar -C "+webdir
-        process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
-        output, error = process.communicate()
-
-        print("========You can check your web page here: ",webdir+"====================")
+    print("========You can check your web page here: ",webdir+"====================")
 
