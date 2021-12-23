@@ -28,6 +28,13 @@ import cal_LCF_E3SM as LCF
 import cal_cloud_E3SM as CLOUD
 import cal_webb_decomposition as WD
 
+#############################################################################################
+def prepare_pd2html(outfig,varname,desc,casevscase=''):
+    print(casevscase)
+    pd_plot = pd.DataFrame([[varname,desc,casevscase,outfig]],columns=['Variables','Description','Case.VS.Case','Plot'])
+    pd_plot['Plot'] = pd_plot['Plot'].apply(lambda x: '<a href='+outfig+' target="_blanck">plot</a>')
+
+    return pd_plot
 
 #############################################################################################
 def make_dir(outdir):
@@ -123,9 +130,6 @@ def get_plot_dics(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2
     dics_plots['latlon_CLOUD']               = my_plot.plot_latlon_CLOUD
     dics_plots['webb_decomp']                = my_plot.plot_webb_decomp
     
-    dics_plots['CRE_globalmean_P4KvsFuture'] = my_plot.plot_CRE_globalmean_P4KvsFuture
-    dics_plots['RadForcing_globalmean']      = my_plot.plot_RadForcing_globalmean
-
     return dics_plots
 
 
@@ -160,7 +164,8 @@ class plots:
     ####################################################################################
     def plot_CRE_globalmean(self):
         print('ScatterPlot-CRE-feedback starts ........')
-    
+
+                
         cases_here = copy.deepcopy(self.cases)
         if 'amip-4xCO2' in self.cases:
             cases_here.remove('amip-4xCO2')
@@ -338,11 +343,20 @@ class plots:
         ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
         fig.savefig(self.figdir+'ScatterPlot-CRE-feedback_'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
         plt.close(fig)
-    
+        
+        #<2021-12-21
+        pd_plot = prepare_pd2html('../figure/ScatterPlot-CRE-feedback_'+self.cases[-1]+'.png',
+                                  'Radiative feedback [W/m2/K]',
+                                  'TOA radiative feedbacks [SWCRE, LWCRE, netCRE, clear-sky SW, clear-sky LW, net TOA, net TOA SW, net TOA LW, clear-sky net TOA, clear-sky net TOA SW, clear-sky net TOA LW]',
+                                  '')
+        #>2021-12-21
+   
         del(df_all,df_plot)
         print('------------------------------------------------')
         print('ScatterPlot-CRE-feedback is done!')
         print('------------------------------------------------')
+
+        return pd_plot 
     
     ####################################################################
     ### bar plot for radiative feedback based on Radiative kernel 
@@ -482,10 +496,19 @@ class plots:
         
         fig.savefig(self.figdir+'ScatterPlot-RadKernel-Feedback_'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
         plt.close(fig)
+
+        #<2021-12-22
+        pd_plot = prepare_pd2html('../figure/ScatterPlot-RadKernel-Feedback_'+self.cases[-1]+'.png',
+                                  'CRE [W/m2/K]',
+                                  'Adjusted CRE feedbacks derived from radiative kernel method (SW, LW, NET)',
+                                  '')
+        #>2021-12-22
     
         print('------------------------------------------------')
         print('ScatterPlot-RadKernel-Feedback is done!')
         print('------------------------------------------------')
+        return pd_plot 
+
     
     #########################################################################
     ### zonal mean plot of radiative feedback based on radiative kernel
@@ -503,6 +526,8 @@ class plots:
         nlat = 73
         nlon = 144
         
+        pd_plot_all = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
+
         # generate figure based on case categories
         for ii in self.ncase:
             fig = plt.figure(figsize=(18,9))
@@ -652,11 +677,19 @@ class plots:
             plt.tight_layout()
             fig.savefig(self.figdir+'Zonal-mean-Cloud-RadKernel-Feedback_'+str(np.round(ii,0))+'-'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
             plt.close(fig)
+
+            pd_plot = prepare_pd2html('../figure/Zonal-mean-Cloud-RadKernel-Feedback_'+str(np.round(ii,0))+'-'+self.cases[-1]+'.png',
+                                      'CRE [W/m2/K]',
+                                      'Adjusted CRE feedbacks derived from radiative kernel method (SW, LW, NET)',
+                                      'ncases = '+str(np.round(ii,0)))
     
-    
+            pd_plot_all = pd.merge(pd_plot_all, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
+
         print('------------------------------------------------')
         print('plot_RadKernel_zonalmean is done!')
         print('------------------------------------------------')
+
+        return pd_plot_all
     
     
     ###################################################################
@@ -705,6 +738,8 @@ class plots:
                     df_SW_others[model] = df2
     
         # E3SM
+        pd_plot_all = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
+
         for ii in self.ncase:
     
             df_LW_all = pd.DataFrame()
@@ -877,10 +912,20 @@ class plots:
             plt.tight_layout()
             fig.savefig(self.figdir+'ScatterPlot-Cloud-feedback-Decomposition_'+str(np.round(ii,0))+'-'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
             plt.close(fig)
+
+            pd_plot = prepare_pd2html('../figure/ScatterPlot-Cloud-feedback-Decomposition_'+str(np.round(ii,0))+'-'+self.cases[-1]+'.png',
+                                      'Cloud feedback [W/m2/K]',
+                                      'Cloud feedback components derived from cloud radiative kernel method (ISCCP simulator output): Low clouds and non-low clouds; Cloud amount, altitude and optical depth',
+                                      'ncases = '+str(np.round(ii,0)))
+
+            pd_plot_all = pd.merge(pd_plot_all, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
+
     
         print('------------------------------------------------')
         print('ScatterPlot-Cloud-feedback-Decomposition is done!')
         print('------------------------------------------------')
+
+        return pd_plot_all
     
     #####################################################################
     ### 5. zonal mean cloud feedback based on cloud radiative kernel
@@ -924,6 +969,9 @@ class plots:
         decomps_out = ['Total','Amount','Altitude','Optical Depth']
         
         # generate figure based on case categories
+
+        pd_plot_all_1 = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
+        pd_plot_all = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
     
         for ii in self.ncase:
             #<qinyi 2021-05-19 #------------------
@@ -1096,17 +1144,34 @@ class plots:
                     plt.tight_layout()
                     fig.savefig(self.figdir+'ZonalMean-Cloud-feedback-Decomposition_'+lev+'-'+component+'-'+str(np.round(ii,0))+'-'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
                     plt.close(fig)
+
+                    pd_plot = prepare_pd2html('../figure/ZonalMean-Cloud-feedback-Decomposition_'+lev+'-'+component+'-'+str(np.round(ii,0))+'-'+self.cases[-1]+'.png',
+                                      component+'-'+lev+' [W/m2/K]',
+                                      components_out[icomp]+' '+levs_out[ilev]+' Feedback',
+                                      'ncases = '+str(np.round(ii,0)))
+
+                    pd_plot_all = pd.merge(pd_plot_all, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
+
     
             #<qinyi 2021-05-19 #------------------
             plt.tight_layout()
             fig1.savefig(self.figdir+'ZonalMean-Cloud-feedback-Decomposition-KeyComponents_'+str(np.round(ii,0))+'-'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
             plt.close(fig)
             #>qinyi 2021-05-19 #------------------
-    
-    
+
+            pd_plot = prepare_pd2html('../figure/ZonalMean-Cloud-feedback-Decomposition-KeyComponents_'+str(np.round(ii,0))+'-'+self.cases[-1]+'.png',
+                              'Key components [W/m2/K]',
+                              'LO680_SWcld_amt, LO680_SWcld_tau, HI680_SWcld_amt, HI680_SWcld_tau, HI680_LWcld_amt, HI680_LWcld_alt and HI680_LWcld_tau',
+                              'ncases = '+str(np.round(ii,0)))
+
+            pd_plot_all_1 = pd.merge(pd_plot_all_1, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
+
+        
         print('------------------------------------------------')
         print('ZonalMean-Cloud-feedback-Decomposition is done!')
         print('------------------------------------------------')
+
+        return pd_plot_all
     
     
     #####################################################################
@@ -1124,14 +1189,20 @@ class plots:
         nlat = 90
         nlon = 144
         
+
+        pd_plot_all = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
+
         # --- define variables 
         sections = ['ALL','HI680','LO680']
         components = ['NET','SW','LW']
         decomps = ['tot','amt','alt','tau']
+
+        sections_out = ['ALL', 'High cloud', 'Low cloud']
+        components_out = ['NET','SW','LW']
         
         # generate figure based on case categories
         for icomp,component in enumerate(components):
-            for sec in sections:
+            for isec,sec in enumerate(sections):
     
                 # E3SM 
                 data_all = np.zeros((nlat,nlon,len(decomps),len(cases_here)))
@@ -1183,6 +1254,7 @@ class plots:
                 # start plotting ...
                 # -----------------------------------------------------------------
     
+
                 for icase,case in enumerate(cases_here):
                     ref_cases = self.ref_casesA[icase]
                     if len(ref_cases) == 0:
@@ -1231,7 +1303,17 @@ class plots:
     
                         fig.savefig(self.figdir+'LatLon-Cloud-feedback-Decomposition_'+cases_here[icase]+'.minus.'+cases_here[iref]+'-'+component+'-'+sec+'.png',dpi=300,bbox_inches='tight')
                         plt.close(fig)
+
+                        pd_plot = prepare_pd2html('../figure/LatLon-Cloud-feedback-Decomposition_'+cases_here[icase]+'.minus.'+cases_here[iref]+'-'+component+'-'+sec+'.png',
+                                      component+'-'+sec+' [W/m2/K]',
+                                      components_out[icomp]+' '+sections_out[isec]+' feedback',
+                                      cases_here[icase]+' .VS. '+cases_here[iref])
+
+                        pd_plot_all = pd.merge(pd_plot_all, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
+
                 
+        return pd_plot_all
+
     
     #####################################################################
     ### 8. LAT-LON tas anomaly based on radiative kernel output
@@ -1331,7 +1413,8 @@ class plots:
             #----------------------------------------------------------
             # start plotting ...
             #----------------------------------------------------------
-    
+            pd_plot_all = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
+
             for icase,case in enumerate(cases_here):
                 ref_cases = self.ref_casesA[icase]
                 if len(ref_cases) == 0:
@@ -1387,11 +1470,19 @@ class plots:
     
                     fig.savefig(self.figdir+'LatLon-TAS_'+cases_here[icase]+'.minus.'+cases_here[iref]+'.png',bbox_inches='tight',dpi=300)
                     plt.close(fig)
+                    
+                    pd_plot = prepare_pd2html('../figure/LatLon-TAS_'+cases_here[icase]+'.minus.'+cases_here[iref]+'.png',
+                                      'TAS [K/K]',
+                                      'surface air temperature response',
+                                      cases_here[icase]+' .VS. '+cases_here[iref])
+
+                    pd_plot_all = pd.merge(pd_plot_all, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
                 
-    
         print('------------------------------------------------')
         print('plot_tas_latlon is done!')
         print('------------------------------------------------')
+
+        return pd_plot_all
     
     
     #####################################################################
@@ -1438,6 +1529,8 @@ class plots:
         #=============================================================
         # start plotting ...
         #=============================================================
+        pd_plot_all = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
+
         for icase,case in enumerate(cases_here):
             ref_cases = self.ref_casesA[icase]
             if len(ref_cases) == 0:
@@ -1503,10 +1596,20 @@ class plots:
     
                 fig.savefig(self.figdir+'LatLon-adjusted-CRE_'+case_out+'.minus.'+ref_case_out+'.png',bbox_inches='tight',dpi=300)
                 plt.close(fig)
+
+                pd_plot = prepare_pd2html('../figure/LatLon-adjusted-CRE_'+case_out+'.minus.'+ref_case_out+'.png',
+                                      'CRE [W/m2/K]',
+                                      'Adjusted CRE feedback derived from radiative kernel method (SW, LW, and NET)',
+                                      case_out+' .VS. '+ref_case_out)
+
+                pd_plot_all = pd.merge(pd_plot_all, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
+
                 
         print('------------------------------------------------')
         print('plot_RadKernel_latlon is done!')
         print('------------------------------------------------')
+
+        return pd_plot_all
     
     
     #####################################################################
@@ -1553,10 +1656,17 @@ class plots:
     
         fig.savefig(self.figdir+'LCF-vs-temperature_'+cases_here[-1]+'.png',bbox_inches='tight',dpi=300)
         plt.close(fig)
+
+        pd_plot = prepare_pd2html('../figure/LCF-vs-temperature_'+cases_here[-1]+'.png',
+                                      'LCF [fraction]',
+                                      'The ratio of Liquid cloud water to total cloud water',
+                                      '')
                 
         print('------------------------------------------------')
         print('plot_LCF is done!')
         print('------------------------------------------------')
+
+        return pd_plot
     
     
     #####################################################################
@@ -1583,6 +1693,8 @@ class plots:
         nlon = 144
         nlev = 72
      
+        pd_plot_all = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
+
         for icase,case in enumerate(cases_here):
             ref_cases = self.ref_casesA[icase]
             if len(ref_cases) == 0:
@@ -1700,10 +1812,19 @@ class plots:
                         fig.tight_layout()
                         fig.savefig(self.figdir+'LatLev_'+svar+'-'+case+'-vs-'+ref_case+'.png',bbox_inches='tight',dpi=300)
                         plt.close(fig)
+
+                        pd_plot = prepare_pd2html('../figure/LatLev_'+svar+'-'+case+'-vs-'+ref_case+'.png',
+                                      svar+' ['+var1_units[ivar]+'/K]',
+                                      'Zonal mean '+svar,
+                                      case+' .VS. '+ref_case)
+
+                        pd_plot_all = pd.merge(pd_plot_all, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
                 
         print('------------------------------------------------')
         print('plot_zm_CLOUD is done!')
         print('------------------------------------------------')
+
+        return pd_plot_all
     
     #####################################################################
     ### plot_latlon_CLOUD
@@ -1724,11 +1845,13 @@ class plots:
         var1_out = ['Liquid Water Path','Low Cloud Fraction', 'Ice Water Path']
     
         var1_units = ['g/m$^2$','%','g/m$^2$']
+        var1_units1 = ['g/m2','%','g/m2']
     
         # ===============================================================        
         # ===============================================================        
         # E3SM
-     
+        pd_plot_all = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
+ 
         for icase,case in enumerate(cases_here):
             ref_cases = self.ref_casesA[icase]
             if len(ref_cases) == 0:
@@ -1855,10 +1978,20 @@ class plots:
                     fig.tight_layout()
                     fig.savefig(self.figdir+'LatLon_'+svar+'-'+case+'-vs-'+ref_case+'.png',bbox_inches='tight',dpi=300)
                     plt.close(fig)
+
+                    pd_plot = prepare_pd2html('../figure/LatLon_'+svar+'-'+case+'-vs-'+ref_case+'.png',
+                                      svar+' ['+var1_units1[ivar]+'/K]',
+                                      svar,
+                                      case+' .VS. '+ref_case)
+
+                    pd_plot_all = pd.merge(pd_plot_all, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
+
                 
         print('------------------------------------------------')
         print('plot_latlon_CLOUD is done!')
         print('------------------------------------------------')
+
+        return pd_plot_all
     
     #####################################################################
     ### plot_webb_decomposition
@@ -1883,6 +2016,8 @@ class plots:
         nlon = 144
         
         # E3SM
+        pd_plot_all = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
+
         for icase,case in enumerate(cases_here):
             if case == 'v1_coupled':
                 f1 = cdms.open(self.datadir_v1+'lat-lon-gfdbk-CMIP6-abrupt-4xCO2-E3SM-1-0_r1i1p1f1_1yr-150yr-webb-decomp.nc')
@@ -1930,279 +2065,17 @@ class plots:
     
             fig.savefig(self.figdir+'LatLon_'+case+'_webb-decomp.png',bbox_inches='tight',dpi=300)
             plt.close(fig)
+
+            pd_plot = prepare_pd2html('../figure/LatLon_'+case+'_webb-decomp.png',
+                                      'CRE [W/m2/K]',
+                                      'Cloud feedback components derived from Weeb method',
+                                      case)
+
+            pd_plot_all = pd.merge(pd_plot_all, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
                 
         print('------------------------------------------------')
         print('plot_web_decomp is done!')
         print('------------------------------------------------')
-    
-    
-    ####################################################################################
-    ### scatter plot for global mean CRE feedback: p4K vs future4K
-    ####################################################################################
-    def plot_CRE_globalmean_P4KvsFuture(self):
-        print('ScatterPlot-CRE-feedback P4K.vs.Future starts ........')
-    
-        cases_here = copy.deepcopy(self.cases)
-        if 'amip-4xCO2' in self.cases:
-            cases_here.remove('amip-4xCO2')
-    
-        df_all = pd.DataFrame()
-    
-        if self.Add_otherCMIPs:
-            # read other CMIP5 and CMIP6 models
-    
-            models_cmip6 = ['BCC-CSM2-MR','CNRM-CM6-1','IPSL-CM6A-LR',\
-            'MRI-ESM2-0','CESM2','GFDL-CM4','CanESM5']
-            models_cmip5 = ['bcc-csm1-1','CNRM-CM5','IPSL-CM5A-LR','IPSL-CM5B-LR',\
-            'MIROC5','MPI-ESM-LR','MPI-ESM-MR','MRI-CGCM3','CanAM4']
-            models_all = models_cmip6 + models_cmip5
-    
-    
-            df_p4K = pd.DataFrame()
-    
-            for model in models_all:
-                if model in models_cmip5:
-                    filename = self.datadir_Ringer+'global_mean_features_CMIP5_amip4K_'+model+'_r1i1p1.csv'
-                else:
-                    if model == 'CNRM-CM6-1':
-                        filename = self.datadir_Ringer+'global_mean_features_CMIP6_amip-p4K_'+model+'_r1i1p1f2.csv'
-                    elif model == 'CanESM5':
-                        filename = self.datadir_Ringer+'global_mean_features_CMIP6_amip-p4K_'+model+'_r1i1p2f1.csv'
-                    else:
-                        filename = self.datadir_Ringer+'global_mean_features_CMIP6_amip-p4K_'+model+'_r1i1p1f1.csv'
-            
-                df = pd.read_csv(filename,index_col=0)
-                df.index = df.loc[:,'varname']
-                df2 = df.loc[:,'anomaly_perK']
-                df_p4K[model] = df2
-    
-            df_future = pd.DataFrame()
-            for model in models_all:
-                if model in models_cmip5:
-                    filename = self.datadir_Ringer+'global_mean_features_CMIP5_amipFuture_'+model+'_r1i1p1.csv'
-                else:
-                    if model == 'CNRM-CM6-1':
-                        filename = self.datadir_Ringer+'global_mean_features_CMIP6_amip-future4K_'+model+'_r1i1p1f2.csv'
-                    elif model == 'CanESM5':
-                        filename = self.datadir_Ringer+'global_mean_features_CMIP6_amip-future4K_'+model+'_r1i1p2f1.csv'
-                    else:
-                        filename = self.datadir_Ringer+'global_mean_features_CMIP6_amip-future4K_'+model+'_r1i1p1f1.csv'
-            
-                df = pd.read_csv(filename,index_col=0)
-                df.index = df.loc[:,'varname']
-                df2 = df.loc[:,'anomaly_perK']
-                df_future[model] = df2
-    
-    
-        # read amip
-        for icase,case in enumerate(cases_here):
-            if case == 'v1_coupled':
-                # read v1-coupled 
-                df_coupled = pd.read_csv(self.datadir_v1+'global_mean_features_CMIP6_abrupt-4xCO2_E3SM-1-0_r1i1p1f1.csv',index_col=0)
-                df_coupled.index = df_coupled.loc[:,'varname']
-                df_all['v1_coupled'] = df_coupled.loc[:,'anomaly_perK']
-            elif case == 'v1_amip4K':
-                # read v1-amip
-                df_amip = pd.read_csv(self.datadir_v1+'global_mean_features_CMIP6_amip-p4K_E3SM-1-0_r2i1p1f1.csv',index_col=0)
-                df_amip.index = df_amip.loc[:,'varname']
-                df_all['v1_amip4K'] = df_amip.loc[:,'anomaly_perK']
-            elif case == 'v1_future4K':
-                # read v1-amip
-                df_amip = pd.read_csv(self.datadir_v1+'global_mean_features_CMIP6_amip-future4K_E3SM-1-0_r2i1p1f1.csv',index_col=0)
-                df_amip.index = df_amip.loc[:,'varname']
-                df_all['v1_future4K'] = df_amip.loc[:,'anomaly_perK']
-            elif case == 'amip-4xCO2':
-                continue
-            else:   
-                df1 = pd.read_csv(self.datadir_v2+'global_mean_features_'+case+'.csv',index_col=0)
-                df1.index = df1.loc[:,'varname']
-        
-                df2 = df1.loc[:,'anomaly_perK']
-                df_all[case] = df2
-        
-        # start plotting 
-        
-        fig = plt.figure(figsize=(18,12))
-        
-        drop_index = ['tas','SWCLR','LWCLR']
-        df_plot = df_all.drop(index=drop_index)
-    
-        if self.Add_otherCMIPs:
-            df_p4K_plot = df_p4K.drop(index=drop_index)
-            df_future_plot = df_future.drop(index=drop_index)
-    
-        for idx,index in enumerate(df_plot.index):
-    
-            if index in ['FTOA']:
-        	    valmin = -2
-        	    valmax = 0
-            elif index in ['SWCRE','LWCRE','netCRE']:
-        	    valmin = -1
-        	    valmax = 1
-            elif index in ['FTOA','FTOACLR']:
-                valmin = -2.5
-                valmax = -0.5
-            elif index in ['FSNT','FSNTCLR']:
-                valmin = -0.5
-                valmax = 1.5
-            elif index in ['FLNT','FLNTCLR']:
-                valmin = -3
-                valmax = -1
-    
-            ax = fig.add_subplot(3,3,idx+1)
-    
-            # plot E3SM itself
-            ax.scatter(df_plot.loc[index,'amip-p4K'],df_plot.loc[index,'amip-future4K'],s=self.s1,alpha=self.a1,label='E3SM',color='red',marker='*')
-    
-            if self.Add_otherCMIPs:
-                for icol,column in enumerate(df_p4K_plot.columns):
-                    if column in models_cmip5:
-                        L1 = ax.scatter(df_p4K_plot.loc[index,column],df_future_plot.loc[index,column],s=self.s1-100,alpha=self.a1,label='_nolegend_',color='tab:blue',edgecolor='none')
-                    else:
-                        if self.highlight_CESM2 and column == 'CESM2':
-                            L1 = ax.scatter(df_p4K_plot.loc[index,column],df_future_plot.loc[index,column],s=self.s1,alpha=self.a1,label=column,color='tab:red',marker='X',edgecolor='none')
-                        else:
-                            L1 = ax.scatter(df_p4K_plot.loc[index,column],df_future_plot.loc[index,column],s=self.s1-100,alpha=self.a1,label='_nolegend_',color='tab:red',edgecolor='none')
-    
-            ax.plot([valmin,valmax],[valmin,valmax],ls='--',lw=3,color='grey')
-    
-            ax.tick_params(labelsize=self.fh)
-            ax.set_ylabel(index+' Future4K [W/m$^2$/K]',fontsize=self.fh)
-            ax.set_xlabel(index+' P4K [W/m$^2$/K]',fontsize=self.fh)
-    
-            ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
-    
-            if idx == 0:
-                ax.legend(fontsize=self.fh1)
-    
-    #    plt.xticks(x,df_plot.index)
-        
-        fig.tight_layout()
-        fig.savefig(self.figdir+'ScatterPlot-CRE-P4KvsFuture-feedback_'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
-        plt.close(fig)
-    
-        del(df_all,df_plot)
-        print('------------------------------------------------')
-        print('ScatterPlot-CRE-P4KvsFuture-feedback is done!')
-        print('------------------------------------------------')
-    
-    
-    ####################################################################################
-    ### 6. scatter plot for global mean radiative forcing: including E3SMv1 piControl and amip
-    ####################################################################################
-    def plot_RadForcing_globalmean(self):
-    
-        if any(case for case in self.cases if case == 'amip-4xCO2'):
-            return 
-    
-        print('ScatterPlot-RadForcing starts ........')
-    
-        df_all = pd.DataFrame()
-    
-        if self.Add_otherCMIPs:
-            # read other CMIP5 and CMIP6 models
-    
-            exp_cntl = [['piControl','amip'],['piControl','amip']]
-            exp_new = [['abrupt4xCO2','amip4xCO2'],['abrupt-4xCO2','amip-4xCO2']]
-            
-            prefix = 'global_mean_features'
-            suffix1 = '*.csv'
-            suffix2 = '*.csv'
-            
-            models_all,cmip5_models,cmip6_models = PDF.get_intersect_withripf(exp_cntl,exp_new,prefix,suffix1,suffix2,self.datadir_Ringer)
-    
-    #        print('models_all',models_all,len(models_all))
-    #        print('cmip5_models', cmip5_models,len(cmip5_models))
-    #        print('cmip6_models', cmip6_models,len(cmip6_models))
-    
-            # ---- amip4xCO2 ---------------------
-            df_4xCO2 = pd.DataFrame()
-            for model in models_all:
-                if model in cmip5_models:
-    
-                    if model == 'CanESM2_r1i1p1':
-                        model_amip = 'CanAM4_r1i1p1'
-                    elif model == 'HadGEM2-ES_r1i1p1':
-                        model_amip = 'HadGEM2-A_r1i1p1'
-                    else:
-                	    model_amip = model
-    
-                    filename = self.datadir_Ringer+'global_mean_features_CMIP5_amip4xCO2_'+model_amip+'.csv'
-                else:
-                    filename = self.datadir_Ringer+'global_mean_features_CMIP6_amip-4xCO2_'+model+'.csv'
-            
-                df = pd.read_csv(filename,index_col=0)
-                df.index = df.loc[:,'varname']
-                df2 = df.loc[:,'anomaly']
-                df_4xCO2[model] = df2
-    
-        # ------ read E3SM amip4xCO2 ------------------------
-        for icase,case in enumerate(self.cases):
-            if case == 'v1_coupled':
-                # read v1-coupled 
-                df_coupled = pd.read_csv(self.datadir_v1+'global_mean_features_CMIP6_abrupt-4xCO2_E3SM-1-0_r1i1p1f1.csv',index_col=0)
-                df_coupled.index = df_coupled.loc[:,'varname']
-                df_all['v1_coupled'] = df_coupled.loc[:,'forcing']
-            elif case not in ['amip-4xCO2','v1_coupled']:
-                continue
-            else:   
-                df1 = pd.read_csv(self.datadir_v2+'global_mean_features_'+case+'.csv',index_col=0)
-                df1.index = df1.loc[:,'varname']
-        
-                df2 = df1.loc[:,'anomaly']
-                df_all[case] = df2
-        
-    
-        # start plotting 
-        fig = plt.figure(figsize=(18,12))
-        ax = fig.add_subplot(1,1,1)
-        
-        drop_index = ['tas','SWCLR','LWCLR']
-        df_plot = df_all.drop(index=drop_index)
-    
-        if self.Add_otherCMIPs:
-            df_4xCO2_plot = df_4xCO2.drop(index=drop_index)
-       
-        x = np.arange(1,len(df_plot.index)+1,1)
-        
-        for idx,index in enumerate(df_plot.index):
-            for icol,column in enumerate(df_plot.columns):
-                if column == 'v1_coupled':
-                    L1 = ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=self.s1,alpha=self.a1,label=column,color=self.colors[icol],marker='x')
-                else:
-                    ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=self.s1,alpha=self.a1,label=column,color=self.colors[icol])
-        
-            if self.Add_otherCMIPs:
-                # add other CMIP models
-                for icol,column in enumerate(df_4xCO2_plot.columns):
-                    if self.highlight_CESM2 and 'CESM2' in column:
-                        ax.scatter(x[idx]-0.2,df_4xCO2_plot.loc[index,column].tolist(),edgecolor='none',facecolor=self.lc_CESM2,alpha=self.a1,s=self.s2,marker='X',\
-                        label=column.split('_')[0]+'_amip-p4K')
-                    else:
-                        ax.scatter(x[idx]-0.2,df_4xCO2_plot.loc[index,column].tolist(),edgecolor='none',facecolor='grey',alpha=self.a1,s=self.s2,\
-                        label='_nolegend_')
-    
-                # ensemble mean
-                L2 = ax.scatter(x[idx]-0.2,df_4xCO2_plot.loc[index,:].mean().tolist(),color='black',s=self.s2)
-                
-            ax.tick_params(labelsize=self.fh)
-            ax.set_ylabel('Forcing/Adjustment [W/m$^2$]',fontsize=self.fh)
-            if idx==0:
-                legend1 = ax.legend([L2],['amip4xCO2'],fontsize=self.fh1,loc='lower right')
-                ax.legend(fontsize=self.fh1)
-                ax.add_artist(legend1) 
-        
-        plt.xticks(x,df_plot.index)
-        
-        ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
-        fig.savefig(self.figdir+'ScatterPlot-RadForcing_'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
-        plt.close(fig)
-    
-        del(df_all,df_plot)
-        print('------------------------------------------------')
-        print('ScatterPlot-RadForcing is done!')
-        print('------------------------------------------------')
 
-
-
-
+        return pd_plot_all
+    
