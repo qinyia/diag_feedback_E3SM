@@ -7,5 +7,5 @@ postdata/
 plot_data/
 *.so
 figure2/
-viewer/index.xml
+viewer/index.html
 csvfile/
