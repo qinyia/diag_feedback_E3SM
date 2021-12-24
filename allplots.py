@@ -2007,7 +2007,7 @@ class plots:
     def plot_webb_decomp(self):
         print('plot_webb_decomp starts ..........')
     
-        cases_here = copy.deepcopy(self.cases)
+        cases_here = copy.deepcopy(self.cases[-1:])
         if 'amip-4xCO2' in self.cases:
             cases_here.remove('amip-4xCO2')
     
@@ -2094,7 +2094,7 @@ class plots:
     def plot_RadKernel_latlon(self):
         print('plot_RadKernel_latlon starts ..........')
         
-        cases_here = copy.deepcopy(self.cases)
+        cases_here = copy.deepcopy(self.cases[-1:])
         if 'amip-4xCO2' in self.cases:
             cases_here.remove('amip-4xCO2')
     
@@ -2132,6 +2132,7 @@ class plots:
         #=============================================================
         pd_plot_all = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
 
+        # only plot the last case -- that is the one we care about now.
         for icase,case in enumerate(cases_here):
             #----------------------------------------------------------
             # define figures                         
@@ -2145,7 +2146,7 @@ class plots:
             bounds2 = np.append(np.append(-500,bounds),500) # This is only needed for norm if colorbar is extended
             norm = mpl.colors.BoundaryNorm(bounds2, cmap.N) # make sure the colors vary linearly even if the desired color boundaries are at varied intervals
 
-            case_out = cases_here[icase]
+            case_out = case
     
             for ivar,svar in enumerate(variables):
 
@@ -2201,7 +2202,7 @@ class plots:
     
         print('LatLon-Cloud-feedback-Decomposition starts ........')
     
-        cases_here = copy.deepcopy(self.cases)
+        cases_here = copy.deepcopy(self.cases[-1:])
         if 'amip-4xCO2' in self.cases:
             cases_here.remove('amip-4xCO2')
     
@@ -2271,12 +2272,13 @@ class plots:
                 # -----------------------------------------------------------------
                 # start plotting ...
                 # -----------------------------------------------------------------
+                # only plot the last case -- that is what we care about now.
                 for icase,case in enumerate(cases_here):
    
                     fig=plt.figure(figsize=(18,12)) # this creates and increases the figure size
                     nrow = 3
                     ncol = 2
-                    plt.suptitle(sec+' CTP bins ['+cases_here[icase]+']',fontsize=self.fh,y=0.95)
+                    plt.suptitle(sec+' CTP bins ['+case+']',fontsize=self.fh,y=0.95)
                     bounds = np.arange(-3,3.25,0.25)
                     cmap = plt.cm.RdBu_r
                     bounds2 = np.append(np.append(-500,bounds),500) # This is only needed for norm if colorbar is extended
