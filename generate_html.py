@@ -66,25 +66,25 @@ def generate_html(casedir,webdir=None):
        {table2}
       <h3>Global Mean Cloud Radiative Kernel Feedback</h3>
         {table3}
-      <h3>Zonal Mean Radiative Kernel Feedback</h3>
-        {table4}
-      <h3>Zonal Mean Cloud Radiative Kernel Feedback</h3>
-        {table5}
       <h3>LAT-LON Radiative Kernel Feedback</h3>
         {table13}
       <h3>LAT-LON Cloud Radiative Kernel Feedback</h3>
         {table14}
+      <h3>Zonal Mean Radiative Kernel Feedback</h3>
+        {table4}
+      <h3>Zonal Mean Cloud Radiative Kernel Feedback</h3>
+        {table5}
+      <h3>Liquid Condensate Fraction</h3>
+        {table9}
       <h3>LAT-LON Radiative Kernel Feedback Difference</h3>
         {table6}
       <h3>LAT-LON Cloud Radiative Kernel Feedback Difference</h3>
         {table7}
-      <h3>LAT-LON Surface Air Temperature Response</h3>
+      <h3>LAT-LON Surface Air Temperature Response Difference</h3>
         {table8}
-      <h3>Liquid Condensate Fraction</h3>
-        {table9}
-      <h3>Zonal Mean Cloud Related Vars</h3>
+      <h3>Zonal Mean Cloud Related Variables Difference</h3>
         {table10}
-      <h3>LAT-LON Cloud Related Vars</h3>
+      <h3>LAT-LON Cloud Related Variables Difference</h3>
         {table11}
       <h3>LAT-LON Cloud Feedbacks from Webb Method</h3>
         {table12}
