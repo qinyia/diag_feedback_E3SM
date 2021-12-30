@@ -1556,8 +1556,13 @@ class plots:
                 bounds = np.arange(-3,3.25,0.25)
 
                 cmap = plt.cm.RdBu_r
+                #<qinyi 2021-12-30 #------------------
+                #n = 11
+                #new_cmap = PDF.map_white(n,0.1,cmap)
+                new_cmap = cmap 
+
                 bounds2 = np.append(np.append(-500,bounds),500) # This is only needed for norm if colorbar is extended
-                norm = mpl.colors.BoundaryNorm(bounds2, cmap.N) # make sure the colors vary linearly even if the desired color boundaries are at varied intervals
+                norm = mpl.colors.BoundaryNorm(bounds2, new_cmap.N) # make sure the colors vary linearly even if the desired color boundaries are at varied intervals
 
                 case_out = cases_here[icase]
                 ref_case_out = cases_here[iref]
@@ -1576,7 +1581,9 @@ class plots:
                         DATA.setAxis(1,lons)
     
                         ax1 = fig.add_subplot(nrow,ncol,ivar*ncol+num0+1,projection=ccrs.Robinson(central_longitude=180.))
-                        im1 = ax1.contourf(lons[:],lats[:],DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
+                        im1 = ax1.contourf(lons[:],lats[:],DATA,bounds,transform=ccrs.PlateCarree(),cmap=new_cmap,norm=norm,extend='both')
+                        #im1 = ax1.contourf(lons[:],lats[:],DATA,bounds,transform=ccrs.PlateCarree(),cmap=new_cmap,extend='both')
+
                         ax1.coastlines()
                         ax1.set_global()
     
