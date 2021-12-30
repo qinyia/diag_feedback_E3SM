@@ -711,5 +711,44 @@ def pattern_cor(x,y,wts,opt):
 
 # =========================================================================================
 
+def map_white (num_half_non_white,perc,cmap):
+    '''
+    Dec 30, 2020: create a new colormap with white in center with specific values
+    ref: https://stackoverflow.com/questions/45196233/python-matplotlib-create-normal-colorbar-with-white-interval-at-specific-values
+    https://stackoverflow.com/questions/41806285/how-to-change-colorbars-color-in-some-particular-value-interval
 
+    parameters:
+    num_half_no_white: number of colors in the upper/lower part
+    perc: the relative percent of white colors w/ num_half_no_white
+
+    example:
+
+    arr = np.linspace(0, 50, 100).reshape((10, 10))
+    fig, ax = plt.subplots(ncols=2)
+
+    cmap = plt.get_cmap('jet')
+    n = 30
+    new_cmap = map_white(n,cmap)
+    ax[0].imshow(arr, interpolation='nearest', cmap=cmap)
+    ax[1].imshow(arr, interpolation='nearest', cmap=new_cmap)
+    plt.show()
+
+    '''
+    import matplotlib
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    n=num_half_non_white
+    x = 0.5
+    lower = cmap(np.linspace(0, x, n))
+#     white = np.ones((100-2*n,4))
+    white = np.ones((int(perc*n),4))
+    upper = cmap(np.linspace(1-x, 1, n))
+    colors = np.vstack((lower, white, upper))
+    print('colors.shape=',colors.shape,'upper.shape=',upper.shape,'white.shape=',white.shape,'lower.shape=',lower.shape)
+    tmap = matplotlib.colors.LinearSegmentedColormap.from_list('map_white', colors)
+
+    return tmap
+
+# =========================================================================================
 
