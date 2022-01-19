@@ -21,6 +21,11 @@ import allplots as AP
 PreProcess = True
 regrid_SE2FV = "True" # True: need regrid from SE2FV; otherwise, no need regrid.
 
+if PreProcess:
+    RunDiag = True
+else:
+    RunDiag = False
+
 cal_types = [
 'RadFeedback',
 'RadKernel',
@@ -108,6 +113,10 @@ for icase,case in enumerate(case_stamp):
     # pre-process model output to get necessary input files
     #################################################################
     if PreProcess:
+        # Part -1: archive data from run directory to archive/atm/hist directory
+        datadir_in0 = 'case_scripts/'
+        os.system('sh archive_data.sh '+run_id1 + ' '+run_id2+' '+datadir_in1+' '+datadir_in0)
+
         # Part 0: regrid model output if your data in on SE grid. Otherwise, this step can be skipped. 
         os.system('sh regrid_data.sh '+ run_id1 + ' '+run_id2+' '+rgr_map+' '+str(yearS1)+' '+str(yearE1)+' '+str(yearS2)+' '+str(yearE2)+' '+datadir_in1+' '+datadir_in2+' '+outdir_out+' '+comp+' '+regrid_SE2FV)
         # Part 1: pre-process model output to generate necessary files for further diagnostics
@@ -117,15 +126,16 @@ for icase,case in enumerate(case_stamp):
     #################################################################
     # run diagnostics
     #################################################################
-    direc_data = outdir_out
+    if RunDiag:
+        direc_data = outdir_out
 
-    dics_cal = AP.get_cal_dics(direc_data, case_stamp[icase], yearS2, yearE2, run_id1, run_id2, outdir_final,
-                      RadKernel_dir, figdir, exp1, exp2,
-                      CloudRadKernel_dir)
+        dics_cal = AP.get_cal_dics(direc_data, case_stamp[icase], yearS2, yearE2, run_id1, run_id2, outdir_final,
+                          RadKernel_dir, figdir, exp1, exp2,
+                          CloudRadKernel_dir)
 
-    for key in dics_cal:
-        if key in cal_types:
-            dics_cal[key]()
+        for key in dics_cal:
+            if key in cal_types:
+                dics_cal[key]()
             
             
             
