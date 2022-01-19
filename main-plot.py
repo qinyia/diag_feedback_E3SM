@@ -61,10 +61,11 @@ plot_types = [
 
 # ---------------- please set other optional setting for figure: start -------------------------------------------------
 colors = PDF.get_color('tab10',len(cases)) #['tab:red','tab:blue','tab:cyan','tab:orange','tab:purple','tab:green']
-linewidths = [2,2]
-linestyles = ['--','--']
-linewidths.extend([3]*(len(cases)-2))
-linestyles.extend(['-']*(len(cases)-2))
+    
+linewidths = [2]
+linestyles = ['--']
+linewidths.extend([3]*(len(cases)-1))
+linestyles.extend(['-']*(len(cases)-1))
 
 fh = 15     # font size
 fh1 = 13    # font size for legend
@@ -76,7 +77,11 @@ a1 = 1      # apparency for markers
 # for example, if you would like to show the first three cases, then first 6 cases, and all cases, pls set ncase = [3,6,7]
 # generally, if you want all lines in the same plot, just set ncase = [len(cases)]
 ncase = [len(cases)]
-#ncase = range(2,len(cases)+1)
+#if len(cases) == 1:
+#    ncase = [1]
+#else:
+#    ncase = range(2,len(cases)+1)
+
 print('ncase=',list(ncase))
 
 #%%%%%%%%%%%%%%%%%% Stop modification here !!! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
