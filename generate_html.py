@@ -33,6 +33,8 @@ def generate_html(casedir,webdir=None):
     dic['latlon_CLOUD'] = {}
     dic['webb_decomp'] = {}
     dic['CLOUD_profile'] = {}
+    dic['NRMSE_RadKern'] = {}
+
     
     for key in dic.keys():
         dic[key] = pd.DataFrame()
@@ -91,7 +93,9 @@ def generate_html(casedir,webdir=None):
         {table12}
        <h3>Regional Mean Cloud Profiles</h3>
         {table15}
-   
+        <h3>NRMSE and COR evolution for RadKern</h3>
+        {table16}
+  
       </div>
       </body>
     </html>.
@@ -114,6 +118,7 @@ def generate_html(casedir,webdir=None):
                                    table11=dic['latlon_CLOUD'].to_html(escape=False,index=False,border=0),
                                    table12=dic['webb_decomp'].to_html(escape=False,index=False,border=0),
                                    table15=dic['CLOUD_profile'].to_html(escape=False,index=False,border=0),
+                                   table16=dic['NRMSE_RadKern'].to_html(escape=False,index=False,border=0),
 
                                    )
                                    )
