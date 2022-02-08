@@ -27,6 +27,10 @@ import cal_CloudRadKernel_E3SM as CRK
 import cal_LCF_E3SM as LCF
 import cal_cloud_E3SM as CLOUD
 import cal_webb_decomposition as WD
+import cal_EIS as calEIS
+import sort_cloud_regime as SCR
+import sort_cloud_3regime as SCR3
+
 
 #############################################################################################
 def prepare_pd2html(outfig,varname,desc,casevscase=''):
@@ -64,6 +68,10 @@ def get_cal_dics(direc_data, case_stamp, yearS2, yearE2, run_id1, run_id2, outdi
     dics_cal['CloudRadKernel']      = my_cal.cal_CloudRadKernel
     dics_cal['cal_LCF']             = my_cal.cal_LCF
     dics_cal['cal_cloud']           = my_cal.cal_cloud
+    dics_cal['cal_EIS']             = my_cal.cal_EIS
+    dics_cal['sort_cloud_regime']   = my_cal.sort_cloud_regime
+    dics_cal['sort_cloud_3regime']   = my_cal.sort_cloud_3regime
+
 
     return dics_cal
 
@@ -103,6 +111,15 @@ class calculation:
     def cal_cloud(self):
         result = CLOUD.cal_cloud(self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir,self.exp1,self.exp2)
 
+    def cal_EIS(self):
+        result = calEIS.cal_EIS(self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir,self.exp1,self.exp2)
+
+    def sort_cloud_regime(self):
+        result = SCR.sort_cloud_regime(self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir,self.exp1,self.exp2)
+
+    def sort_cloud_3regime(self):
+        result = SCR3.sort_cloud_3regime(self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir,self.exp1,self.exp2)
+
 
 #############################################################################################
 
@@ -133,6 +150,7 @@ def get_plot_dics(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2
     dics_plots['zm_CLOUD']                   = my_plot.plot_zm_CLOUD
     dics_plots['latlon_CLOUD']               = my_plot.plot_latlon_CLOUD
     dics_plots['webb_decomp']                = my_plot.plot_webb_decomp
+    dics_plots['CLOUD_profile']              = my_plot.plot_CLOUD_profile
     
     return dics_plots
 
@@ -2329,3 +2347,181 @@ class plots:
         return pd_plot_all
 
 
+    #####################################################################
+    ### plot_CLOUD_profile
+    #####################################################################
+    def plot_CLOUD_profile(self):
+        print('plot_CLOUD_profile starts ..........')
+    
+        cases_here = copy.deepcopy(self.cases)
+        if 'amip-4xCO2' in self.cases:
+            cases_here.remove('amip-4xCO2')
+    
+        #if len(cases_here) > 2:
+        #    print('Hi, you have more than 2 cases to produce cloud profile. It will be very noisy...')
+        #    print('Will skip this...')
+        #    return
+
+        var1 = ['CLOUD','CLDLIQ','CLDICE']
+        var1_tmp = ['cl', 'clw', 'cli'] # for v1_coupled
+        var1_range = [[-0.1,0.35],[-10,40],[-3,7]]
+        var1_units = ['fraction','mg/kg','mg/kg']
+    
+        # ===============================================================        
+        # ===============================================================        
+        # E3SM
+        nlat = 73
+        nlon = 144
+        nlev = 72
+
+        ## regions 
+        regions = ['90S-90N','30S-30N','30S-60S','30N-60N','Sc','Cu','As']
+        regions_bnds = [[-90,90], [-30,30], [-60,-30], [30,60],[-30,30],[-30,30],[-30,30]]
+        #regions = ['Sc','Cu','As']
+        #regions_bnds = [[-30,30],[-30,30],[-30,30]]
+
+
+        lndocns = ['all','lnd','ocn']
+        #lndocns = ['ocn']
+
+        all_colors = ['tab:blue','tab:orange','tab:green','tab:red','tab:purple']
+        exps = ['pi','ab','ano']
+        exps_out = ['CTL','P4K','P4K-CTL[*4]']
+     
+        pd_plot_all = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
+
+        for lndocn in lndocns:
+            for iregion,region in enumerate(regions):
+
+                if lndocn in ['all','lnd'] and region in ['Sc','Cu','As']:
+                    continue
+
+                print('=======lndocn = ', lndocn, 'region = ',region,'=========')
+
+                # -------------------- generate figures -------------------
+                nrow = 1
+                ncol = len(var1)
+                fig = plt.figure(figsize=(ncol*5,nrow*5))
+                # -------------------- generate figures -------------------
+
+                plt.suptitle(lndocn+': '+region,fontsize=12)
+
+                for ivar,svar in enumerate(var1):
+
+                    ax = fig.add_subplot(nrow,ncol,ivar+1)
+
+                    for icase,case in enumerate(cases_here):
+
+                        color = all_colors[icase]
+
+                        f1 = cdms.open(self.datadir_v2+'global_cloud_'+case+'.nc')
+                        if case == 'v1_coupled':
+                            svar_in = var1_tmp[ivar]
+                        else:
+                            svar_in = var1[ivar]
+                
+                        # additional processing for Sc, Cu and Tropical Ascent regimes
+                        if lndocn == 'ocn' and region in ['Sc','Cu','As']:
+                            f2 = cdms.open(self.datadir_v2+'global_EIS_'+case+'.nc')
+                            EIS_pi = f2('EIS_pi_clim')
+                            wap_pi = f2('OMEGA_pi_clim')
+
+                            # convert from Pa/s to hPa/day
+                            wap_pi = wap_pi * 864.
+
+                            lats = EIS_pi.getLatitude()[:]
+                            lons = EIS_pi.getLongitude()[:]
+
+                            # mask land
+                            EIS_pi_ocn = PDF.mask_land(lons,lats,EIS_pi,land=True)
+                            wap_pi_ocn = PDF.mask_land(lons,lats,wap_pi,land=True)
+                            EIS_pi_ocn.setAxisList(EIS_pi.getAxisList())
+                            wap_pi_ocn.setAxisList(wap_pi.getAxisList())
+
+                            # define regimes 
+                            if region == 'Sc':
+                                mask = (EIS_pi_ocn > 1 ) & (wap_pi_ocn > 15)
+                            elif region == 'Cu':
+                                mask = (EIS_pi_ocn < 1 ) & (wap_pi_ocn > 0)
+                            elif region == 'As':
+                                mask = (wap_pi_ocn < 0) 
+
+                        for exp,exp_out in zip(exps,exps_out):
+
+                            tmp1 = f1(svar_in+'_'+exp+'_clim')
+
+                            if exp == 'ano':
+                                tmp1 = tmp1 * 4. # scale it larger
+                
+                            levs = tmp1.getLevel()[:]
+                            lats = tmp1.getLatitude()[:]
+                            lons = tmp1.getLongitude()[:]
+                
+                            if lndocn == 'lnd':
+                                data1 = PDF.mask_land(lons,lats,tmp1,land=False)
+                                data1.setAxisList(tmp1.getAxisList())
+                            elif lndocn == 'ocn':
+                                data1 = PDF.mask_land(lons,lats,tmp1,land=True)
+                                data1.setAxisList(tmp1.getAxisList())
+                            else:
+                                data1 = tmp1 
+
+                            if lndocn == 'ocn' and region in ['Sc','Cu','As']:
+                                # expand mask from 2D to 3D
+                                mask3d = np.tile(mask,(len(levs),1,1))
+                                data1 = MV.masked_where(mask3d == False,data1)
+
+                            ## save as NC to test whether mask is okay
+                            #fout = cdms.open('data1_'+region+'.nc','w')
+                            #fout.write(data1.subRegion(lat=(regions_bnds[iregion][0],regions_bnds[iregion][1])))
+                            #fout.close()
+
+                            # regime average 
+                            data2 = cdutil.averager(data1.subRegion(lat=(regions_bnds[iregion][0],regions_bnds[iregion][1])), axis='xy',weights='weighted')
+                            print(case,'data2.shape=',data2.shape,np.min(data2),np.max(data2))
+                            
+                            # convert unit from kg/kg to mg/kg
+                            if svar in ['CLDLIQ','CLDICE']:
+                                data2 = data2 * 1e6
+                            if svar in ['CLOUD'] and case == 'v1_coupled':
+                                data2 = data2/100.
+   
+                            #----------------------------------------------------------
+                            # start plotting ...
+                            #----------------------------------------------------------
+                            unit = var1_units[ivar]
+                            title = svar 
+
+                            if exp in ['pi','ano']:
+                                ls = '-'
+                            else:
+                                ls = '--'
+
+                            im1 = ax.plot(np.array(data2),levs,label=case.split('.')[-1]+': '+exp_out,c=color,ls=ls)
+    
+                            ax.set_xlabel(svar+' ['+unit+']')
+                            ax.set_ylabel('Pressure [hPa]') 
+    
+                            ax.set_ylim(max(levs),min(levs))
+                            ax.axvline(x=0,ls='-',color='grey',lw=0.5)
+                            ax.set_xlim((var1_range[ivar][0],var1_range[ivar][1]))
+
+                    ax.legend()
+
+                fig.tight_layout()
+                fig.savefig(self.figdir+'RegionalAvg_CloudProfile_'+lndocn+'_'+region+'.png',bbox_inches='tight',dpi=300)
+                plt.close(fig)
+
+                pd_plot = prepare_pd2html('../figure/RegionalAvg_CloudProfile_'+lndocn+'_'+region+'.png',
+                              'regional average cloud profile',
+                              lndocn+' '+region,
+                              'none')
+
+                pd_plot_all = pd.merge(pd_plot_all, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
+                
+        print('------------------------------------------------')
+        print('plot_CLOUD_profile is done!')
+        print('------------------------------------------------')
+
+        return pd_plot_all
+    
