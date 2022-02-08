@@ -9,6 +9,7 @@
 #    Create: 2021-07-18
 #    Last Modified: 2021-07-26 18:08:44
 #                   Jul 26, 2021: add low cloud fraction, liquid water path and ice water path
+#                   Feb 01, 2022: add output of '_ab'
 #****************************************************************
 
 #IMPORT STUFF:
@@ -137,6 +138,8 @@ def cal_cloud(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
         for svar in dic_all.keys():
             if '_pi' in svar:
                 dic_out[svar+'_clim'] = MV.average(dic_all[svar],axis=0)
+            if '_ab' in svar:
+                dic_out[svar+'_clim'] = MV.average(dic_all[svar],axis=0)
             elif '_ano' in svar:
                 if 'coupled' not in case_stamp:
                     dic_out[svar+'_clim'] = MV.average(dic_all[svar],axis=0)/avgdtas
@@ -160,7 +163,7 @@ def cal_cloud(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
             print('svar = ', svar)
             tmp = dic_out[svar] 
             fout.write(tmp, id = svar)
-            fout.comment = '_pi_clim is the climatological control state and xxx_ano_clim is the anomaly normalized by global mean tas anomaly'
+            fout.comment = '_pi_clim is the climatological control state, _ab_clim is the climatological warming state and xxx_ano_clim is the anomaly normalized by global mean tas anomaly'
 
         fout.close()
         
