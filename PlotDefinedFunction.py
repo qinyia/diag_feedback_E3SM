@@ -751,4 +751,20 @@ def map_white (num_half_non_white,perc,cmap):
     return tmap
 
 # =========================================================================================
+def mask_land(lons,lats,data,land=True):
+    lons_here = np.where(lons>180,lons-360,lons)
+    lon_grid,lat_grid = np.meshgrid(lons_here,lats)
+    globe_land_mask = globe.is_land(lat_grid,lon_grid)
+    if len(data.shape) == len(globe_land_mask.shape):
+        globe_land_mask_nd = globe_land_mask
+    elif len(data.shape) - len(globe_land_mask.shape) == 1: # have time dimension
+        globe_land_mask_nd = np.tile(globe_land_mask,(data.shape[0],1,1))
+    elif len(data.shape) - len(globe_land_mask.shape) == 2: # have ctp and tau dimension
+        globe_land_mask_nd = np.tile(globe_land_mask,(data.shape[0],data.shape[1],1,1))
+    elif len(data.shape) - len(globe_land_mask.shape) == 3: # have time, ctp and tau dimension
+        globe_land_mask_nd = np.tile(globe_land_mask,(data.shape[0],data.shape[1],data.shape[2],1,1))
+    #print(globe_land_mask_nd.shape)
 
+    data_new = np.ma.masked_where(globe_land_mask_nd==land,data)
+
+    return data_new
