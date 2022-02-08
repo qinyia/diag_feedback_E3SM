@@ -151,6 +151,7 @@ def get_plot_dics(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2
     dics_plots['latlon_CLOUD']               = my_plot.plot_latlon_CLOUD
     dics_plots['webb_decomp']                = my_plot.plot_webb_decomp
     dics_plots['CLOUD_profile']              = my_plot.plot_CLOUD_profile
+    dics_plots['NRMSE_RadKern']              = my_plot.plot_NRMSE_RadKern
     
     return dics_plots
 
@@ -1212,7 +1213,10 @@ class plots:
         nlat = 90
         nlon = 144
         
+        # define DataFrame to save spatial correlation and NRMSE for further plot
+        pdata = pd.DataFrame(columns=['case','ref_case','lev','var','COR','NRMSE'])
 
+        # define DataFrame to save figures to generate html file
         pd_plot_all = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
 
         # --- define variables 
@@ -1277,7 +1281,6 @@ class plots:
                 # start plotting ...
                 # -----------------------------------------------------------------
     
-
                 for icase,case in enumerate(cases_here):
                     ref_cases = self.ref_casesA[icase]
                     if len(ref_cases) == 0:
@@ -1315,6 +1318,11 @@ class plots:
                             dbb = data_all[:,:,n,iref]
                             cor,NRMSE, RMSE = PDF.pattern_cor(daa,dbb,wts,1)
                             print('cor=',cor, 'NRMSE=',NRMSE, 'RMSE=',RMSE)
+
+                            ##pdata = pd.DataFrame(columns=['case','ref_case','var','COR','NRMSE'])
+                            pd_data = pd.DataFrame([[cases_here[icase],cases_here[iref],sec,name,cor,NRMSE]],columns=['case','ref_case','lev','var','COR','NRMSE'])
+                            pdata = pd.merge(pdata, pd_data, on = ['case','ref_case','lev','var','COR','NRMSE'], how='outer')
+                            print(pdata)
  
                             plt.title(name+' ['+str(np.round(avgDATA,3))+']\nNRMSE='+str(np.round(NRMSE,2))+', COR='+str(np.round(cor,2)),fontsize=self.fh)
 
@@ -1334,7 +1342,10 @@ class plots:
 
                         pd_plot_all = pd.merge(pd_plot_all, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
 
-                
+        print(pdata)
+        # save into csv file for further plot 
+        pdata.to_csv(self.datadir_v2+'COR_RMSE_CldRadKernel_latlon_dif_'+cases_here[-1]+'.csv')
+
         print('------------------------------------------------')
         print('plot_CldRadKernel_latlon_dif is done!')
         print('------------------------------------------------')
@@ -1555,6 +1566,9 @@ class plots:
         #=============================================================
         # start plotting ...
         #=============================================================
+        # define DataFrame to save spatial correlation and NRMSE for further plot
+        pdata = pd.DataFrame(columns=['case','ref_case','var','COR','NRMSE'])
+
         pd_plot_all = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
 
         for icase,case in enumerate(cases_here):
@@ -1615,6 +1629,11 @@ class plots:
                             dbb = data_all[:,:,ivar,iref]
                             cor,NRMSE, RMSE = PDF.pattern_cor(daa,dbb,wts,1)
                             print('cor=',cor, 'NRMSE=',NRMSE, 'RMSE=',RMSE)
+
+                            ##pdata = pd.DataFrame(columns=['case','ref_case','var','COR','NRMSE'])
+                            pd_data = pd.DataFrame([[cases_here[icase],cases_here[iref],variables_out[ivar],cor,NRMSE]],columns=['case','ref_case','var','COR','NRMSE'])
+                            pdata = pd.merge(pdata, pd_data, on = ['case','ref_case','var','COR','NRMSE'], how='outer')
+                            print(pdata)
     
                             ax1.set_title(title_plot[num0]+'\n'+variables_out[ivar]+' ['+str(np.round(avgDATA,2))+']\nNRMSE='+str(np.round(NRMSE,2))+', COR='+str(np.round(cor,2)),fontsize=self.fh)
 
@@ -1638,6 +1657,10 @@ class plots:
                 pd_plot_all = pd.merge(pd_plot_all, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
 
                 
+        print(pdata)
+        # save into csv file for further plot
+        pdata.to_csv(self.datadir_v2+'COR_RMSE_RadKernel_latlon_dif_'+cases_here[-1]+'.csv')
+
         print('------------------------------------------------')
         print('plot_RadKernel_latlon_dif is done!')
         print('------------------------------------------------')
@@ -2523,3 +2546,83 @@ class plots:
 
         return pd_plot_all
     
+ 
+    #####################################################################
+    ### plot_NRMSE
+    #####################################################################
+    def plot_NRMSE_RadKern(self):
+        print('plot_NRMSE_RadKern starts ..........')
+    
+        cases_here = copy.deepcopy(self.cases)
+        if 'amip-4xCO2' in self.cases:
+            cases_here.remove('amip-4xCO2')
+ 
+        df = pd.read_csv(self.datadir_v2+'COR_RMSE_RadKernel_latlon_dif_'+cases_here[-1]+'.csv',index_col=0)
+        #print(df)
+
+        df1 = df[(df['ref_case']=='F2010-p4Ka.v1') & (df['case']!='F2010-p4Ka.v1')]
+        #print(df1)
+        
+        df21 = df1[df1['var']=='netCRE']
+        df22 = df1[df1['var']=='SWCRE']
+        df23 = df1[df1['var']=='LWCRE']
+        
+        print(df21)
+        print(df21.index)
+        print(df21.columns)
+
+        pd_plot_all = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
+
+        #### plotting...
+        fig = plt.figure(figsize=(18,12))
+        nrow = 2
+        ncol = 1
+
+        xvalue = np.arange(len(df21['case']))
+        print(xvalue)
+        
+        xticks = [case.split('.')[-1] for case in df21['case']]
+        xticks = ['All' if item == 'gwenergy' else item for item in xticks]
+        print(xticks)
+        
+        ii = 0
+        for mm in ['COR','NRMSE']:
+
+            ax = fig.add_subplot(nrow,ncol,ii+1)
+            
+            w = 0.10
+            a1 = 0.5
+            ww = w+0.02
+            
+            ax.bar(xvalue,df21[mm],width=w,alpha=a1,label='NET')
+            ax.bar(xvalue-ww,df22[mm],width=w,alpha=a1,label='SW')
+            ax.bar(xvalue+ww,df23[mm],width=w,alpha=a1,label='LW')
+            
+            ax.plot(xvalue,df21[mm],marker='o')
+            ax.plot(xvalue-ww,df22[mm],marker='o')
+            ax.plot(xvalue+ww,df23[mm],marker='o')
+            
+            ax.set_xticks(xvalue,xticks,fontsize=14)
+            ax.tick_params(labelsize=14)
+            ax.set_ylabel(mm+' [ref=v1]',fontsize=14)
+            ax.legend(fontsize=12)
+            ax.grid(axis='y')
+
+            if mm == 'COR':
+                ax.set_ylim((0.4,1.0))
+            elif mm == 'NRMSE':
+                ax.set_ylim((0.4,1.2))
+        
+            ii = ii + 1
+        
+        fig.savefig(self.figdir+'plot_NRMSE_COR_RadKern_'+cases_here[-1]+'.png',bbox_inches='tight',dpi=300)
+
+        pd_plot = prepare_pd2html('../figure/plot_NRMSE_COR_RadKern_'+cases_here[-1]+'.png',
+                      'spatial correlation (COR) and NRMSE for RadKern',
+                      'bar plot',
+                      'none')
+
+        pd_plot_all = pd.merge(pd_plot_all, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
+ 
+        return pd_plot_all
+
