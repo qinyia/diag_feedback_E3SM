@@ -32,6 +32,7 @@ def generate_html(casedir,webdir=None):
     dic['zm_CLOUD'] = {}
     dic['latlon_CLOUD'] = {}
     dic['webb_decomp'] = {}
+    dic['CLOUD_profile'] = {}
     
     for key in dic.keys():
         dic[key] = pd.DataFrame()
@@ -88,7 +89,9 @@ def generate_html(casedir,webdir=None):
         {table11}
       <h3>LAT-LON Cloud Feedbacks from Webb Method</h3>
         {table12}
-    
+       <h3>Regional Mean Cloud Profiles</h3>
+        {table15}
+   
       </div>
       </body>
     </html>.
@@ -110,6 +113,8 @@ def generate_html(casedir,webdir=None):
     
                                    table11=dic['latlon_CLOUD'].to_html(escape=False,index=False,border=0),
                                    table12=dic['webb_decomp'].to_html(escape=False,index=False,border=0),
+                                   table15=dic['CLOUD_profile'].to_html(escape=False,index=False,border=0),
+
                                    )
                                    )
     
