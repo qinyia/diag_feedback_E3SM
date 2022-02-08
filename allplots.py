@@ -2362,10 +2362,10 @@ class plots:
         #    print('Will skip this...')
         #    return
 
-        var1 = ['CLOUD','CLDLIQ','CLDICE']
-        var1_tmp = ['cl', 'clw', 'cli'] # for v1_coupled
-        var1_range = [[-0.1,0.35],[-10,40],[-3,7]]
-        var1_units = ['fraction','mg/kg','mg/kg']
+        var1 = ['CLOUD','CLDLIQ','CLDICE','T','Q','OMEGA']
+        var1_tmp = ['cl', 'clw', 'cli','T','Q','OMEGA'] # for v1_coupled
+        var1_range = [[-0.1,0.35],[-10,40],[-3,7],[180,320],[0,20],[-50,50]]
+        var1_units = ['fraction','mg/kg','mg/kg','K','g/kg','hPa/day']
     
         # ===============================================================        
         # ===============================================================        
@@ -2375,11 +2375,10 @@ class plots:
         nlev = 72
 
         ## regions 
-        regions = ['90S-90N','30S-30N','30S-60S','30N-60N','Sc','Cu','As']
-        regions_bnds = [[-90,90], [-30,30], [-60,-30], [30,60],[-30,30],[-30,30],[-30,30]]
-        #regions = ['Sc','Cu','As']
-        #regions_bnds = [[-30,30],[-30,30],[-30,30]]
-
+        #regions = ['90S-90N','30S-30N','30S-60S','30N-60N','Sc','Cu','As']
+        #regions_bnds = [[-90,90], [-30,30], [-60,-30], [30,60],[-30,30],[-30,30],[-30,30]]
+        regions = ['Sc','Cu','As']
+        regions_bnds = [[-30,30],[-30,30],[-30,30]]
 
         lndocns = ['all','lnd','ocn']
         #lndocns = ['ocn']
@@ -2399,8 +2398,9 @@ class plots:
                 print('=======lndocn = ', lndocn, 'region = ',region,'=========')
 
                 # -------------------- generate figures -------------------
-                nrow = 1
-                ncol = len(var1)
+                nrow = 2
+                #ncol = len(var1)/nrow
+                ncol = 3
                 fig = plt.figure(figsize=(ncol*5,nrow*5))
                 # -------------------- generate figures -------------------
 
@@ -2414,77 +2414,68 @@ class plots:
 
                         color = all_colors[icase]
 
-                        f1 = cdms.open(self.datadir_v2+'global_cloud_'+case+'.nc')
-                        if case == 'v1_coupled':
-                            svar_in = var1_tmp[ivar]
-                        else:
-                            svar_in = var1[ivar]
-                
                         # additional processing for Sc, Cu and Tropical Ascent regimes
                         if lndocn == 'ocn' and region in ['Sc','Cu','As']:
-                            f2 = cdms.open(self.datadir_v2+'global_EIS_'+case+'.nc')
-                            EIS_pi = f2('EIS_pi_clim')
-                            wap_pi = f2('OMEGA_pi_clim')
-
-                            # convert from Pa/s to hPa/day
-                            wap_pi = wap_pi * 864.
-
-                            lats = EIS_pi.getLatitude()[:]
-                            lons = EIS_pi.getLongitude()[:]
-
-                            # mask land
-                            EIS_pi_ocn = PDF.mask_land(lons,lats,EIS_pi,land=True)
-                            wap_pi_ocn = PDF.mask_land(lons,lats,wap_pi,land=True)
-                            EIS_pi_ocn.setAxisList(EIS_pi.getAxisList())
-                            wap_pi_ocn.setAxisList(wap_pi.getAxisList())
-
-                            # define regimes 
-                            if region == 'Sc':
-                                mask = (EIS_pi_ocn > 1 ) & (wap_pi_ocn > 15)
-                            elif region == 'Cu':
-                                mask = (EIS_pi_ocn < 1 ) & (wap_pi_ocn > 0)
-                            elif region == 'As':
-                                mask = (wap_pi_ocn < 0) 
-
+                            f1 = cdms.open(self.datadir_v2+'global_cloud_3regime_'+case+'.nc')
+                            svar_in = var1[ivar]
+                        else:
+                            f1 = cdms.open(self.datadir_v2+'global_cloud_'+case+'.nc')
+                            svar_in = var1[ivar]
+                
                         for exp,exp_out in zip(exps,exps_out):
 
-                            tmp1 = f1(svar_in+'_'+exp+'_clim')
-
-                            if exp == 'ano':
-                                tmp1 = tmp1 * 4. # scale it larger
-                
-                            levs = tmp1.getLevel()[:]
-                            lats = tmp1.getLatitude()[:]
-                            lons = tmp1.getLongitude()[:]
-                
-                            if lndocn == 'lnd':
-                                data1 = PDF.mask_land(lons,lats,tmp1,land=False)
-                                data1.setAxisList(tmp1.getAxisList())
-                            elif lndocn == 'ocn':
-                                data1 = PDF.mask_land(lons,lats,tmp1,land=True)
-                                data1.setAxisList(tmp1.getAxisList())
-                            else:
-                                data1 = tmp1 
-
                             if lndocn == 'ocn' and region in ['Sc','Cu','As']:
-                                # expand mask from 2D to 3D
-                                mask3d = np.tile(mask,(len(levs),1,1))
-                                data1 = MV.masked_where(mask3d == False,data1)
+                                if exp == 'ano':
+                                    tmp_pi = f1(svar_in+'_pi_avg')
+                                    tmp_ab = f1(svar_in+'_ab_avg')
+                                    tmp1 = tmp_ab - tmp_pi
+                                    tmp1.setAxisList(tmp_pi.getAxisList())
+                                else:
+                                    tmp1 = f1(svar_in+'_'+exp+'_avg')
+                                
+                                levs = tmp1.getLevel()[:]
+                                
+                                if region == 'Sc':
+                                    ir = 0
+                                elif region == 'Cu':
+                                    ir = 1
+                                elif region == 'As':
+                                    ir = 2
+                                data2 = MV.average(tmp1[ir,:,:],axis=0) #average over time -> (regime,level)
 
-                            ## save as NC to test whether mask is okay
-                            #fout = cdms.open('data1_'+region+'.nc','w')
-                            #fout.write(data1.subRegion(lat=(regions_bnds[iregion][0],regions_bnds[iregion][1])))
-                            #fout.close()
+                            else:
+                                tmp1 = f1(svar_in+'_'+exp+'_clim')
 
-                            # regime average 
-                            data2 = cdutil.averager(data1.subRegion(lat=(regions_bnds[iregion][0],regions_bnds[iregion][1])), axis='xy',weights='weighted')
-                            print(case,'data2.shape=',data2.shape,np.min(data2),np.max(data2))
+                                if exp == 'ano':
+                                    tmp1 = tmp1 * 4. # scale it larger
+                
+                                levs = tmp1.getLevel()[:]
+                                lats = tmp1.getLatitude()[:]
+                                lons = tmp1.getLongitude()[:]
+                
+                                if lndocn == 'lnd':
+                                    data1 = PDF.mask_land(lons,lats,tmp1,land=False)
+                                    data1.setAxisList(tmp1.getAxisList())
+                                elif lndocn == 'ocn':
+                                    data1 = PDF.mask_land(lons,lats,tmp1,land=True)
+                                    data1.setAxisList(tmp1.getAxisList())
+                                else:
+                                    data1 = tmp1 
+
+                                # regime average 
+                                data2 = cdutil.averager(data1.subRegion(lat=(regions_bnds[iregion][0],regions_bnds[iregion][1])), axis='xy',weights='weighted')
+
+                            print(svar,case,'data2.shape=',data2.shape,np.min(data2),np.max(data2))
                             
                             # convert unit from kg/kg to mg/kg
                             if svar in ['CLDLIQ','CLDICE']:
                                 data2 = data2 * 1e6
                             if svar in ['CLOUD'] and case == 'v1_coupled':
                                 data2 = data2/100.
+                            if svar in ['Q']:
+                                data2 = data2 * 1e3
+                            if svar in ['OMEGA']:
+                                data2 = data2 * 864.
    
                             #----------------------------------------------------------
                             # start plotting ...
@@ -2492,12 +2483,19 @@ class plots:
                             unit = var1_units[ivar]
                             title = svar 
 
-                            if exp in ['pi','ano']:
+                            if exp in ['pi']:
                                 ls = '-'
-                            else:
+                            elif exp in ['ab']:
                                 ls = '--'
+                            elif exp in ['ano']:
+                                ls = '-.'
+                            
+                            if exp == 'ano' and region in ['Sc','Cu','As']:
+                                label = case.split('.')[-1]+': P4K-CTL'
+                            else:
+                                label=case.split('.')[-1]+': '+exp_out
 
-                            im1 = ax.plot(np.array(data2),levs,label=case.split('.')[-1]+': '+exp_out,c=color,ls=ls)
+                            im1 = ax.plot(np.array(data2),levs,label=label,c=color,ls=ls)
     
                             ax.set_xlabel(svar+' ['+unit+']')
                             ax.set_ylabel('Pressure [hPa]') 
