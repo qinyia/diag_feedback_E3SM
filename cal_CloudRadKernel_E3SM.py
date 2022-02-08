@@ -500,6 +500,7 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
         norm = mpl.colors.BoundaryNorm(bounds2, cmap.N) # make sure the colors vary linearly even if the desired color boundaries are at varied intervals
         names = ['LWcld_tot','LWcld_amt','LWcld_alt','LWcld_tau','LWcld_err']
         for n,name in enumerate(names):
+            print('varname=',name)
             ax1 = fig.add_subplot(3,2,n+1,projection=ccrs.Robinson(central_longitude=180.))
             DATA_anom = dic_all[name]
             DATA_anom.setAxisList(AX3)
@@ -519,7 +520,8 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
             DATA.long_name = str(sec)+"_"+str(name)
             out1.write(DATA)
 
-            im1 = ax1.contourf(LON,LAT,DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both',corner_mask = False)
+            im1 = ax1.contourf(LON,LAT,np.round(DATA,5),bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both',corner_mask = False)
+
             ax1.coastlines()
             ax1.set_global()
             DATA.setAxisList(AX)
