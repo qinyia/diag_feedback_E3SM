@@ -31,6 +31,7 @@ import cal_EIS as calEIS
 import sort_cloud_regime as SCR
 import sort_cloud_3regime as SCR3
 
+import glob
 
 #############################################################################################
 def prepare_pd2html(outfig,varname,desc,casevscase=''):
@@ -396,16 +397,28 @@ class plots:
         # read other CMIP5&6 models
         if self.Add_otherCMIPs:
     
+            # if only add those models with both amip and cmip runs, set do_amip_cmip = True
+            do_amip_cmip = False
+
             phases = ['CMIP5','CMIP6']
     
-            exp_cntl = [['piControl','amip'],['piControl','amip']]
-            exp_new = [['abrupt4xCO2','amip4K'],['abrupt-4xCO2','amip-p4K']]
+            if do_amip_cmip:
+                exp_cntl = [['piControl','amip'],['piControl','amip']]
+                exp_new = [['abrupt4xCO2','amip4K'],['abrupt-4xCO2','amip-p4K']]
+
+                suffix1 = '*_1yr-150yr.csv'
+                suffix2 = '*.csv'
+
+            else:
+                exp_cntl = [['piControl','piControl'],['piControl','piControl']]
+                exp_new = [['abrupt4xCO2','abrupt4xCO2'],['abrupt-4xCO2','abrupt-4xCO2']]
+            
+                suffix1 = '*_1yr-150yr.csv'
+                suffix2 = '*_1yr-150yr.csv'
             
             prefix = 'FDBK'
-            suffix1 = '*1yr-150yr.csv'
-            suffix2 = '*.csv'
-            
-            models_all,cmip5_models,cmip6_models = PDF.get_intersect(exp_cntl,exp_new,prefix,suffix1,suffix2,self.datadir_RadKernel)
+
+            models_all,cmip5_models,cmip6_models = PDF.get_intersect(exp_cntl,exp_new,prefix,suffix1,suffix2,self.datadir_RadKernel+'/20220208/')
             #print('models_all',models_all,len(models_all))
             #print('cmip5_models',cmip5_models,len(cmip5_models))
             #print('cmip6_models',cmip6_models,len(cmip6_models))
@@ -422,14 +435,23 @@ class plots:
     
                 for imodel,model in enumerate(models[iphase]):
     
-                    if model == 'CanESM2':
-                        model_amip = 'CanAM4'
-                    elif model == 'HadGEM2-ES':
-                        model_amip = 'HadGEM2-A'
-                    else:
-                	    model_amip = model
+                    if do_amip_cmip:
+                        if model == 'CanESM2':
+                            model_amip = 'CanAM4'
+                        elif model == 'HadGEM2-ES':
+                            model_amip = 'HadGEM2-A'
+                        else:
+                	        model_amip = model
     
-                    df = pd.read_csv(self.datadir_RadKernel+'FDBK_'+phase+'_'+exp_new[iphase][1]+'_'+model_amip+suffix+'.csv',index_col=0)
+                        df = pd.read_csv(self.datadir_RadKernel+'FDBK_'+phase+'_'+exp_new[iphase][1]+'_'+model_amip+suffix+'.csv',index_col=0)
+                    else:
+                        ff = glob.glob(self.datadir_RadKernel+'/20220208/FDBK_'+phase+'_'+exp_new[iphase][1]+'_'+model+'_*_1yr-150yr.csv')
+                        if len(ff) == 0:
+                            print('We dont find data for ',model,'please check!!!')
+                        else:
+                            print(ff)
+                            df = pd.read_csv(ff[0],index_col=0)
+
                     df2 = df.iloc[:,0]
                     df_others[model] = df2
     
@@ -463,33 +485,46 @@ class plots:
             
         # start plotting 
         
-        fig = plt.figure(figsize=(18,12))
+        fig = plt.figure(figsize=(18,9))
         ax = fig.add_subplot(1,1,1)
         
-        drop_index = ['T','dLW_adj','dSW_adj','dnet_adj','LW_resd','SW_resd','net_resd',\
+        drop_index = ['T','dLW_adj','dSW_adj','dnet_adj','LW_resd','SW_resd',\
+        #'net_resd',\
         'T_clr','Planck_clr','LR_clr','WV_clr','ALB_clr','WV_clr_SW','WV_clr_LW','WV_SW','WV_LW',\
         'SWCRE','LWCRE','netCRE','Planck_clr_fxRH','LR_clr_fxRH','RH_clr','LW_clr_sum','SW_clr_sum',\
-        'net_clr_sum','LW_clr_dir','SW_clr_dir','net_clr_dir','LW_cld_sum','SW_cld_sum','net_cld_sum',\
+        'net_clr_sum','LW_clr_dir','SW_clr_dir','net_clr_dir','LW_cld_sum','SW_cld_sum',\
+        #,'net_cld_sum',\
         'LW_cld_dir','SW_cld_dir','net_cld_dir','LW_clr_resd','SW_clr_resd','net_clr_resd']
         
     
         df_plot = df_all.drop(index=drop_index)
         x = np.arange(1,len(df_plot.index)+1,1)
+
+        print(df_plot.index)
+        # redefine column orders 
+        indexA = ['Planck','LR','WV','ALB','netCRE_adj','SWCRE_adj','LWCRE_adj','net_cld_sum','net_resd','Planck_fxRH','LR_fxRH','RH']
+        xticks = ['Planck','LR','WV','Albedo','Cloud','Cloud$_{sw}$','Cloud$_{lw}$','Total','Residual','Planck\n[fixed RH]','LR\n[fixed RH]','RH']
     
         if self.Add_otherCMIPs:
             df_others_plot = df_others.drop(index=drop_index)
         
-        for idx,index in enumerate(df_plot.index):
+        for idx,index in enumerate(indexA):
             for icol,column in enumerate(df_plot.columns):
                 if column == 'v1_coupled' or column == 'v2_coupled':
-                    L1 = ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=self.s1,alpha=self.a1,label=column,color=self.colors[icol],marker='x')
+                    label = column.split('_')[0]+" [abrupt4xCO2]"
+                    L1 = ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=self.s1,alpha=self.a1,label=label,color=self.colors[icol],marker='x')
                 elif column == 'v1_amip4K':
                     ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=self.s1,alpha=self.a1,label=column,color=self.colors[icol],marker='x')
                 elif column == 'v1_future4K':
                     ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=self.s1,alpha=self.a1,label=column,color=self.colors[icol],marker='x')
                 else:
-                    ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=self.s1,alpha=self.a1,label=column,color=self.colors[icol])
-                
+                    if 'gwenergy' in column:
+                        label = 'All'
+                    else:
+                        label = column.split('.')[-1]
+
+                    ax.scatter(x[idx]+icol/20.-len(df_plot.columns)/2.*1/20.,df_plot.loc[index,column].tolist(),s=self.s1,alpha=self.a1,label=label,color=self.colors[icol],edgecolor='grey')
+               
             # other CMIP models
             if self.Add_otherCMIPs:
                 for icol,column in enumerate(df_others_plot.columns):
@@ -497,25 +532,41 @@ class plots:
                         ax.scatter(x[idx], df_others_plot.loc[index,column].tolist(),s=self.s2,edgecolor='none',facecolor=self.lc_CESM2,alpha=1, marker='X',\
                         label = column.split('_')[0]+'_amip-p4K')
                     else:
-                        ax.scatter(x[idx]-0.2, df_others_plot.loc[index,column].tolist(),s=self.s2,edgecolor='none',facecolor='grey',alpha=self.a1)
+                        ax.scatter(x[idx]-0.2, df_others_plot.loc[index,column].tolist(),s=self.s2,edgecolor='none',facecolor='grey',alpha=0.3)
     
                 # ensemble mean
                 L2 = ax.scatter(x[idx]-0.2, df_others_plot.loc[index,:].mean(),s=self.s2,edgecolor='black',facecolor='black')
     
             ax.tick_params(labelsize=self.fh)
-            ax.set_ylabel('W/m$^2$/K',fontsize=self.fh)
+            ax.set_ylabel('Feedback [W/m$^2$/K]',fontsize=self.fh)
             if idx == 0:
                 if self.Add_otherCMIPs:
-                    legend1 = ax.legend([L2],['amip4K'],fontsize=self.fh1,loc='upper left')
+                    if do_amip_cmip:
+                        label = 'amip4K'
+                    else:
+                        label = 'abrupt4xCO2'
+
+                    legend1 = ax.legend([L2],[label],fontsize=self.fh1,loc='upper left')
                     ax.legend(fontsize=self.fh1)
                     ax.add_artist(legend1) 
                 else:
                     ax.legend(fontsize=self.fh1)
     
-        ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
+        #ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
+        ax.axhline(y=0,ls='-',color='black',lw=1)
         degrees = 0
-        plt.xticks(x,df_plot.index,rotation=degrees)
-        ax.set_title('Radiative Kernel feedback',fontsize=self.fh)
+
+        plt.xticks(x,xticks,rotation=degrees)
+        ax.set_title('Global Mean Feedbacks',fontsize=self.fh)
+
+        # Add reference line between Cloud and Cloud_sw
+        ax.axvline(x=5.5,ls='--',color='grey')
+        # between Cloud_lw and Total 
+        ax.axvline(x=7.5,ls='--',color='grey')
+        # between Total and Residual
+        ax.axvline(x=8.5,ls='--',color='grey')
+        # between Residual and Planck_fxRH
+        ax.axvline(x=9.5,ls='--',color='grey')
         
         fig.savefig(self.figdir+'ScatterPlot-RadKernel-Feedback_'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
         plt.close(fig)
