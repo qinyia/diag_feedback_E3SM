@@ -2450,7 +2450,8 @@ class plots:
 
         var1 = ['CLOUD','CLDLIQ','CLDICE','T','Q','OMEGA']
         var1_tmp = ['cl', 'clw', 'cli','T','Q','OMEGA'] # for v1_coupled
-        var1_range = [[-0.1,0.35],[-10,40],[-3,7],[180,320],[0,20],[-50,50]]
+        #var1_range = [[-0.1,0.35],[-10,40],[-3,7],[180,320],[0,20],[-50,50]]
+        var1_range = [[-0.1,0.35],[-10,40],[-3,7],[270,310],[5,25],[-50,50]]
         var1_units = ['fraction','mg/kg','mg/kg','K','g/kg','hPa/day']
     
         # ===============================================================        
@@ -2587,6 +2588,9 @@ class plots:
                             ax.set_ylabel('Pressure [hPa]') 
     
                             ax.set_ylim(max(levs),min(levs))
+                            if svar in ['T','Q']:
+                                ax.set_ylim(max(levs),650)
+
                             ax.axvline(x=0,ls='-',color='grey',lw=0.5)
                             ax.set_xlim((var1_range[ivar][0],var1_range[ivar][1]))
 
