@@ -499,11 +499,23 @@ class plots:
     
         df_plot = df_all.drop(index=drop_index)
         x = np.arange(1,len(df_plot.index)+1,1)
-
         print(df_plot.index)
+
         # redefine column orders 
         indexA = ['Planck','LR','WV','ALB','netCRE_adj','SWCRE_adj','LWCRE_adj','net_cld_sum','net_resd','Planck_fxRH','LR_fxRH','RH']
         xticks = ['Planck','LR','WV','Albedo','Cloud','Cloud$_{sw}$','Cloud$_{lw}$','Total','Residual','Planck\n[fixed RH]','LR\n[fixed RH]','RH']
+
+        # output the dataframe df_plot as a table
+        df_plot_flip = df_plot.transpose()
+        df_plot_flip = df_plot_flip.reindex(columns=indexA)
+        df_plot_flip.columns = xticks
+        df_plot_flip.index = [item.split('.')[-1] for item in df_plot_flip.index]
+        print(df_plot_flip.round(2))
+        df_plot_flip_out = df_plot_flip.round(2)
+        df_out = df_plot_flip_out.applymap("{:.2f}".format)
+        print(df_out)
+        df_out.to_csv(self.datadir_v2+'climate_feedback_table_'+cases_here[-1]+'.csv')
+        exit()
     
         if self.Add_otherCMIPs:
             df_others_plot = df_others.drop(index=drop_index)
