@@ -515,7 +515,6 @@ class plots:
         df_out = df_plot_flip_out.applymap("{:.2f}".format)
         print(df_out)
         df_out.to_csv(self.datadir_v2+'climate_feedback_table_'+cases_here[-1]+'.csv')
-        exit()
     
         if self.Add_otherCMIPs:
             df_others_plot = df_others.drop(index=drop_index)
