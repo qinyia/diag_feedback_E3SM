@@ -22,9 +22,11 @@ PreProcess = True
 regrid_SE2FV = "True" # True: need regrid from SE2FV; otherwise, no need regrid.
 
 if PreProcess:
-    RunDiag = True
-else:
     RunDiag = False
+else:
+    RunDiag = True
+
+RunDiag = True
 
 cal_types = [
 'RadFeedback',
@@ -33,6 +35,9 @@ cal_types = [
 'CloudRadKernel',
 'cal_LCF',
 'cal_cloud',
+'cal_EIS',
+#'sort_cloud_regime',
+'sort_cloud_3regime',
 ]
 
 # give one stamp for each pair experiment, like v1, v2, v3....
@@ -57,21 +62,20 @@ yearS2 = 1
 yearE1 = 5 #250
 yearE2 = 5 #150
 
-# set input directory 1 --- the directory before casename in the whole directory
-datadir_in1= '/p/lustre2/qin4/E3SM_simulations/'
-#datadir_in1 = '/p/lustre2/qin4/Data_cori/'
-# set input directory 2 --- the directory after casename in the whole directory
-datadir_in2 = 'run/'
-#datadir_in2 = 'archive/atm/hist/'
-
 # set output directory for necessary variables after post-processing E3SM raw data
-outdir_out = '/p/lustre2/qin4/diag_feedback_E3SM_postdata/'
+if machine == 'LC':
+    outdir_out = '/p/lustre2/qin4/diag_feedback_E3SM_postdata/'
+elif machine == 'compy':
+    outdir_out = '/compyfs/qiny108/diag_feedback_E3SM_postdata/'
 
 ### NOTION: if you work on Cori, you should not change the below directories. If not, you should download data.
 # set RadKernel input kernel directory
-RadKernel_dir = '/p/lustre2/qin4/Data_cori/Huang_kernel_data/'
+if machine == 'LC':
+    RadKernel_dir = '/p/lustre2/qin4/Data_cori/Huang_kernel_data/'
+elif machine == 'compy':
+    RadKernel_dir = '/qfs/people/qiny108/diag_feedback_E3SM/Huang_kernel_data/'
 
-# ---------------------------- all modifications please stop here --------------------------------------------
+# ---------------------------- all main modifications please stop here --------------------------------------------
 
 # current directory
 curdir = os. getcwd()
@@ -100,14 +104,29 @@ for icase,case in enumerate(case_stamp):
     #################################################################
     # add option to select component -- for processing E3SMv2 data,
     # which uses 'eam.hx' rather than 'cam.hx'
+    # datadir_in1 --- the directory before casename in the whole directory
+    # datadir_in2 --- the directory after casename in the whole directory
     #################################################################
-    if 'v2rc1c' in case or 'v2_coupled' in case:
+    if 'v2rc1c' in case or 'v2_coupled' in case or 'v2' in case:
+        # LC cannot run v2 simulations so far. If it works later, will add it.
         comp = 'eam.h0'
-        #rgr_map = '/p/lustre2/qin4/Data_cori/map_ne30pg2_to_cmip6_180x360_aave.20200201.nc'
-        rgr_map = '/p/lustre2/qin4/Data_cori/map_ne30pg2_to_cmip6_72x144_aave.20210812.nc'
+        if machine == 'compy':
+            datadir_in1= '/compyfs/qiny108/E3SMv2_simulations/'
+            datadir_in2 = 'archive/atm/hist/'
+            rgr_map = '/qfs/people/zender/data/maps/map_ne30pg2_to_cmip6_180x360_aave.20200201.nc'
+
     else:
         comp = 'cam.h0'
-        rgr_map = '/p/lustre2/qin4/Data_cori/map_ne30np4_to_fv129x256_aave.20150901.nc'
+        if machine == 'compy':
+            datadir_in1= '/compyfs/qiny108/E3SM_simulations/'
+            datadir_in2 = 'archive/atm/hist/'
+            rgr_map = "/qfs/people/zender/data/maps/map_ne30np4_to_cmip6_180x360_aave.20181001.nc"
+ 
+        elif machine == 'LC':
+            datadir_in1 = '/p/lustre2/qin4/E3SM_simulations/'
+            datadir_in2 = 'archive/atm/hist/'
+            #datadir_in2 = 'run/'
+            rgr_map = '/p/lustre2/qin4/Data_cori/map_ne30np4_to_fv129x256_aave.20150901.nc'
         
     #################################################################
     # pre-process model output to get necessary input files
