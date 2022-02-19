@@ -17,6 +17,8 @@ import allplots as AP
 # NCO
 
 # ----------------------------Hi, all modifications please start here --------------------------------------------
+machine = 'compy'
+
 # if you run this script at the first time, set PreProcess = True; otherwise, PreProcess = False
 PreProcess = True
 regrid_SE2FV = "True" # True: need regrid from SE2FV; otherwise, no need regrid.
