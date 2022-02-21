@@ -130,11 +130,9 @@ do
                 echo "The output file is ready:" $out_file
 			fi
 
-
-		done
-	done
-
-done 
+		done #imon
+	done #iyr
+done #ii
 
 echo "Regridding is successfully."
 echo "Well Done!"
