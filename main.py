@@ -17,7 +17,7 @@ import allplots as AP
 # NCO
 
 # ----------------------------Hi, all modifications please start here --------------------------------------------
-machine = 'compy'
+machine = 'cori'
 
 # if you run this script at the first time, set PreProcess = True; otherwise, PreProcess = False
 PreProcess = True
