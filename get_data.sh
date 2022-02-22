@@ -196,23 +196,44 @@ do
         echo `ls *${exp_id[ii]}_${int_year2_4d}${int_mon_2d}-${end_year2_4d}${end_mon_2d}.nc`
     fi
 
-    ##=============================================================
-    ## regrid data to coarse grid to run cal_RadKernel_xxx.py
-    ##=============================================================
-    ##<qinyi 2021-08-12 #------------------
-    ## if the destinated grid is not 72x144, but 180x360. regrid it to 72x144.
-    #echo ${rgr_map} | grep "72x144" 
-    #if [ $? != 0 ] ; then
+    #=============================================================
+    # regrid data to coarse grid to run cal_RadKernel_xxx.py
+    #=============================================================
+    #<qinyi 2021-08-12 #------------------
+    # if the destinated grid is not 72x144, but 180x360. regrid it to 72x144. 
+    #<qinyi 2022-02-20 #------------------
+    #--> only for v2.coupled and v2.NARRM.coupled
+    if [[ "${run_id[ii]}" == *"v2"* ]]; then
+        if [[ "${run_id[ii]}" == *"piControl"* || "${run_id[ii]}" == *"abrupt-4xCO2"* ]]; then
 
-    #    all_file_list=`ls *${exp_id[ii]}_${int_year2_4d}${int_mon_2d}-${end_year2_4d}${end_mon_2d}.nc`
-    #    for ii in ${all_file_list}
-    #    do
-    #        echo $ii
-    #        echo 'regrid data with 180x360 to 72x144 grids'
-    #        # this map file is copied from cori: /global/homes/z/zender/data/maps/map_cmip6_180x360_to_cmip6_72x144_aave.20181001.nc
-    #        ncremap -m /g/g90/qin4/scripts/diag_feedback_E3SM/map_cmip6_180x360_to_cmip6_72x144_aave.20181001.nc $ii ${ii}_new
-    #    done
-    #fi
+            echo ${rgr_map} | grep "72x144" 
+            if [ $? != 0 ] ; then
+
+                outdir_new=${outdir_out}/${run_id[ii]}_72x144/
+            	if [ ! -d "${outdir_new}" ] ; then
+            		mkdir -p ${outdir_new}
+                fi
+
+                all_file_list=`ls *${exp_id[ii]}_${int_year2_4d}${int_mon_2d}-${end_year2_4d}${end_mon_2d}.nc`
+                for ii in ${all_file_list}
+                do
+                    echo $ii
+                    if [ ! -f "${outdir_new}/$ii" ] ; then
+                        echo 'regrid data with 180x360 to 72x144 grids'
+                        # this map file is copied from cori: /global/homes/z/zender/data/maps/map_cmip6_180x360_to_cmip6_72x144_aave.20181001.nc
+                        #ncremap -m /g/g90/qin4/scripts/diag_feedback_E3SM/map_cmip6_180x360_to_cmip6_72x144_aave.20181001.nc $ii ${ii}_new
+                        ncremap -m /global/homes/z/zender/data/maps/map_cmip6_180x360_to_cmip6_72x144_aave.20181001.nc $ii ${outdir_new}/${ii}
+                    else
+                        echo ${ii} 'is already there. Great.'
+                    fi
+                done
+            fi
+            # rename case name: default to _180x360 and _72x144 to default 
+            cd ${outdir_out}
+            mv ${run_id[ii]} ${run_id[ii]}_180x360
+            mv ${run_id[ii]}_72x144 ${run_id[ii]}
+        fi
+    fi
 
 done 
 
