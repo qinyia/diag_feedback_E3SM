@@ -17,9 +17,12 @@ import allplots as AP
 # NCO
 
 # ----------------------------Hi, all modifications please start here --------------------------------------------
+machine = 'cori'
+
 # if you run this script at the first time, set PreProcess = True; otherwise, PreProcess = False
 PreProcess = True
 regrid_SE2FV = "True" # True: need regrid from SE2FV; otherwise, no need regrid.
+DoArchive = False # True: if the simulation is run by myself and data are in run directory.
 
 if PreProcess:
     RunDiag = False
@@ -55,7 +58,7 @@ run_id2s = [\
 '20210105.F2010C5-CMIP6-LR-p4K-all.ne30_oECv3.syrah.1024',\
 ]
 
-# set start year
+# set start year: yearS1/E1: control; yearS2/E2: warming
 yearS1 = 1 #101
 yearS2 = 1
 # set end year
@@ -67,6 +70,8 @@ if machine == 'LC':
     outdir_out = '/p/lustre2/qin4/diag_feedback_E3SM_postdata/'
 elif machine == 'compy':
     outdir_out = '/compyfs/qiny108/diag_feedback_E3SM_postdata/'
+elif machine == 'cori':
+    outdir_out = '/global/cscratch1/sd/qinyi/diag_feedback_E3SM_postdata/'
 
 ### NOTION: if you work on Cori, you should not change the below directories. If not, you should download data.
 # set RadKernel input kernel directory
@@ -74,6 +79,8 @@ if machine == 'LC':
     RadKernel_dir = '/p/lustre2/qin4/Data_cori/Huang_kernel_data/'
 elif machine == 'compy':
     RadKernel_dir = '/qfs/people/qiny108/diag_feedback_E3SM/Huang_kernel_data/'
+elif machine == 'cori':
+    RadKernel_dir = '/global/project/projectdirs/mp193/www/qinyi/DATA/Huang_kernel_data/'
 
 # ---------------------------- all main modifications please stop here --------------------------------------------
 
@@ -114,6 +121,13 @@ for icase,case in enumerate(case_stamp):
             datadir_in1= '/compyfs/qiny108/E3SMv2_simulations/'
             datadir_in2 = 'archive/atm/hist/'
             rgr_map = '/qfs/people/zender/data/maps/map_ne30pg2_to_cmip6_180x360_aave.20200201.nc'
+        elif machine == 'cori':
+            datadir_in1 = '/global/cscratch1/sd/qinyi/E3SM_middata/'
+            datadir_in2 = 'archive/atm/hist/'
+            if 'NARRM' in case:
+                rgr_map = '/global/cfs/cdirs/e3sm/zender/maps/map_northamericax4v1pg2_to_cmip6_180x360_aave.20200401.nc'
+            else:
+                rgr_map = '/global/cfs/cdirs/e3sm/zender/maps/map_ne30pg2_to_cmip6_180x360_aave.20200201.nc'
 
     else:
         comp = 'cam.h0'
@@ -132,9 +146,10 @@ for icase,case in enumerate(case_stamp):
     # pre-process model output to get necessary input files
     #################################################################
     if PreProcess:
-        # Part -1: archive data from run directory to archive/atm/hist directory
-        datadir_in0 = 'case_scripts/'
-        os.system('sh archive_data.sh '+run_id1 + ' '+run_id2+' '+datadir_in1+' '+datadir_in0)
+        # Part -1: archive data from run directory to archive/atm/hist directory if the simulation is run by myself.
+        if DoArchive:
+            datadir_in0 = 'case_scripts/'
+            os.system('sh archive_data.sh '+run_id1 + ' '+run_id2+' '+datadir_in1+' '+datadir_in0)
 
         # Part 0: regrid model output if your data in on SE grid. Otherwise, this step can be skipped. 
         os.system('sh regrid_data.sh '+ run_id1 + ' '+run_id2+' '+rgr_map+' '+str(yearS1)+' '+str(yearE1)+' '+str(yearS2)+' '+str(yearE2)+' '+datadir_in1+' '+datadir_in2+' '+outdir_out+' '+comp+' '+regrid_SE2FV)

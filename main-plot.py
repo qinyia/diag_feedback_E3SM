@@ -99,6 +99,8 @@ if machine == 'LC':
     datadir_CMIPs = '/p/lustre2/qin4/Data_cori/'
 elif machine == 'compy':
     datadir_CMIPs = '/compyfs/qiny108/diag_feedback_otherCMIPs/'
+elif machine == 'cori':
+    datadir_CMIPs = '/global/project/projectdirs/mp193/www/qinyi/DATA/'
 
 # -- data for E3SMv1 [dont modify data in this directory.]
 datadir_v1 = datadir_CMIPs+'E3SMv1_data/'
@@ -130,14 +132,16 @@ viewdir = datadir+'/'+cases[-1]+'/viewer/'
 ## web file directory, like on compy or nersc
 if machine == 'compy':
     webdir = "/compyfs/www/qiny108/diag_feedback/"+cases[-1]+"/"
+elif machine == 'cori':
+    webdir = "/global/project/projectdirs/mp193/www/qinyi/diag_feedback/"+cases[-1]+"/"
 
 ## create figure directory if it does not exist
 AP.make_dir(figdir)
 AP.make_dir(csvdir)
-AP.make_dir(webdir)
 AP.make_dir(viewdir)
 
-if machine == 'compy':
+if machine in ['compy','cori']:
+    AP.make_dir(webdir)
     os.system("cp -p "+datadir+"/viewer/11.css "+viewdir)
 
 # the following lines might be removed later....
@@ -154,15 +158,15 @@ if True:
     dics_plots = AP.get_plot_dics(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir, ncase, linestyles, linewidths,Add_amipFuture,highlight_CESM2,lw_CESM2, ls_CESM2, lc_CESM2, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel)
 
     for key in dics_plots:
-    if key in plot_types:
-        pd2html = dics_plots[key]()
-        # save pandas dataframe to csv file
-        pd2html.to_csv(csvdir+"pd2html_"+key+".csv")
+        if key in plot_types:
+            pd2html = dics_plots[key]()
+            # save pandas dataframe to csv file
+            pd2html.to_csv(csvdir+"pd2html_"+key+".csv")
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # generate html file
-if machine == 'compy':
+if machine in ['compy','cori']:
     gh.generate_html(casedir,webdir)
 
 
