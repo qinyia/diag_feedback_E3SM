@@ -206,9 +206,9 @@ def KT_decomposition_4D(c1,c2,Klw,Ksw):
 ###########################################################################
 def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir):
 
-    #if os.path.isfile(outdir+'global_cloud_feedback_'+case_stamp+'.nc'):
-    #    print('CloudRadKernel is already there.')
-    #    return
+    if os.path.isfile(outdir+'global_cloud_feedback_'+case_stamp+'.nc'):
+        print('CloudRadKernel is already there.')
+        return
 
     yearS_4d = "{:04d}".format(yearS)
     yearE_4d = "{:04d}".format(yearE)
