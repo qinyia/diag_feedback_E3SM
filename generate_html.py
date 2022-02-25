@@ -34,6 +34,7 @@ def generate_html(casedir,webdir=None):
     dic['webb_decomp'] = {}
     dic['CLOUD_profile'] = {}
     dic['NRMSE_RadKern'] = {}
+    dic['cal_regionCor'] = {}
 
     
     for key in dic.keys():
@@ -95,7 +96,9 @@ def generate_html(casedir,webdir=None):
         {table15}
         <h3>NRMSE and COR evolution for RadKern</h3>
         {table16}
-  
+        <h3>regional NRMSE and COR evolution for RadKern</h3>
+        {table17}
+ 
       </div>
       </body>
     </html>.
@@ -119,7 +122,7 @@ def generate_html(casedir,webdir=None):
                                    table12=dic['webb_decomp'].to_html(escape=False,index=False,border=0),
                                    table15=dic['CLOUD_profile'].to_html(escape=False,index=False,border=0),
                                    table16=dic['NRMSE_RadKern'].to_html(escape=False,index=False,border=0),
-
+                                   table17=dic['cal_regionCor'].to_html(escape=False,index=False,border=0),
                                    )
                                    )
     
