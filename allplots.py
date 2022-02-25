@@ -33,6 +33,7 @@ import sort_cloud_3regime as SCR3
 
 import glob
 
+import LonPivot as LP
 #############################################################################################
 def prepare_pd2html(outfig,varname,desc,casevscase=''):
     print(casevscase)
@@ -153,6 +154,7 @@ def get_plot_dics(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2
     dics_plots['webb_decomp']                = my_plot.plot_webb_decomp
     dics_plots['CLOUD_profile']              = my_plot.plot_CLOUD_profile
     dics_plots['NRMSE_RadKern']              = my_plot.plot_NRMSE_RadKern
+    dics_plots['cal_regionCor']              = my_plot.cal_RadKernel_regional_correspondence
     
     return dics_plots
 
@@ -895,9 +897,10 @@ class plots:
             
             for jj in range(3): ## loop for each panel, jj reprents All, Non-Low and Low Cloud 
                 for icol,column in enumerate(df_LW_all.columns):
+                    print('Doing LW...')
                     y1 = df_LW_all.iloc[jj*5:(jj+1)*5,icol]
                     if column == 'v1_coupled' or column == 'v2_coupled':
-                        axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label=column)
+                        La = axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='v',s=self.s1,color=self.colors[icol],alpha=self.a1,label=column)
                     elif column == 'v1_amip4K':
                         axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label=column)
                     elif column == 'v1_future4K':
@@ -908,9 +911,10 @@ class plots:
                         La = axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='v',s=self.s2,color=self.colors[icol],alpha=self.a1,label=column)
         
                 for icol,column in enumerate(df_net_all.columns):
+                    print('Doing NET...')
                     y1 = df_net_all.iloc[jj*5:(jj+1)*5,icol]
                     if column == 'v1_coupled' or column == 'v2_coupled':
-                        axes[jj].scatter(x+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
+                        Lb = axes[jj].scatter(x+w2,y1.values.tolist(),marker='o',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
                     elif column == 'v1_amip4K':
                         axes[jj].scatter(x+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
                     elif column == 'v1_future4K':
@@ -921,9 +925,10 @@ class plots:
                         Lb = axes[jj].scatter(x+w2,y1.values.tolist(),marker='o',s=self.s2,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
         
                 for icol,column in enumerate(df_SW_all.columns):
+                    print('Doing SW...')
                     y1 = df_SW_all.iloc[jj*5:(jj+1)*5,icol]
                     if column == 'v1_coupled' or column == 'v2_coupled':
-                        axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
+                        Lc = axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='^',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
                     elif column == 'v1_amip4K':
                         axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
                     elif column == 'v1_future4K':
@@ -2700,3 +2705,237 @@ class plots:
  
         return pd_plot_all
 
+    #####################################################################
+    ### cal regional LAT-LON RadKernel correspondence b/t two exps
+    ### NOTE: this function is only used for ref_case number == 1 now. 
+    #####################################################################
+    def cal_RadKernel_regional_correspondence(self):
+        print('cal_RadKernel_regional_correspondence starts ..........')
+        
+        cases_here = copy.deepcopy(self.cases)
+        if 'amip-4xCO2' in self.cases:
+            cases_here.remove('amip-4xCO2')
+    
+        variables = ['SWCRE_ano_grd_adj','LWCRE_ano_grd_adj','netCRE_ano_grd_adj']
+        variables_out = ['SWCRE','LWCRE','netCRE']
+        colors = ['tab:blue','tab:green','tab:orange']
+        
+        nlat = 73
+        nlon = 144
+        
+        #=============================================================
+        # read ALL data in 
+        #=============================================================
+        data_all = np.zeros((nlat,nlon,len(variables),len(cases_here)))
+    
+        for ivar,svar in enumerate(variables):
+            for icase,case in enumerate(cases_here):
+                if case == 'v1_coupled':
+                    f1 = cdms.open(self.datadir_v1+'lat-lon-gfdbk-CMIP6-abrupt-4xCO2-E3SM-1-0_r1i1p1f1_1yr-150yr.nc')
+                elif case == 'v1_amip4K':
+                    f1 = cdms.open(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-p4K-E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
+                elif case == 'v1_future4K':
+                    f1 = cdms.open(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-future4K-E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
+                elif case == 'amip-4xCO2':
+                    continue
+                else:
+                    f1 = cdms.open(self.datadir_v2+'lat-lon-gfdbk-CMIP6-'+case+'.nc')
+    
+                data = f1(svar)
+                lats = data.getLatitude()
+                lons = data.getLongitude()
+    
+                data_all[:,:,ivar,icase] = data
+        
+        #=============================================================
+        # calculate REGIONAL NRMSE and spatial correlation
+        #=============================================================
+        regions = ['90S-90N','30S-60S','30N-60N','WPacific','EPacific','Atlantic']
+        regions_bnds = [[-90,90],[-60,-30],[30,60], [-30,30],[-30,30],[-30,30]]
+        regions_lonbnds = [[0,360],[0,360],[0,360], [30,180],[185,290],[-70,30]]
+
+        #regions = ['WPacific','EPacific','Atlantic']
+        #regions_bnds = [[-30,30],[-30,30],[-30,30]]
+        #regions_lonbnds = [[30,180],[185,290],[-70,30]]
+
+        #lndocns = ['all','lnd','ocn']
+        lndocns = ['ocn','lnd']
+        #lndocns = ['lnd']
+
+        pd_plot_all = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
+
+        for lndocn in lndocns:
+
+            ## save bar plot: fig1 -- correlation; fig2 -- NRMSE
+            fig1 = plt.figure(figsize=(18,12))
+            fig2 = plt.figure(figsize=(18,12))
+            ii = 0
+
+            for iregion,region in enumerate(regions):
+
+                # only calculate global land rather than regional distribution 
+                if lndocn == 'lnd' and region != '90S-90N':
+                    continue
+
+                ax2 = fig1.add_subplot(2,3,ii+1)
+                ax3 = fig2.add_subplot(2,3,ii+1)
+                ii = ii + 1
+
+                ## plot spatial distribution
+                fig = plt.figure(figsize=(18,21))
+                nrow = len(cases_here)
+                ncol = 3
+
+                for ivar,svar in enumerate(variables):
+
+                    dics_cor = {}
+                    dics_rmse = {}
+                    for icase,case in enumerate(cases_here):
+                        ref_cases = self.ref_casesA[icase]
+                        if len(ref_cases) == 0:
+                            continue
+
+                        if len(ref_cases) > 1:
+                            print('Warning: we only need one ref_case for this plot. You have ',len(ref_cases),'Exiting...')
+                            return 
+
+                        for ref_case in ref_cases:
+                            iref = cases_here.index(ref_case)
+
+                            # calculate COR and NRMSE
+                            daa = data_all[:,:,ivar,icase]
+                            dbb = data_all[:,:,ivar,iref]
+    
+                            daa = cdms.asVariable(daa)
+                            dbb = cdms.asVariable(dbb)
+                            daa.setAxis(0,lats)
+                            daa.setAxis(1,lons)
+                            dbb.setAxis(0,lats)
+                            dbb.setAxis(1,lons)
+    
+                            if lndocn == 'lnd':
+                                land_mask = False
+                                daa1 = PDF.mask_land(lons[:],lats[:],daa,land=land_mask)
+                                dbb1 = PDF.mask_land(lons[:],lats[:],dbb,land=land_mask)
+                                daa1.setAxisList(daa.getAxisList())
+                                dbb1.setAxisList(dbb.getAxisList())
+                            elif lndocn == 'ocn':
+                                land_mask = True
+                                daa1 = PDF.mask_land(lons[:],lats[:],daa,land=land_mask)
+                                dbb1 = PDF.mask_land(lons[:],lats[:],dbb,land=land_mask)
+                                daa1.setAxisList(daa.getAxisList())
+                                dbb1.setAxisList(dbb.getAxisList())
+                            else:
+                                daa1 = daa
+                                dbb1 = dbb
+    
+                            if region == 'Atlantic':
+                                pivotLon = 290.
+                                daa2,tlon = LP.lonPivot(daa1, lons[:], pivotLon)
+                                dbb2,_ = LP.lonPivot(dbb1, lons[:], pivotLon)
+        
+                                tlonc = cdms.createAxis(tlon)
+                                tlonc.id="lon"
+                                tlonc.units="degrees_E"
+                                tlonc.designateLongitude()
+        
+                                daa2.setAxis(0,lats)
+                                dbb2.setAxis(0,lats)
+                                daa2.setAxis(1,tlonc)
+                                dbb2.setAxis(1,tlonc)
+                            else:
+                                daa2 = daa1
+                                dbb2 = dbb1
+    
+    
+                            daa1_reg = daa2.subRegion(lat=(regions_bnds[iregion][0],regions_bnds[iregion][1]),lon=(regions_lonbnds[iregion][0],regions_lonbnds[iregion][1]))
+                            dbb1_reg = dbb2.subRegion(lat=(regions_bnds[iregion][0],regions_bnds[iregion][1]),lon=(regions_lonbnds[iregion][0],regions_lonbnds[iregion][1]))
+    
+                            wts = np.cos(np.deg2rad(daa1_reg.getLatitude()[:]))
+                            cor,NRMSE, RMSE = PDF.pattern_cor(dbb1_reg,daa1_reg,wts,1)
+                            print('lndocn=',lndocn,'region=',region,'case=',case,'ref_case=',ref_case,'cor=',cor, 'NRMSE=',NRMSE)
+
+                            dics_cor[case] = cor
+                            dics_rmse[case] = NRMSE
+
+                            #### LAT-LON plot
+                            levels = np.arange(-3,3.5,0.5)
+                            cmap = 'RdBu_r'
+                            lon_here = daa1_reg.getLongitude()[:]
+                            lat_here = daa1_reg.getLatitude()[:]
+                            ax1 = fig.add_subplot(nrow,ncol,icase*ncol+ivar+1,projection=ccrs.PlateCarree())
+#                            ax1.contourf(lon_here,lat_here, daa1_reg,transform=ccrs.PlateCarree(),levels=levels,extend='both',cmap=cmap)
+                            ax1.pcolormesh(lon_here,lat_here,daa1_reg, transform=ccrs.PlateCarree(),vmin=-3,vmax=3,cmap=cmap)
+                            ### !!! set_extent really needs the lon ranging from -180 to 180!!!
+                            lon_bounds = lon_here
+                            lon_bounds[lon_bounds>180] -= 360
+                            print(lon_bounds)
+                            ax1.set_extent([min(lon_bounds),max(lon_bounds),min(lat_here),max(lat_here)], crs=ccrs.PlateCarree())
+                            ax1.coastlines()
+                            ax1.set_title(svar.split('_')[0]+' '+case.split('.')[-1]+' R='+str(cor.round(2))+', NRMSE='+str(NRMSE.round(2)))
+
+                    
+                    #### bar plot 
+                    w = 0.25
+                    a1 = 0.5
+                    ww = w+0.02
+
+                    xvalue = np.arange(len(dics_cor.keys()))
+                    xticks = [case.split('.')[-1] for case in dics_cor.keys()]
+                    xticks = ['All' if item == 'gwenergy' else item for item in xticks]
+                    print(xticks)
+
+                    label = svar.split('_')[0]
+
+                    #---- correlation 
+                    datap = [dics_cor[case] for case in dics_cor.keys()]
+                    ax2.bar(xvalue+ivar*ww,datap, width=w,alpha=a1,label=label,color=colors[ivar])
+                    ax2.plot(xvalue+ivar*ww,datap ,marker='o',color=colors[ivar])
+                    
+                    #---- NRMSE
+                    datap = [dics_rmse[case] for case in dics_cor.keys()]
+                    ax3.bar(xvalue+ivar*ww,datap, width=w,alpha=a1,label=label,color=colors[ivar])
+                    ax3.plot(xvalue+ivar*ww,datap ,marker='o',color=colors[ivar])
+
+                    for axx in [ax2,ax3]:
+                        axx.set_xticks(xvalue,xticks,fontsize=14)
+                        axx.tick_params(labelsize=12)
+                        axx.legend()
+    
+                        axx.set_title(region+' '+lndocn,fontsize=15)
+
+                    ax2.set_ylabel('spatial correlation',fontsize=14)
+                    ax2.set_ylim((-0.1,1))
+
+                    ax3.set_ylabel('NRMSE',fontsize=14)
+                    ax3.set_ylim((0,1.6))
+
+                fig.savefig(self.figdir+'plot_regional_cor_'+lndocn+'_'+region+'.png',dpi=300,bbox_inches='tight')
+                pd_plot = prepare_pd2html('../figure/'+'plot_regional_cor_'+lndocn+'_'+region+'.png',
+                              'regional RadKern cloud feedbacks (all are on the same page)',
+                              region+' '+lndocn, 
+                              case+' vs '+ref_case)
+                pd_plot_all = pd.merge(pd_plot_all, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
+
+            fig1.savefig(self.figdir+'plot_regional_cor_barplot_'+lndocn+'_'+cases_here[-1]+'.png',dpi=300,bbox_inches='tight')
+            pd_plot = prepare_pd2html('../figure/'+'plot_regional_cor_barplot_'+lndocn+'_'+cases_here[-1]+'.png',
+                          'spatial correlation (COR) for RadKern cloud feedbacks',
+                          'bar plot: '+lndocn,
+                          case+' vs '+ref_case)
+            pd_plot_all = pd.merge(pd_plot_all, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
+
+            fig2.savefig(self.figdir+'plot_regional_nrmse_barplot_'+lndocn+'_'+cases_here[-1]+'.png',dpi=300,bbox_inches='tight')
+            pd_plot = prepare_pd2html('../figure/'+'plot_regional_nrmse_barplot_'+lndocn+'_'+cases_here[-1]+'.png',
+                          'NRMSE for RadKern cloud feedbacks',
+                          'bar plot: '+lndocn,
+                          case+' vs '+ref_case)
+            pd_plot_all = pd.merge(pd_plot_all, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
+
+        print(pd_plot_all)
+ 
+        return pd_plot_all
+
+        print('------------------------------------------------')
+        print('cal_RadKernel_regional_correspondence is done!')
+        print('------------------------------------------------')
+    
