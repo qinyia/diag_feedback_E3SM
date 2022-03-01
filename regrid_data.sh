@@ -127,7 +127,7 @@ do
                     cp ${file_tmp} $outdir/${out_file}
                 fi
             else
-                echo "The output file is ready:" $out_file
+                echo "The output file is ready:" ${outdir}/$out_file
 			fi
 
 		done #imon
