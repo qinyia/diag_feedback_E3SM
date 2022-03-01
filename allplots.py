@@ -525,6 +525,8 @@ class plots:
             for icol,column in enumerate(df_plot.columns):
                 if column == 'v1_coupled' or column == 'v2_coupled':
                     label = column.split('_')[0]+" [abrupt4xCO2]"
+                    if 'v2.NARRM.coupled' in df_plot.columns and column == 'v2_coupled':
+                        label = 'v2.LR'
                     L1 = ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=self.s1,alpha=self.a1,label=label,color=self.colors[icol],marker='x')
                 elif column == 'v1_amip4K':
                     ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=self.s1,alpha=self.a1,label=column,color=self.colors[icol],marker='x')
@@ -533,6 +535,8 @@ class plots:
                 else:
                     if 'gwenergy' in column:
                         label = 'All'
+                    elif column == 'v2.NARRM.coupled':
+                        label = 'v2.NARRM'
                     else:
                         label = column.split('.')[-1]
 
