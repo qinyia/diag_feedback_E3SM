@@ -549,10 +549,10 @@ class plots:
                         ax.scatter(x[idx], df_others_plot.loc[index,column].tolist(),s=self.s2,edgecolor='none',facecolor=self.lc_CESM2,alpha=1, marker='X',\
                         label = column.split('_')[0]+'_amip-p4K')
                     else:
-                        ax.scatter(x[idx]-0.2, df_others_plot.loc[index,column].tolist(),s=self.s2,edgecolor='none',facecolor='grey',alpha=0.3)
+                        ax.scatter(x[idx]-0.2, df_others_plot.loc[index,column].tolist(),s=self.s2,edgecolor='none',facecolor='grey',alpha=0.3,marker='x')
     
                 # ensemble mean
-                L2 = ax.scatter(x[idx]-0.2, df_others_plot.loc[index,:].mean(),s=self.s2,edgecolor='black',facecolor='black')
+                L2 = ax.scatter(x[idx]-0.2, df_others_plot.loc[index,:].mean(),s=self.s2,edgecolor='black',facecolor='black',marker='X')
     
             ax.tick_params(labelsize=self.fh)
             ax.set_ylabel('Feedback [W/m$^2$/K]',fontsize=self.fh)
@@ -1907,7 +1907,10 @@ class plots:
                                 title = case+' CNTL'
                             elif idata in [3,4,5]:
                                 bounds = np.arange(var1_range_d[ivar][0],var1_range_d[ivar][1]+var1_range_d[ivar][2], var1_range_d[ivar][2])
-                                unit = var1_units[ivar]+'/K'
+                                if idata == 4:
+                                    unit = var1_units[ivar]
+                                else:
+                                    unit = var1_units[ivar]+'/K'
                                 title = case
     
                                 if idata == 4:
@@ -1963,16 +1966,16 @@ class plots:
         if 'amip-4xCO2' in self.cases:
             cases_here.remove('amip-4xCO2')
     
-        var1 = ['TGCLDLWP','CLDLOW','TGCLDIWP']
-        var1_tmp = ['clwvi', '', 'clivi']
-        var1_range = [[0,100,5],[0,100,5],[0,100,5]]
-        var1_range_d = [[-5,5,0.5], [-5,5,0.5],[-5,5,0.5]]
-        var1_cntl_range_d = [[-20,20,2], [-20,20,2],[-20,20,2]]
+        var1 = ['TGCLDLWP','CLDLOW','TGCLDIWP','CLDMED','CLDHGH']
+        var1_tmp = ['clwvi', '', 'clivi','','']
+        var1_range = [[0,100,5],[0,100,5],[0,100,5],[0,100,5],[0,100,5]]
+        var1_range_d = [[-5,5,0.5], [-5,5,0.5],[-5,5,0.5],[-5,5,0.5],[-5,5,0.5]]
+        var1_cntl_range_d = [[-20,20,2], [-20,20,2],[-20,20,2],[-20,20,2],[-20,20,2]]
     
-        var1_out = ['Liquid Water Path','Low Cloud Fraction', 'Ice Water Path']
+        var1_out = ['Liquid Water Path','Low Cloud Fraction', 'Ice Water Path','Middle Cloud Fraction', 'High Cloud Fraction']
     
-        var1_units = ['g/m$^2$','%','g/m$^2$']
-        var1_units1 = ['g/m2','%','g/m2']
+        var1_units = ['g/m$^2$','%','g/m$^2$','%','%']
+        var1_units1 = ['g/m2','%','g/m2','%','%']
     
         # ===============================================================        
         # ===============================================================        
@@ -2016,7 +2019,7 @@ class plots:
                     if svar in ['TGCLDLWP','TGCLDIWP']:
                         data_all_pi = data_all_pi * 1e3
                         data_all_ano = data_all_ano * 1e3
-                    elif svar in ['CLDLOW']:
+                    elif svar in ['CLDLOW','CLDMED','CLDHGH']:
                         data_all_pi = data_all_pi * 1e2
                         data_all_ano = data_all_ano * 1e2
     
@@ -2041,7 +2044,7 @@ class plots:
                     if svar in ['TGCLDLWP','TGCLDIWP']:
                         data_all_pi_ref = data_all_pi_ref * 1e3
                         data_all_ano_ref = data_all_ano_ref * 1e3
-                    elif svar in ['CLDLOW']:
+                    elif svar in ['CLDLOW','CLDMED','CLDHGH']:
                         data_all_pi_ref = data_all_pi_ref * 1e2
                         data_all_ano_ref = data_all_ano_ref * 1e2
     
@@ -2195,7 +2198,7 @@ class plots:
 
             pd_plot = prepare_pd2html('../figure/LatLon_'+case+'_webb-decomp.png',
                                       'CRE [W/m2/K]',
-                                      'Cloud feedback components derived from Weeb method',
+                                      'Cloud feedback components derived from Webb method',
                                       case)
 
             pd_plot_all = pd.merge(pd_plot_all, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
