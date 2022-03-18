@@ -70,7 +70,7 @@ def cal_cloud(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
         grid = cdms.createGenericGrid(lats,lons)
 
         var3d = ['CLDLIQ', 'CLDICE', 'CLOUD']
-        var2d = ['tas','TGCLDIWP','TGCLDLWP','CLDLOW','CLDLOW_CAL']
+        var2d = ['tas','TGCLDIWP','TGCLDLWP','CLDLOW','CLDLOW_CAL','CLDMED','CLDHGH']
 
         var = var2d + var3d 
         # =============================================
