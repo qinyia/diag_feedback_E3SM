@@ -30,10 +30,12 @@ import cal_webb_decomposition as WD
 import cal_EIS as calEIS
 import sort_cloud_regime as SCR
 import sort_cloud_3regime as SCR3
+import cal_RadKern_regime_wapEIS as RRW
 
 import glob
 
 import LonPivot as LP
+import matplotlib.patches as mpatches
 #############################################################################################
 def prepare_pd2html(outfig,varname,desc,casevscase=''):
     print(casevscase)
@@ -73,6 +75,7 @@ def get_cal_dics(direc_data, case_stamp, yearS2, yearE2, run_id1, run_id2, outdi
     dics_cal['cal_EIS']             = my_cal.cal_EIS
     dics_cal['sort_cloud_regime']   = my_cal.sort_cloud_regime
     dics_cal['sort_cloud_3regime']   = my_cal.sort_cloud_3regime
+    dics_cal['RadKernel_regime']    = my_cal.cal_RadKernel_regime
 
 
     return dics_cal
@@ -104,6 +107,9 @@ class calculation:
     def cal_webb_decomp(self):
         result = WD.cal_webb_decomp(self.outdir_final,self.case_stamp,self.yearS2,self.yearE2,self.outdir_final,self.figdir)
 
+    def cal_RadKernel_regime(self):
+        result = RRW.RadKernel_regime(self.RadKernel_dir,self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir,self.exp1,self.exp2)
+
     def cal_CloudRadKernel(self):
         result = CRK.CloudRadKernel(self.CloudRadKernel_dir,self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir)
 
@@ -125,13 +131,13 @@ class calculation:
 
 #############################################################################################
 
-def get_plot_dics(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir,ncase, linestyles, linewidths,Add_amipFutue,highlight_CESM2,lw_CESM2,ls_CESM2,lc_CESM2, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel):
+def get_plot_dics(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir,ncase, linestyles, linewidths,Add_amipFutue,highlight_CESM2,lw_CESM2,ls_CESM2,lc_CESM2, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions):
     '''
     Aug 20, 201: get the plot dictionary for all plot types.
     '''
     dics_plots = {}
 
-    my_plot = plots(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir,ncase, linestyles, linewidths,Add_amipFutue,highlight_CESM2,lw_CESM2,ls_CESM2,lc_CESM2, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel)
+    my_plot = plots(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir,ncase, linestyles, linewidths,Add_amipFutue,highlight_CESM2,lw_CESM2,ls_CESM2,lc_CESM2, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions)
 
     dics_plots['CRE_globalmean']             = my_plot.plot_CRE_globalmean
     dics_plots['RadKernel_globalmean']       = my_plot.plot_RadKernel_globalmean
@@ -160,7 +166,7 @@ def get_plot_dics(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2
 
 
 class plots:
-    def __init__(self, cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors,figdir,ncase, linestyles, linewidths,Add_amipFuture,highlight_CESM2,lw_CESM2,ls_CESM2,lc_CESM2, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel):
+    def __init__(self, cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors,figdir,ncase, linestyles, linewidths,Add_amipFuture,highlight_CESM2,lw_CESM2,ls_CESM2,lc_CESM2, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions):
         self.cases = cases
         self.ref_casesA = ref_casesA
         self.Add_otherCMIPs = Add_otherCMIPs
@@ -184,6 +190,7 @@ class plots:
         self.datadir_Ringer = datadir_Ringer
         self.datadir_RadKernel = datadir_RadKernel
         self.datadir_CldRadKernel = datadir_CldRadKernel
+        self.regions = regions
 
     ####################################################################################
     ### bar plot for global mean CRE feedback: including E3SMv1 piControl and amip
@@ -887,6 +894,8 @@ class plots:
             # ----------------------------------------------------------
             # start plotting 
             fig, axes = plt.subplots(nrows=3,ncols=1,figsize=(12,15))
+
+            only_net = True # 2022-04-29 only plot net 
             
             titles = ['All Cloud CTP bins', "Non-Low Cloud CTP bins", "Low Cloud CTP bins"]
             labels = ['Total','Amount','Altitude','Optical Depth','Residual']
@@ -894,56 +903,60 @@ class plots:
             wf = 0 # filled 
             
             w = 0.25
-            w2 = 0.08
+            #w2 = 0.08
+            w2 = 0.
             w3 = 0.08
         
             x = np.asarray([1,2,3,4,5])
             
             for jj in range(3): ## loop for each panel, jj reprents All, Non-Low and Low Cloud 
-                for icol,column in enumerate(df_LW_all.columns):
-                    print('Doing LW...')
-                    y1 = df_LW_all.iloc[jj*5:(jj+1)*5,icol]
-                    if column == 'v1_coupled' or column == 'v2_coupled':
-                        La = axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='v',s=self.s1,color=self.colors[icol],alpha=self.a1,label=column)
-                    elif column == 'v1_amip4K':
-                        axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label=column)
-                    elif column == 'v1_future4K':
-                        axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label=column)
-    
-                    else:
-        #                L1 = axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='o',s=self.s2,color=self.colors[icol],alpha=self.a1,label=column)
-                        La = axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='v',s=self.s2,color=self.colors[icol],alpha=self.a1,label=column)
+                if not only_net:
+                    for icol,column in enumerate(df_LW_all.columns):
+                        print('Doing LW...')
+                        y1 = df_LW_all.iloc[jj*5:(jj+1)*5,icol]
+                        if column == 'v1_coupled' or column == 'v2_coupled':
+                            La = axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='v',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
+                        elif column == 'v1_amip4K':
+                            axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
+                        elif column == 'v1_future4K':
+                            axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
+        
+                        else:
+            #                L1 = axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='o',s=self.s2,color=self.colors[icol],alpha=self.a1,label=column)
+                            La = axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='v',s=self.s2,color=self.colors[icol],alpha=self.a1,label=column)
         
                 for icol,column in enumerate(df_net_all.columns):
                     print('Doing NET...')
                     y1 = df_net_all.iloc[jj*5:(jj+1)*5,icol]
                     if column == 'v1_coupled' or column == 'v2_coupled':
-                        Lb = axes[jj].scatter(x+w2,y1.values.tolist(),marker='o',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
+                        Lb = axes[jj].scatter(x+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label=column)
                     elif column == 'v1_amip4K':
-                        axes[jj].scatter(x+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
+                        axes[jj].scatter(x+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label=column)
                     elif column == 'v1_future4K':
-                        axes[jj].scatter(x+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
+                        axes[jj].scatter(x+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label=column)
     
                     else:
         #                L2 = axes[jj].scatter(x+w2,y1.values.tolist(),marker='o',s=self.s2,color=self.colors[icol],alpha=self.a1,label=column)
-                        Lb = axes[jj].scatter(x+w2,y1.values.tolist(),marker='o',s=self.s2,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
+                        Lb = axes[jj].scatter(x+w2,y1.values.tolist(),marker='o',s=self.s2,color=self.colors[icol],alpha=self.a1,label=column)
         
-                for icol,column in enumerate(df_SW_all.columns):
-                    print('Doing SW...')
-                    y1 = df_SW_all.iloc[jj*5:(jj+1)*5,icol]
-                    if column == 'v1_coupled' or column == 'v2_coupled':
-                        Lc = axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='^',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
-                    elif column == 'v1_amip4K':
-                        axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
-                    elif column == 'v1_future4K':
-                        axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
-    
-                    else:
-         #               L3 = axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='o',s=self.s2,color=self.colors[icol],alpha=self.a1,label=column)
-                        Lc = axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='^',s=self.s2,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
+                if not only_net:
+                    for icol,column in enumerate(df_SW_all.columns):
+                        print('Doing SW...')
+                        y1 = df_SW_all.iloc[jj*5:(jj+1)*5,icol]
+                        if column == 'v1_coupled' or column == 'v2_coupled':
+                            Lc = axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='^',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
+                        elif column == 'v1_amip4K':
+                            axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
+                        elif column == 'v1_future4K':
+                            axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
+        
+                        else:
+             #               L3 = axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='o',s=self.s2,color=self.colors[icol],alpha=self.a1,label=column)
+                            Lc = axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='^',s=self.s2,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
            
         
-                plt.legend([La,Lb,Lc],["LW","NET","SW"],scatterpoints=1,loc="upper left",fontsize=self.fh1)
+                if not only_net:
+                    plt.legend([La,Lb,Lc],["LW","NET","SW"],scatterpoints=1,loc="upper left",fontsize=self.fh1)
 
                 # CMIP - other models
                 if self.Add_otherCMIPs:
@@ -983,7 +996,7 @@ class plots:
                 if jj == 0:
                     axes[jj].legend(fontsize=self.fh1,ncol=2)
          
-                axes[jj].grid(which='major', linestyle=':', linewidth='1.0', color='grey')
+                axes[jj].grid(axis='y',which='major', linestyle='--', linewidth='1.0', color='grey')
                 
                 axes[jj].axhline(0, color="grey", linestyle="-",linewidth=2)
                 axes[jj].set_ylabel('W/$m^2$/K',fontsize=self.fh)
@@ -997,12 +1010,20 @@ class plots:
                 
                 axes[jj].tick_params(axis='both', which='major', labelsize=self.fh)
                 
-                axes[jj].grid(axis='y',c='grey',linestyle='-.',which = 'major')
-                
-                if jj == 2:
-                    plt.xticks(x,['Total','Amount','Altitude','Optical Depth','Residual'])
-                else:
-                    axes[jj].set_xticklabels("")
+                #axes[jj].grid(axis='y',c='grey',linestyle='-.',which = 'major')
+
+                for ll in x[:-1]:
+                    axes[jj].axvline(x=ll+0.5,ls='--',color='grey',lw=1)
+
+                axes[jj].set_xticks(x)
+
+                if only_net:
+                     axes[jj].set_xticklabels(['Total','Amount','Altitude','Optical Depth','Residual'])
+                else:               
+                    if jj == 2:
+                        plt.xticks(x,['Total','Amount','Altitude','Optical Depth','Residual'])
+                    else:
+                        axes[jj].set_xticklabels("")
                     
             plt.tight_layout()
             fig.savefig(self.figdir+'ScatterPlot-Cloud-feedback-Decomposition_'+str(np.round(ii,0))+'-'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
@@ -1280,9 +1301,8 @@ class plots:
         if 'amip-4xCO2' in self.cases:
             cases_here.remove('amip-4xCO2')
     
-    
-        nlat = 90
-        nlon = 144
+        # get region bounds
+        latS,latE,lonS,lonE = self.regions[0],self.regions[1],self.regions[2],self.regions[3]
         
         # define DataFrame to save spatial correlation and NRMSE for further plot
         pdata = pd.DataFrame(columns=['case','ref_case','lev','var','COR','NRMSE'])
@@ -1295,7 +1315,7 @@ class plots:
         components = ['NET','SW','LW']
         decomps = ['tot','amt','alt','tau']
 
-        sections_out = ['ALL', 'High cloud', 'Low cloud']
+        sections_out = ['ALL cloud', 'High cloud', 'Low cloud']
         components_out = ['NET','SW','LW']
         
         # generate figure based on case categories
@@ -1303,9 +1323,6 @@ class plots:
             for isec,sec in enumerate(sections):
     
                 # E3SM 
-                data_all = np.zeros((nlat,nlon,len(decomps),len(cases_here)))
-                avgdata = np.zeros((len(decomps),len(cases_here)))
-                data_all = cdms.asVariable(data_all)
     
                 for idecomp,decomp in enumerate(decomps):
                     varname = sec+'_'+component+'cld_'+decomp
@@ -1327,17 +1344,22 @@ class plots:
                             f1 = cdms.open(self.datadir_v2+'global_cloud_feedback_'+case+'.nc')
     
                         if component in ['LW','SW']:
-                            data = f1(varname)
+                            data = f1(varname).subRegion(lat=(latS,latE),lon=(lonS,lonE))
                         else:
     
-                            dataSW = f1(varSW)
-                            dataLW = f1(varLW)
+                            dataSW = f1(varSW).subRegion(lat=(latS,latE),lon=(lonS,lonE))
+                            dataLW = f1(varLW).subRegion(lat=(latS,latE),lon=(lonS,lonE))
                             data = dataSW + dataLW
                             data.setAxisList(dataSW.getAxisList())
     
                         lats = data.getLatitude()
                         lons = data.getLongitude()
-    
+
+                        if idecomp==0 and icase==0:
+                            data_all = np.zeros((data.shape[0],data.shape[1],len(decomps),len(cases_here)))
+                            avgdata = np.zeros((len(decomps),len(cases_here)))
+                            data_all = cdms.asVariable(data_all)
+
                         ######################################################
                         data_all[:,:,idecomp,icase] = data
                         # get global mean
@@ -1362,26 +1384,48 @@ class plots:
                         print('iref = ',iref, ref_case)
     
                         fig=plt.figure(figsize=(18,12)) # this creates and increases the figure size
-                        plt.suptitle(sec+' CTP bins ['+cases_here[icase]+' minus '+cases_here[iref]+']',fontsize=self.fh,y=0.95)
+                        nrow = 4
+                        ncol = 3
+                        #plt.suptitle(sec+' CTP bins ['+cases_here[icase]+' minus '+cases_here[iref]+']',fontsize=self.fh,y=0.95)
                         bounds = np.arange(-3,3.25,0.25)
                         cmap = plt.cm.RdBu_r
                         bounds2 = np.append(np.append(-500,bounds),500) # This is only needed for norm if colorbar is extended
                         norm = mpl.colors.BoundaryNorm(bounds2, cmap.N) # make sure the colors vary linearly even if the desired color boundaries are at varied intervals
                         names = [component+'cld_tot',component+'cld_amt',component+'cld_alt',component+'cld_tau']
+                        names_out = [component+' '+sections_out[isec],component+' '+sections_out[isec]+' amount', \
+                                     component+' '+sections_out[isec]+' altitude',component+' '+sections_out[isec]+' optical depth']
         
                         for n,name in enumerate(names):
-                            # difference b/t icase and v1-coupled
-                            DATA = data_all[:,:,n,icase] - data_all[:,:,n,iref]
-       
+                            if latS==-90:
+                                prj = ccrs.Robinson(central_longitude=180.)
+                            else:
+                                prj = ccrs.PlateCarree(central_longitude=180.)
+
+                            # ref_case
+                            ax_test = fig.add_subplot(nrow,ncol,(n+1)*ncol-2,projection=prj)
+                            DATA = data_all[:,:,n,iref]
                             DATA.setAxis(0,lats)
                             DATA.setAxis(1,lons)
-        
-                            ax1 = fig.add_subplot(3,2,n+1,projection=ccrs.Robinson(central_longitude=180.))
-                            im1 = ax1.contourf(lons[:],lats[:],DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
-                            ax1.coastlines()
-                            ax1.set_global()
-        
+                            avgDATA = avgdata[n,iref]
+                            ax_test.contourf(lons[:],lats[:],DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
+                            ax_test.set_title(cases_here[iref]+'\n'+names_out[n]+' ['+str(np.round(avgDATA,3))+']',fontsize=self.fh,loc='right')
+
+                            # case
+                            ax_ref = fig.add_subplot(nrow,ncol,(n+1)*ncol-1,projection=prj)
+                            DATA = data_all[:,:,n,icase]
+                            DATA.setAxis(0,lats)
+                            DATA.setAxis(1,lons)
+                            avgDATA = avgdata[n,icase]
+                            ax_ref.contourf(lons[:],lats[:],DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
+                            ax_ref.set_title(cases_here[icase]+'\n'+names_out[n]+' ['+str(np.round(avgDATA,3))+']',fontsize=self.fh,loc='right')
+
+                            # difference b/t icase and v1-coupled
+                            ax1 = fig.add_subplot(nrow,ncol,(n+1)*ncol,projection=prj)
+                            DATA = data_all[:,:,n,icase] - data_all[:,:,n,iref]
+                            DATA.setAxis(0,lats)
+                            DATA.setAxis(1,lons)
                             avgDATA = avgdata[n,icase] - avgdata[n,iref]
+                            im1 = ax1.contourf(lons[:],lats[:],DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
 
                             # get spatial correlation, NRMSE and RMSE
                             wts = np.cos(np.deg2rad(lats[:]))
@@ -1395,13 +1439,23 @@ class plots:
                             pdata = pd.merge(pdata, pd_data, on = ['case','ref_case','lev','var','COR','NRMSE'], how='outer')
                             print(pdata)
  
-                            plt.title(name+' ['+str(np.round(avgDATA,3))+']\nNRMSE='+str(np.round(NRMSE,2))+', COR='+str(np.round(cor,2)),fontsize=self.fh)
+                            #ax1.set_title(names_out[n]+' ['+str(np.round(avgDATA,3))+']\nNRMSE='+str(np.round(NRMSE,2))+', COR='+str(np.round(cor,2)),fontsize=self.fh,loc='right')
+                            #ax1.set_title('Diff',fontsize=self.fh,loc='left')
+                            ax1.set_title(cases_here[icase]+'-'+cases_here[iref]+'\n'+names_out[n]+' ['+str(np.round(avgDATA,3))+']',fontsize=self.fh,loc='right')
 
-                            cb = plt.colorbar(im1,orientation='vertical',drawedges=True,ticks=bounds[::2])
-                            cb.set_label('W/m$^2$/K')
+
+                            for ax in [ax_test,ax_ref,ax1]:
+                                ax.coastlines()
+                                #ax.set_global()
+ 
+                            #cb = plt.colorbar(im1,orientation='vertical',drawedges=True,ticks=bounds[::2])
+                            #cb = plt.colorbar(im1,orientation='vertical',ticks=bounds[::2])
+                            #cb.set_label('W/m$^2$/K')
+                            PDF.add_common_colorbar(fig,im1,[ax_test,ax_ref,ax1],'W/m$^2$/K', orientation='vertical', nbins=7, fontsize=15)
     
         
-                        fig.subplots_adjust(top=0.9)
+                        #fig.subplots_adjust(top=0.9)
+                        #fig.subplots_adjust(top=1.0)
     
                         fig.savefig(self.figdir+'LatLon-Cloud-feedback-Decomposition_'+cases_here[icase]+'.minus.'+cases_here[iref]+'-'+component+'-'+sec+'.png',dpi=300,bbox_inches='tight')
                         plt.close(fig)
@@ -1603,8 +1657,8 @@ class plots:
         if 'amip-4xCO2' in self.cases:
             cases_here.remove('amip-4xCO2')
     
-        variables = ['SWCRE_ano_grd_adj','LWCRE_ano_grd_adj','netCRE_ano_grd_adj']
-        variables_out = ['SWCRE','LWCRE','netCRE']
+        variables = ['netCRE_ano_grd_adj','SWCRE_ano_grd_adj','LWCRE_ano_grd_adj',]
+        variables_out = ['net','SW','LW']
         
         nlat = 73
         nlon = 144
@@ -1654,7 +1708,7 @@ class plots:
                 # define figures                         
                 #----------------------------------------------------------
                 nrow = 3; ncol = 3
-                fig = plt.figure(figsize=(ncol*8,nrow*4)) # this creates and increases the figure size
+                fig = plt.figure(figsize=(ncol*6,nrow*3)) # this creates and increases the figure size
     
                 bounds = np.arange(-3,3.25,0.25)
 
@@ -1670,6 +1724,7 @@ class plots:
                 case_out = cases_here[icase]
                 ref_case_out = cases_here[iref]
     
+                count = 0
                 for ivar,svar in enumerate(variables):
 
                     data_plot = [data_all[:,:,ivar,icase], data_all[:,:,ivar,iref], data_all[:,:,ivar,icase] - data_all[:,:,ivar,iref] ]
@@ -1706,16 +1761,34 @@ class plots:
                             pdata = pd.merge(pdata, pd_data, on = ['case','ref_case','var','COR','NRMSE'], how='outer')
                             print(pdata)
     
-                            ax1.set_title(title_plot[num0]+'\n'+variables_out[ivar]+' ['+str(np.round(avgDATA,2))+']\nNRMSE='+str(np.round(NRMSE,2))+', COR='+str(np.round(cor,2)),fontsize=self.fh)
+                            #ax1.set_title(title_plot[num0]+' '+variables_out[ivar]+' ['+str(np.round(avgDATA,2))+']\nNRMSE='+str(np.round(NRMSE,2))+', COR='+str(np.round(cor,2)),fontsize=self.fh)
+                            ax1.set_title('('+chr(ord('`')+(count+1))+') '+title_plot[num0]+' ['+str(np.round(avgDATA,2))+']',fontsize=self.fh)
 
-                            PDF.make_colorbar(ax1, 'W/m$^2$/K', self.fh-5, im1, orientation='vertical')
+
+                            #PDF.make_colorbar(ax1, 'W/m$^2$/K', self.fh-5, im1, orientation='vertical')
+                            PDF.add_common_colorbar(fig,im1,[ax1],'W/m$^2$/K',orientation='vertical',nbins=7,fontsize=self.fh-3)
 
                         else:
-                            ax1.set_title(title_plot[num0]+'\n'+variables_out[ivar]+' ['+str(np.round(avgDATA,2))+']',fontsize=self.fh)
+                            ax1.set_title('('+chr(ord('`')+(count+1))+') '+title_plot[num0]+' '+variables_out[ivar]+' ['+str(np.round(avgDATA,2))+']',fontsize=self.fh)
 
+                        
                         num0 += 1
-    
-                fig.subplots_adjust(top=0.9)
+
+                        count += 1
+
+                        # 2022-03-31: add box over specific regions in panel (c)
+                        if True and count == 3:
+                            #for xx,yy,width,height in zip([240,330,195],[-30,-30,10],[40,30,30],[20,20,20]):
+                            for xx,yy,width,height in zip([240,330],[-30,-30],[40,30],[20,20]):
+                                ax1.add_patch(mpatches.Rectangle(xy=[xx, yy], width=width, height=height,
+                                                edgecolor='black',
+                                                linewidth=2,
+                                                facecolor='none',
+                                                alpha=1.0,
+                                                transform=ccrs.PlateCarree())
+                                         )
+                
+                fig.subplots_adjust(top=0.9,wspace=0.0)
     
                 fig.savefig(self.figdir+'LatLon-adjusted-CRE_'+case_out+'.minus.'+ref_case_out+'.png',bbox_inches='tight',dpi=300)
                 plt.close(fig)
@@ -1979,6 +2052,9 @@ class plots:
     
         # ===============================================================        
         # ===============================================================        
+        # get region bounds
+        latS,latE,lonS,lonE = self.regions[0],self.regions[1],self.regions[2],self.regions[3]
+
         # E3SM
         pd_plot_all = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
  
@@ -2006,8 +2082,8 @@ class plots:
                     else:
                         svar_in = var1[ivar]
     
-                    tmp1 = f1(svar_in+'_pi_clim')
-                    tmp2 = f1(svar_in+'_ano_clim')
+                    tmp1 = f1(svar_in+'_pi_clim').subRegion(lat=(latS,latE),lon=(lonS,lonE))
+                    tmp2 = f1(svar_in+'_ano_clim').subRegion(lat=(latS,latE),lon=(lonS,lonE))
     
                     lats = tmp1.getLatitude()[:]
                     lons = tmp1.getLongitude()[:]
@@ -2038,8 +2114,8 @@ class plots:
                     else:
                         svar_in = var1[ivar]
     
-                    data_all_pi_ref = fref(svar_in+'_pi_clim')
-                    data_all_ano_ref = fref(svar_in+'_ano_clim')
+                    data_all_pi_ref = fref(svar_in+'_pi_clim').subRegion(lat=(latS,latE),lon=(lonS,lonE))
+                    data_all_ano_ref = fref(svar_in+'_ano_clim').subRegion(lat=(latS,latE),lon=(lonS,lonE))
     
                     if svar in ['TGCLDLWP','TGCLDIWP']:
                         data_all_pi_ref = data_all_pi_ref * 1e3
@@ -2085,7 +2161,11 @@ class plots:
     
                         print(svar, genutil.minmax(data1))
     
-                        ax = fig.add_subplot(nrow,ncol,idata+1,projection=ccrs.Robinson(central_longitude=180.))
+                        if latS==-90:
+                            ax = fig.add_subplot(nrow,ncol,idata+1,projection=ccrs.Robinson(central_longitude=180.))
+                        else:
+                            ax = fig.add_subplot(nrow,ncol,idata+1,projection=ccrs.PlateCarree(central_longitude=180.))
+
                         im1 = ax.contourf(lons, lats, data1,\
                         bounds,\
                         transform=ccrs.PlateCarree(),\
@@ -2096,7 +2176,7 @@ class plots:
                         print('avgdata1 = ',avgdata1)
     
                         ax.coastlines()
-                        ax.set_global()
+                        #ax.set_global()
     
                         fig.colorbar(im1,ax=ax,fraction=0.025,label=unit)
     
@@ -2216,18 +2296,15 @@ class plots:
     def plot_RadKernel_latlon(self):
         print('plot_RadKernel_latlon starts ..........')
         
-        cases_here = copy.deepcopy(self.cases[-1:])
+        #cases_here = copy.deepcopy(self.cases[-1:])
+        cases_here = copy.deepcopy(self.cases)
         if 'amip-4xCO2' in self.cases:
             cases_here.remove('amip-4xCO2')
     
         variables = ['SWCRE_ano_grd_adj','LWCRE_ano_grd_adj','netCRE_ano_grd_adj']
         variables_out = ['SWCRE','LWCRE','netCRE']
         
-        nlat = 73
-        nlon = 144
-        
         # E3SM
-        data_all = np.zeros((nlat,nlon,len(variables),len(cases_here)))
     
         for ivar,svar in enumerate(variables):
             for icase,case in enumerate(cases_here):
@@ -2242,10 +2319,16 @@ class plots:
                 else:
                     f1 = cdms.open(self.datadir_v2+'lat-lon-gfdbk-CMIP6-'+case+'.nc')
     
-                data = f1(svar)
+                # get region bounds
+                latS,latE,lonS,lonE = self.regions[0],self.regions[1],self.regions[2],self.regions[3]
+
+                data = f1(svar).subRegion(lat=(latS,latE),lon=(lonS,lonE))
                 lats = data.getLatitude()
                 lons = data.getLongitude()
-    
+
+                if ivar==0 and icase==0:
+                    data_all = np.zeros((data.shape[0],data.shape[1],len(variables),len(cases_here)))
+
                 # get zonal mean
                 data_all[:,:,ivar,icase] = data
         
@@ -2283,10 +2366,14 @@ class plots:
                     DATA.setAxis(0,lats)
                     DATA.setAxis(1,lons)
     
-                    ax1 = fig.add_subplot(nrow,ncol,ivar*ncol+num0+1,projection=ccrs.Robinson(central_longitude=180.))
+                    if latS==-90: #global
+                        ax1 = fig.add_subplot(nrow,ncol,ivar*ncol+num0+1,projection=ccrs.Robinson(central_longitude=180.))
+                    else:
+                        ax1 = fig.add_subplot(nrow,ncol,ivar*ncol+num0+1,projection=ccrs.PlateCarree(central_longitude=180.))
+
                     im1 = ax1.contourf(lons[:],lats[:],DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
                     ax1.coastlines()
-                    ax1.set_global()
+                    #ax1.set_global()
     
                     # global-mean 
                     avgDATA = cdutil.averager(DATA,axis='xy',weights='weighted')
@@ -2324,12 +2411,14 @@ class plots:
     
         print('LatLon-Cloud-feedback-Decomposition starts ........')
     
-        cases_here = copy.deepcopy(self.cases[-1:])
+        #cases_here = copy.deepcopy(self.cases[-1:])
+        cases_here = copy.deepcopy(self.cases)
+
         if 'amip-4xCO2' in self.cases:
             cases_here.remove('amip-4xCO2')
     
-        nlat = 90
-        nlon = 144
+        # get region bounds 
+        latS,latE,lonS,lonE = self.regions[0],self.regions[1],self.regions[2],self.regions[3]
 
         pd_plot_all = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
 
@@ -2346,9 +2435,6 @@ class plots:
             for isec,sec in enumerate(sections):
     
                 # E3SM 
-                data_all = np.zeros((nlat,nlon,len(decomps),len(cases_here)))
-                avgdata = np.zeros((len(decomps),len(cases_here)))
-                data_all = cdms.asVariable(data_all)
     
                 for idecomp,decomp in enumerate(decomps):
                     varname = sec+'_'+component+'cld_'+decomp
@@ -2370,17 +2456,22 @@ class plots:
                             f1 = cdms.open(self.datadir_v2+'global_cloud_feedback_'+case+'.nc')
     
                         if component in ['LW','SW']:
-                            data = f1(varname)
+                            data = f1(varname).subRegion(lat=(latS,latE),lon=(lonS,lonE))
                         else:
     
-                            dataSW = f1(varSW)
-                            dataLW = f1(varLW)
+                            dataSW = f1(varSW).subRegion(lat=(latS,latE),lon=(lonS,lonE))
+                            dataLW = f1(varLW).subRegion(lat=(latS,latE),lon=(lonS,lonE))
                             data = dataSW + dataLW
                             data.setAxisList(dataSW.getAxisList())
     
                         lats = data.getLatitude()
                         lons = data.getLongitude()
-    
+
+                        if idecomp==0 and icase==0:
+                            data_all = np.zeros((data.shape[0],data.shape[1],len(decomps),len(cases_here)))
+                            avgdata = np.zeros((len(decomps),len(cases_here)))
+                            data_all = cdms.asVariable(data_all)
+
                         ######################################################
                         data_all[:,:,idecomp,icase] = data
                         # get global mean
@@ -2413,16 +2504,21 @@ class plots:
                         DATA.setAxis(0,lats)
                         DATA.setAxis(1,lons)
         
-                        ax1 = fig.add_subplot(nrow,ncol,n+1,projection=ccrs.Robinson(central_longitude=180.))
+                        if latS==-90:
+                            ax1 = fig.add_subplot(nrow,ncol,n+1,projection=ccrs.Robinson(central_longitude=180.))
+                        else:
+                            ax1 = fig.add_subplot(nrow,ncol,n+1,projection=ccrs.PlateCarree(central_longitude=180.))
+
                         im1 = ax1.contourf(lons[:],lats[:],DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
                         ax1.coastlines()
-                        ax1.set_global()
+                        #ax1.set_global()
         
                         avgDATA = avgdata[n,icase]
 
                         plt.title(name+' ['+str(np.round(avgDATA,3))+']',fontsize=self.fh)
 
-                        cb = plt.colorbar(im1,orientation='vertical',drawedges=True,ticks=bounds[::2])
+                        #cb = plt.colorbar(im1,orientation='vertical',drawedges=True,ticks=bounds[::2])
+                        cb = plt.colorbar(im1,orientation='vertical',ticks=bounds[::2])
                         cb.set_label('W/m$^2$/K')
         
                     fig.subplots_adjust(top=0.9)
@@ -2896,13 +2992,17 @@ class plots:
 
                     #---- correlation 
                     datap = [dics_cor[case] for case in dics_cor.keys()]
-                    ax2.bar(xvalue+ivar*ww,datap, width=w,alpha=a1,label=label,color=colors[ivar])
-                    ax2.plot(xvalue+ivar*ww,datap ,marker='o',color=colors[ivar])
+                    #ax2.bar(xvalue+ivar*ww,datap, width=w,alpha=a1,label=label,color=colors[ivar])
+                    #ax2.plot(xvalue+ivar*ww,datap ,marker='o',color=colors[ivar])
+                    ax2.plot(xvalue,datap ,marker='o',color=colors[ivar],label=label)
+                    
                     
                     #---- NRMSE
                     datap = [dics_rmse[case] for case in dics_cor.keys()]
-                    ax3.bar(xvalue+ivar*ww,datap, width=w,alpha=a1,label=label,color=colors[ivar])
-                    ax3.plot(xvalue+ivar*ww,datap ,marker='o',color=colors[ivar])
+                    #ax3.bar(xvalue+ivar*ww,datap, width=w,alpha=a1,label=label,color=colors[ivar])
+                    #ax3.plot(xvalue+ivar*ww,datap ,marker='o',color=colors[ivar])
+                    ax3.plot(xvalue,datap ,marker='o',color=colors[ivar],label=label)
+
 
                     for axx in [ax2,ax3]:
                         axx.set_xticks(xvalue,xticks,fontsize=14)
