@@ -39,6 +39,8 @@ do
     echo $datadir
     cd $datadir 
 
+    ./case.st_archive
+
     if [ ! -d "${datadir_in1}/${run_id[ii]}/archive" ] ; then
         echo ">>>>>> Start archiving."
         ./case.st_archive
