@@ -65,7 +65,8 @@ def sort_cloud_3regime(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,fi
         lons = np.arange(1.25,360,2.5)
         grid = cdms.createGenericGrid(lats,lons)
 
-        var3d = ['CLOUD','CLDLIQ','CLDICE','T','Q','OMEGA']
+        #var3d = ['CLOUD','CLDLIQ','CLDICE','T','Q','OMEGA']
+        var3d = []
         var2d = ['psl','ts','tas','CLDLOW']
         vara = ['T700','OMEGA500','Z700','OMEGA700']
 
@@ -161,7 +162,9 @@ def sort_cloud_3regime(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,fi
 
         fout = cdms.open(outdir+'global_cloud_3regime_'+case_stamp+'.nc','w')
 
-        var_sort = ['CLOUD','CLDLIQ','CLDICE','T','Q','OMEGA']
+        #var_sort = ['CLOUD','CLDLIQ','CLDICE','T','Q','OMEGA']
+        var_sort = ['CLDLOW']
+
 
         for svar in var_sort:
             print('var_sort=',svar)
@@ -215,6 +218,33 @@ def sort_cloud_3regime(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,fi
 #                MASK_Cu = (omega500 >= 10 ) & (EIS <= 3) 
                 # Ascent
                 MASK_As = (omega500 < 0 )
+                print(MASK_Sc.shape)
+
+                MASK_Sc.setAxisList(omega500.getAxisList())
+                MASK_Cu.setAxisList(omega500.getAxisList())
+
+                #MASK_Sc_avg = MV.average(MASK_Sc,axis=0)
+                #MASK_Cu_avg = MV.average(MASK_Cu,axis=0)
+                #MASK_As_avg = MV.average(MASK_As,axis=0)
+
+                omega500_avg = MV.average(omega500,axis=0)
+                omega700_avg = MV.average(omega700,axis=0)
+                EIS_avg = MV.average(EIS,axis=0)
+                MASK_Sc_avg = omega500_avg 
+                MASK_Cu_avg = omega500_avg 
+                MASK_As_avg = omega500_avg 
+                #MASK_Sc_avg = MV.where((omega500_avg>=0)&(EIS_avg>3),1,0)
+                #MASK_Cu_avg = MV.where((omega500_avg>=0)&(EIS_avg<=3),1,0)
+                #MASK_As_avg = MV.where((omega500_avg<0),1,0)
+
+                MASK_Sc_avg = MV.where((omega700_avg>15)&(EIS_avg>2),1,0)
+                MASK_Cu_avg = MV.where((omega700_avg>=0)&(EIS_avg<=2),1,0)
+                MASK_As_avg = MV.where((omega700_avg<0),1,0)
+
+
+                #MASK_Sc_avg.setAxisList(omega500_avg.getAxisList())
+                #MASK_Cu_avg.setAxisList(omega500_avg.getAxisList())
+                #MASK_As_avg.setAxisList(omega500_avg.getAxisList())
 
                 for ibin,MASK in zip(range(nbins),[MASK_Sc,MASK_Cu,MASK_As]):
 
@@ -317,6 +347,16 @@ def sort_cloud_3regime(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,fi
                 DATA = data_bins_avg
                 DATA.id = svar+'_'+case+'_avg'
                 fout.write(DATA)
+
+                MASK_name = ['Sc','Cu','As']
+                for iMASK,MASK in enumerate([MASK_Sc_avg,MASK_Cu_avg,MASK_As_avg]):
+                    MASK.setAxis(0,lats)
+                    MASK.setAxis(1,lons)
+                    DATA = MASK*1
+                    print(np.min(DATA),np.max(DATA))
+                    DATA.id = MASK_name[iMASK]+'_'+case
+                    print(MASK_name[iMASK]+'_'+case)
+                    fout.write(DATA)
 
                 #fout.close()
 
