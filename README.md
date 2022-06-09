@@ -19,6 +19,12 @@
 - statsmodels [conda install -c conda-forge statsmodels]
 - global-land-mask [pip install global-land-mask]
 
+Detailed commands:
+- conda create -n diag_feedback -c conda-forge -c cdat/label/v8.2.1 python=3.7.12 cdtime cdms2 genutil cdutil psutil cartopy nco scikit-learn statsmodels
+conda activate diag_feedback
+- pip install global_land_mask
+- f2py -c tropo.f90 -m tropo [a *.so file will be generated]
+
 #### Pre-needed data
 - please download radiative kernel data (Huang et al., 2017) from: https://www.dropbox.com/sh/ngfb7bxhwcbxwu8/AAC6AIha5rLjsl3lUZPiLO6Ua/toa?dl=0&subfolder_nav_tracking=1 first. Then, set RadKernel_dir = *datadir* in main.py.
 
