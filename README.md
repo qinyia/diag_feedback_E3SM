@@ -21,7 +21,7 @@
 
 Detailed commands:
 - conda create -n diag_feedback -c conda-forge -c cdat/label/v8.2.1 python=3.7.12 cdtime cdms2 genutil cdutil psutil cartopy nco scikit-learn statsmodels
-conda activate diag_feedback
+- conda activate diag_feedback
 - pip install global_land_mask
 - f2py -c tropo.f90 -m tropo [a *.so file will be generated]
 
