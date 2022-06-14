@@ -300,7 +300,7 @@ def RadKernel_regime(kernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,
     #=============================================================
     if sorting:
         if sorting_var == 'wapEIS':
-            dic_rad_wap = sort_data_wapEIS(dic_mod_tropo,dic_rad)
+            dic_rad_wap = sort_var_wapEIS(dic_mod_tropo,dic_rad,case_stamp,outdir)
     else:
         dic_rad_wap = dic_rad
 
@@ -309,7 +309,44 @@ def RadKernel_regime(kernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,
 
     del dic_mod_tropo, dic_kern_tropo
 
-    print(dic_rad_wap.keys())
+    if sorting_var == 'wapEIS':
+        #=============================================================
+        # calculate dynamic, thermodynamic and co-variance
+        #=============================================================
+        for svar in dic_rad_wap.keys():
+            dics_var_comp = {}
+        
+            if '_pi' in svar:
+                svarh = '_'.join(svar.split('_')[:-1])
+        
+                svarh_pi = svar
+                svarh_ab = svarh+'_ab'
+        
+                data1,data1_N = dic_rad_wap[svarh_pi]
+                data2,data2_N = dic_rad_wap[svarh_ab]
+        
+                tot = data2*data2_N - data1*data1_N
+                thermo = (data2-data1)*data1_N
+                dyn = (data2_N-data1_N)*data1
+                cov = (data2_N-data1_N)*(data2-data1)
+                sum = thermo + dyn + cov 
+        
+                # here need to keep NaN consistent because calculation
+                # of dyn term
+                # only needs data1, which can be non-nan but data2 
+                # can be nan. This will lead to the inconsistency b/t
+                # therm and dyn terms.
+                dyn = xr.where(np.isnan(thermo),np.nan,dyn)
+        
+                dics_var_comp[svarh+'_tot'] = tot/dtas_avg.mean()
+                dics_var_comp[svarh+'_thermo'] = thermo/dtas_avg.mean()
+                dics_var_comp[svarh+'_dyn'] = dyn/dtas_avg.mean()
+                dics_var_comp[svarh+'_cov'] = cov/dtas_avg.mean()
+                dics_var_comp[svarh+'_sum'] = sum/dtas_avg.mean()
+        
+                save_big_dataset(dics_var_comp,outdir+"/middata/Regime_Sorted_Components_"+svarh+"_"+case_stamp+".nc")
+        
+        logger.info(f'dics_var_comp.keys() = {dics_var_comp.keys()}')
 
     #=============================================================
     # calculate anomalies (xx_ab - xx_pi)
@@ -1032,9 +1069,9 @@ def get_anomalies(dic_mod_wap):
         if '_pi' in svar:
             var1 = '_'.join(svar.split('_')[:-1])
             if var1 not in ['ps','q1k','dp4d']: # ignore ps because only read ps_pi
-                da1 = dic_mod_wap[var1+'_ab']# * dic_mod_wap[var1+'_ab_N']
-                da2 = dic_mod_wap[var1+'_pi']# * dic_mod_wap[var1+'_pi_N']
-                diff = da1 - da2 
+                da1,da1_N = dic_mod_wap[var1+'_pi']
+                da2,da2_N = dic_mod_wap[var1+'_ab']
+                diff = da2*da2_N - da1*da1_N
                 dic_mod_ano[var1+'_ano'] = diff 
 
     ## temperature deviation from vertical uniform warming 
@@ -2104,53 +2141,61 @@ def calc_EIS(Ts, SLP, T700, z700):
     return EIS, LTS
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-def sort_var_by_regime(omega,EIS,fdbk,kern=False):
-
-    # add option 'kern' to determine whether you are sorting kernel data. If so, don't need to assign
-    # zero value to those masked regions.
+def sort_var_by_regime(omega,EIS,fdbk):
 
     do_test = True
 
-    if kern:
-        fvalue = np.nan
-    else:
-        fvalue = 0.0
+    fvalue = np.nan
 
     ntime = fdbk.shape[0]
 
     lons = fdbk.coords['lon'].data
     lats = fdbk.coords['lat'].data
 
+    # define omega and EIS bins 
     domega  = 10
     #omega_bins = np.arange(-100,110,domega)
     omega_bins = np.arange(-95,95+domega,domega)
+    omega_filter = 5
+    omega_left = 11 # number of bins smaller than 15 hPa/day (exclude 15)
+    omega_right = 9 # number of bins larger than 15 hPa/day (include 15)
     dEIS = 4
-    EIS_bins = np.arange(1,5+dEIS,dEIS)
+    #EIS_bins = np.arange(1,5+dEIS,dEIS)
+    EIS_bins = np.arange(5,9+dEIS,dEIS)
     print('omega_bins = ',omega_bins)
     print('EIS_bins = ',EIS_bins)
 
-    regimes = []
+    # define regime names 
+    regimes = [None]*(omega_left+omega_right*len(EIS_bins))
+    ii = 0 
     for omega_bin in omega_bins:
-        if omega_bin <= 0:
-            omega_bin_str = str(abs(omega_bin))+'neg'
-            regimes.append(omega_bin_str)
+        if omega_bin <= omega_filter:
+            omega_bin_str = str(abs(omega_bin))+'lhs'
+            regimes[ii] = omega_bin_str
+            ii += 1
         else:
-            omega_bin_str = str(abs(omega_bin))+'pos'
+            omega_bin_str = str(abs(omega_bin))+'rhs'
 
-            for EIS_bin in EIS_bins:
-                if EIS_bin <= 0:
-                    EIS_bin_str = str(abs(EIS_bin))+'neg'
+            for ix,EIS_bin in enumerate(EIS_bins):
+                if EIS_bin == EIS_bins[0]:
+                    jj = ii
+                    ii = ii+1
                 else:
-                    EIS_bin_str = str(abs(EIS_bin))+'pos'
-                regimes.append(omega_bin_str+'_'+EIS_bin_str)
+                    jj = int(omega_right*ix+ii-1)
+                
+                EIS_bin_str = str(abs(EIS_bin))+'pos'
+
+                regimes[jj] = omega_bin_str+'_'+EIS_bin_str
 
     print(regimes)
+
     regimes_others = ['troplnd','30S60S','30N60N','60S90S','60N90N','glb']
     regimes_all = regimes + regimes_others
     print(regimes_all,len(regimes_all))
 
     nregime = len(regimes_all)
 
+    # process 4-dimension data 
     if len(fdbk.shape) == 4: # [time,lev,lat,lon]
         nlev = fdbk.shape[1]
         nlat = fdbk.shape[2]
@@ -2161,6 +2206,7 @@ def sort_var_by_regime(omega,EIS,fdbk,kern=False):
         omega_scaled = xr.DataArray(omega_scaled, coords=fdbk.coords, dims=fdbk.dims)
         EIS_scaled = xr.DataArray(EIS_scaled, coords=fdbk.coords, dims=fdbk.dims)
 
+        mask_regime_avg = np.ma.empty((nregime,ntime,nlev))
         data_regime_avg = np.ma.empty((nregime,ntime,nlev))
         if do_test:
             data_regime = np.ma.empty((nregime,ntime,nlev,nlat,nlon))
@@ -2170,10 +2216,13 @@ def sort_var_by_regime(omega,EIS,fdbk,kern=False):
 
         omega_scaled = omega
         EIS_scaled = EIS
+
+        mask_regime_avg = np.ma.empty((nregime,ntime))
         data_regime_avg = np.ma.empty((nregime,ntime))
         if do_test:
             data_regime = np.ma.empty((nregime,ntime,nlat,nlon))
-
+            
+    mask_regime_avg[:] = np.nan
     data_regime_avg[:] = np.nan
     if do_test:
         data_regime[:] = np.nan
@@ -2195,78 +2244,106 @@ def sort_var_by_regime(omega,EIS,fdbk,kern=False):
     for omega_bin in omega_bins:
         if omega_bin == omega_bins[0]:
             tmp = xr.where((omega_mask < omega_bin+domega/2) , fdbk,fvalue)
-            print('case00', ii, omega_bin,area_averager(tmp)[0].data)
+            print('case00', ii, omega_bin,area_averager(tmp)[0])
+
+            tmp_mask = xr.where((omega_mask < omega_bin+domega/2) ,1.0,0.0)
 
             tmp = xr.DataArray(tmp, coords=fdbk.coords, dims = fdbk.dims)
             if do_test:
-                data_regime[ii,:] = tmp 
-            data_regime_avg[ii,:] = area_averager(tmp) 
+                data_regime[ii,:] = tmp
+            data_regime_avg[ii,:] = area_averager(tmp)
+            mask_regime_avg[ii,:] = area_averager(tmp_mask)
 
             ii += 1
         elif omega_bin == omega_bins[-1]:
-            for EIS_bin in EIS_bins:
+            for ix,EIS_bin in enumerate(EIS_bins):
                 if EIS_bin == EIS_bins[0]:
-                    tmp = xr.where((omega_mask >= omega_bin-domega/2) & (EIS_mask<EIS_bin+dEIS/2) , fdbk,fvalue)
-#                    tmp = xr.where((omega_mask >= omega_bin-domega/2), fdbk,fvalue)
+                    tmp = xr.where((omega_mask >= omega_bin-domega/2) & (EIS_mask<EIS_bin+dEIS/2), fdbk,fvalue)
                     print('case10',ii, omega_bin, omega_bin-domega/2, EIS_bin,area_averager(tmp).values[0])
 
+                    tmp_mask = xr.where((omega_mask >= omega_bin-domega/2) & (EIS_mask<EIS_bin+dEIS/2),1,0)
+
                 elif EIS_bin == EIS_bins[-1]:
-                    tmp = xr.where((omega_mask >= omega_bin-domega/2) & (EIS_mask>=EIS_bin-dEIS/2) , fdbk,fvalue)
-#                    tmp = xr.where((omega_mask >= omega_bin-domega/2) , fdbk,fvalue)
+                    tmp = xr.where((omega_mask >= omega_bin-domega/2) & (EIS_mask>=EIS_bin-dEIS/2), fdbk,fvalue)
                     print('case11',ii, omega_bin, omega_bin-domega/2, EIS_bin,area_averager(tmp).values[0])
+
+                    tmp_mask = xr.where((omega_mask >= omega_bin-domega/2) & (EIS_mask>=EIS_bin-dEIS/2),1,0)
 
                 else:
                     tmp = xr.where((omega_mask >= omega_bin-domega/2) & (EIS_mask>=EIS_bin-dEIS/2) & (EIS_mask<EIS_bin+dEIS/2), fdbk,fvalue)
                     print('case12',ii, omega_bin, omega_bin-domega/2, EIS_bin,area_averager(tmp).values[0])
 
-                tmp = xr.DataArray(tmp, coords=fdbk.coords, dims = fdbk.dims)
-                if do_test:
-                    data_regime[ii,:] = tmp 
-                data_regime_avg[ii,:] = area_averager(tmp) # tropics relative to the globe ==> scale = 0.5 ==> relative contribution to the global mean
+                    tmp_mask = xr.where((omega_mask >= omega_bin-domega/2) & (EIS_mask>=EIS_bin-dEIS/2) & (EIS_mask<EIS_bin+dEIS/2),1,0)
 
-                ii += 1
+                tmp = xr.DataArray(tmp, coords=fdbk.coords, dims = fdbk.dims)
+
+                if EIS_bin == EIS_bins[0]:
+                    jj = ii 
+                    ii += 1
+                else:
+                    jj = int(omega_right*ix+ii-1)
+
+                if do_test:
+                    data_regime[jj,:] = tmp
+                data_regime_avg[jj,:] = area_averager(tmp)
+                mask_regime_avg[jj,:] = area_averager(tmp_mask)
+
+                print('jj=',jj)
+
         else:
-            if omega_bin <= 0:
+            if omega_bin <= omega_filter:
                 tmp = xr.where((omega_mask >= omega_bin-domega/2) & (omega_mask <omega_bin+domega/2), fdbk,fvalue)
                 print('case20', ii, omega_bin, omega_bin-domega/2, omega_bin+domega/2,area_averager(tmp).values[0])
+                tmp_mask = xr.where((omega_mask >= omega_bin-domega/2) & (omega_mask <omega_bin+domega/2),1,0)
 
                 tmp = xr.DataArray(tmp, coords=fdbk.coords, dims = fdbk.dims)
                 if do_test:
-                    data_regime[ii,:] = tmp 
-                data_regime_avg[ii,:] = area_averager(tmp) # tropics relative to the globe ==> scale = 0.5 ==> relative contribution to the global mean
+                    data_regime[ii,:] = tmp
+                data_regime_avg[ii,:] = area_averager(tmp) 
+                mask_regime_avg[ii,:] = area_averager(tmp_mask) 
+
 
                 ii += 1
+
             else:
-                for EIS_bin in EIS_bins:
+                for ix,EIS_bin in enumerate(EIS_bins):
                     if EIS_bin == EIS_bins[0]:
                         tmp = xr.where((omega_mask >= omega_bin-domega/2) & (omega_mask <omega_bin+domega/2) & (EIS_mask<EIS_bin+dEIS/2) , fdbk,fvalue)
-#                        tmp = xr.where((omega_mask >= omega_bin-domega/2) & (omega_mask <omega_bin+domega/2), fdbk,fvalue)
 
                         print('case30',ii, omega_bin, omega_bin-domega/2, omega_bin+domega/2, EIS_bin,area_averager(tmp).values[0])
+                        tmp_mask = xr.where((omega_mask >= omega_bin-domega/2) & (omega_mask <omega_bin+domega/2) & (EIS_mask<EIS_bin+dEIS/2),1,0)
+
+
                     elif EIS_bin == EIS_bins[-1]:
                         tmp = xr.where((omega_mask >= omega_bin-domega/2) & (omega_mask <omega_bin+domega/2) & (EIS_mask>=EIS_bin-dEIS/2) , fdbk,fvalue)
-#                        tmp = xr.where((omega_mask >= omega_bin-domega/2) & (omega_mask <omega_bin+domega/2), fdbk,fvalue)
 
                         print('case31',ii, omega_bin, omega_bin-domega/2, omega_bin+domega/2, EIS_bin,area_averager(tmp).values[0])
+                        tmp_mask = xr.where((omega_mask >= omega_bin-domega/2) & (omega_mask <omega_bin+domega/2) & (EIS_mask>=EIS_bin-dEIS/2),1,0)
+
                     else:
                         tmp = xr.where((omega_mask >= omega_bin-domega/2) & (omega_mask <omega_bin+domega/2) & (EIS_mask>=EIS_bin-dEIS/2) & (EIS_mask<EIS_bin+dEIS/2), fdbk,fvalue)
 
                         print('case32',ii, omega_bin, EIS_bin,area_averager(tmp).values[0])
 
-                    tmp = xr.DataArray(tmp, coords=fdbk.coords, dims = fdbk.dims)
+                        tmp_mask = xr.where((omega_mask >= omega_bin-domega/2) & (omega_mask <omega_bin+domega/2) & (EIS_mask>=EIS_bin-dEIS/2) & (EIS_mask<EIS_bin+dEIS/2),1,0)
+
+
+                    if EIS_bin == EIS_bins[0]:
+                        jj = ii
+                        ii += 1
+                    else:
+                        jj = int(omega_right*ix+ii-1)
+
                     if do_test:
-                        data_regime[ii,:] = tmp 
-                    data_regime_avg[ii,:] = area_averager(tmp) # tropics relative to the globe ==> scale = 0.5 ==> relative contribution to the global mean
-
-                    ii += 1
-
-
-        #tmp = xr.DataArray(tmp, coords=fdbk.coords, dims = fdbk.dims)
-        #if do_test:
-        #    data_regime[ii-1,:] = tmp 
-        #data_regime_avg[ii-1,:] = area_averager(tmp) # tropics relative to the globe ==> scale = 0.5 ==> relative contribution to the global mean
+                        data_regime[jj,:] = tmp
+                    data_regime_avg[jj,:] = area_averager(tmp)
+                    mask_regime_avg[jj,:] = area_averager(tmp_mask)
+                    print('jj=',jj)
 
     print(data_regime_avg[:,0])
+    print(mask_regime_avg[:,0],mask_regime_avg[:-6,0].sum())
+
+    # ================== Other regimes ======================================
 
     for ireg,regime in enumerate(regimes_others):
         print('ireg=',ireg,'regime=',regime)
@@ -2275,26 +2352,9 @@ def sort_var_by_regime(omega,EIS,fdbk,kern=False):
             _,fdbk_lnd = mask_land(lons,lats,fdbk)
             tmp = fdbk_lnd.where((fdbk['lat']>=latS) & (fdbk['lat']<=latE),fvalue).fillna(fvalue)
 
-            ### mask land and only select tropical data
-            #omega_scaled_ocn,_ = mask_land(lons,lats,omega_scaled)
-            #EIS_scaled_ocn,_ = mask_land(lons,lats,EIS_scaled)
-
-            #omega_mask = omega_scaled_ocn.where((omega_scaled_ocn['lat']>=latS) & (omega_scaled_ocn['lat']<=latE))
-            #EIS_mask = EIS_scaled_ocn.where((EIS_scaled_ocn['lat']>=latS) & (EIS_scaled_ocn['lat']<=latE))
-
-            #if regime == 'Sc':
-            #    tmp = xr.where((omega_mask >= 0) & (EIS_mask >= 3), fdbk,fvalue)
-            #elif regime == 'Cu':
-            #    tmp = xr.where((omega_mask >= 0) & (EIS_mask < 3), fdbk,fvalue)
-            #elif regime == 'As':
-            #    tmp = xr.where((omega_mask < 0) , fdbk, fvalue)
-            #elif regime == 'troplnd':
-            #    _,fdbk_lnd = mask_land(lons,lats,fdbk)
-            #    tmp = fdbk_lnd.where((fdbk['lat']>=latS) & (fdbk['lat']<=latE),fvalue).fillna(fvalue)
-        
         if regime == '60N90N':
             tmp = fdbk.where((fdbk['lat']>60) & (fdbk['lat']<=90),fvalue)
-            
+
         if regime == '30N60N':
             tmp = fdbk.where((fdbk['lat']>30) & (fdbk['lat']<=60), fvalue)
 
@@ -2307,24 +2367,35 @@ def sort_var_by_regime(omega,EIS,fdbk,kern=False):
         if regime == 'glb':
             tmp = fdbk
 
+        tmp_mask = xr.where(np.isnan(tmp),0,1)
+
         tmp = xr.DataArray(tmp, coords=fdbk.coords, dims = fdbk.dims)
 
         if do_test:
-            data_regime[ireg+len(regimes),:] = tmp 
+            data_regime[ireg+len(regimes),:] = tmp
 
-        data_regime_avg[ireg+len(regimes),:] = area_averager(tmp) # tropics relative to the globe ==> scale = 0.5 ==> relative contribution to the global mean
+        data_regime_avg[ireg+len(regimes),:] = area_averager(tmp) 
+        mask_regime_avg[ireg+len(regimes),:] = area_averager(tmp_mask)
 
+
+    # test: print regime names and regime averaged values
+    print("========== check ==============")
     for ireg,regime in enumerate(regimes_all):
-        print(regime,data_regime_avg[ireg,0])
+        print(regime,data_regime_avg[ireg,0],mask_regime_avg[ireg,0])
+        
+    # print the sum of all separated regimes 
+    print('Real=',data_regime_avg[-1,0], mask_regime_avg[-1,0])
+    print('Check sum of regimes', np.nansum(data_regime_avg[:-1,0]*mask_regime_avg[:-1,0]),np.nansum(mask_regime_avg[:-1,0]))
 
-    print(np.sum(data_regime_avg[:-1,0]))
-
+    # final adjustment 
     data_avg = np.moveaxis(data_regime_avg, 0, -1) # move bin to the last dimension
+    mask_avg = np.moveaxis(mask_regime_avg, 0, -1)
 
     if do_test:
         data = np.moveaxis(data_regime, 0, -1) # move bin to the last dimension
 
-    # redefine coordinates 
+        # redefine coordinates
+    
     if len(fdbk.shape) == 4:
         coords = {"time": fdbk.coords['time'].data, "lev": fdbk.coords['lev'].data, "lat": fdbk.coords['lat'].data, "lon": fdbk.coords['lon'].data,"regime":range(len(regimes_all))}
         dims = ['time','lev','lat','lon','regime']
@@ -2340,12 +2411,14 @@ def sort_var_by_regime(omega,EIS,fdbk,kern=False):
         data = xr.DataArray(data, coords=coords,dims=dims)
 
     data_avg = xr.DataArray(data_avg, coords=coords_avg,dims=dims_avg)
-    
+    mask_avg = xr.DataArray(mask_avg, coords=coords_avg,dims=dims_avg)
+
+    print(regimes_all)
 
     if do_test:
-        return data_avg,data
+        return data_avg,mask_avg,data
     else:
-        return data_avg
+        return data_avg,mask_avg
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 def cal_Kern_rad_separate(dic_mod_wap,dic_kern_wap,dp4d,rsdt_ab):
@@ -2549,7 +2622,7 @@ def cal_dlogq2_separate(dic_mod_wap):
     return dlogq2_pi_xr, dlogq2_ab_xr
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-def sort_data_wapEIS(dic_mod,dic_rad):
+def sort_var_wapEIS(dic_mod,dic_rad,case_stamp,outdir):
     '''
     sort kernel data and variables 
     output: model and kernel data in defined regimes: [time,(lev),nregimes]
@@ -2575,8 +2648,7 @@ def sort_data_wapEIS(dic_mod,dic_rad):
     # sort model variables into regimes 
     dic_rad_wap = {}
     for svar in dic_rad.keys():
-    #for svar in ['T_clr_pi','T_clr_ab','T_pi','T_ab','Planck_clr_pi','Planck_pi','Planck_clr_ab','Planck_ab','TS_clr_pi','TS_clr_ab','TS_pi','TS_ab']:
-    #for svar in ['T_clr_pi','T_clr_ab','T_pi','T_ab','WV_lw_clr_pi','WV_lw_clr_ab','WV_lw_pi','WV_lw_ab','WV_sw_pi','WV_sw_ab','WV_sw_clr_pi','WV_sw_clr_ab','ALB_pi','ALB_ab','ALB_clr_pi','ALB_clr_ab','T_mask_pi','T_mask_ab','WV_sw_mask_pi','WV_sw_mask_ab','WV_lw_mask_pi','WV_lw_mask_ab','ALB_mask_pi','ALB_mask_ab','LW_adj_pi','LW_adj_ab','SW_adj_pi','SW_adj_ab','SWCRE_pi','LWCRE_pi','netCRE_pi','SWCRE_ab','LWCRE_ab','netCRE_ab','SWCRE_adj_pi', 'LWCRE_adj_pi', 'netCRE_adj_pi','SWCRE_adj_ab','LWCRE_adj_ab','netCRE_adj_ab','Planck','Planck_clr']:
+    #for svar in ['TS_pi','TS_ab']:
 
         logger.debug(f'=======>>>>>>> svar ={svar} is doing sort based on regime definition')
         data_glb = dic_rad[svar]
@@ -2588,21 +2660,18 @@ def sort_data_wapEIS(dic_mod,dic_rad):
             omega = fut_wap
             EIS = fut_EIS
 
-        if False:
-            DATA,tmp = sort_var_by_regime(omega,EIS,data_glb) # test
+        if svar in ['T_mask_pi','T_mask_ab','WV_lw_mask_pi','WV_lw_mask_ab','WV_sw_mask_pi','WV_sw_mask_ab','LW_adj_pi','LW_adj_ab','SW_adj_pi','SW_adj_ab','LWCRE_pi','LWCRE_ab','SWCRE_pi','SWCRE_ab','netCRE_pi','netCRE_ab','LWCRE_adj_pi','LWCRE_adj_ab','SWCRE_adj_pi','SWCRE_adj_ab','netCRE_adj_pi','netCRE_adj_ab']:
+            DATA_avg,mask_avg,DATA = sort_var_by_regime(omega,EIS,data_glb)
             dich = {}
             dich[svar] = DATA
-            dich['EIS'] = EIS
-            dich['wap'] = omega
-            dich[svar+'_tmp'] = tmp
-            print('DATA.shape=',DATA.shape, 'EIS.shape=',EIS.shape, 'omega.shape=',omega.shape, 'tmp.shape=',tmp.shape)
-            save_big_dataset(dich,"test-sort-by-regime-"+svar+".nc")
-            #exit()
-            #break
+            dich[svar+'_avg'] = DATA_avg
+            dich['mask_avg'] = mask_avg
+            print('DATA.shape=',DATA.shape, 'DATA_avg.shape=',DATA_avg.shape)
+            save_big_dataset(dich,outdir+"/middata/Regime_Sorted_"+svar+"_"+case_stamp+".nc")
+        else:
+            DATA_avg,mask_avg,DATA = sort_var_by_regime(omega,EIS,data_glb) 
 
-        DATA,tmp = sort_var_by_regime(omega,EIS,data_glb) 
-
-        dic_rad_wap[svar] = DATA
+        dic_rad_wap[svar] = (DATA_avg,mask_avg)
 
     return dic_rad_wap
 
