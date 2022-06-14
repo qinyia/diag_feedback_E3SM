@@ -101,6 +101,26 @@ def get_lutable(version,exp):
     '20220408.v2.F2010-CICE.IC.back.MG_mincdnc.ne30pg2_EC.compy',
     '20220408.v2.F2010-CICE.IC.back.MG_mincdnc.p4Ka.ne30pg2_EC.compy',
     ],
+    'v2.bk.clubb.g1':[
+    '20220512.v2.F2010-CICE.IC.back.clubb.g1.ne30pg2_EC.compy',
+    '20220512.v2.F2010-CICE.IC.back.clubb.g1.p4Ka.ne30pg2_EC.compy',
+    ],
+    'v2.bk.clubb.g2':[
+    '20220512.v2.F2010-CICE.IC.back.clubb.g2.ne30pg2_EC.compy',
+    '20220512.v2.F2010-CICE.IC.back.clubb.g2.p4Ka.ne30pg2_EC.compy',
+    ],
+    'v2.bk.clubb.g3':[
+    '20220512.v2.F2010-CICE.IC.back.clubb.g3.ne30pg2_EC.compy',
+    '20220512.v2.F2010-CICE.IC.back.clubb.g3.p4Ka.ne30pg2_EC.compy',
+    ],
+    'v2.bk.clubb.g4':[
+    '20220512.v2.F2010-CICE.IC.back.clubb.g4.ne30pg2_EC.compy',
+    '20220512.v2.F2010-CICE.IC.back.clubb.g4.p4Ka.ne30pg2_EC.compy',
+    ],
+    'v2.bk.clubb.g5':[
+    '20220512.v2.F2010-CICE.IC.back.clubb.g5.ne30pg2_EC.compy',
+    '20220512.v2.F2010-CICE.IC.back.clubb.g5.p4Ka.ne30pg2_EC.compy',
+    ],
     }
 
     if exp == 'amip':
