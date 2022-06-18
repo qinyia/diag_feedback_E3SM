@@ -18,21 +18,12 @@
 #    Feb 01, 2022: add plot_CLOUD_profile
 
 #****************************************************************
-
-import cdms2 as cdms
-import cdutil
-import MV2 as MV
-import numpy as np
 import sys
-
 import os
-import genutil
 import PlotDefinedFunction as PDF
-import copy
-
 import allplots as AP
-
 import generate_html as gh
+
 ########################################## Modification starts here #################################
 machine = 'compy'
 
