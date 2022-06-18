@@ -2039,16 +2039,16 @@ class plots:
         if 'amip-4xCO2' in self.cases:
             cases_here.remove('amip-4xCO2')
     
-        var1 = ['TGCLDLWP','CLDLOW','TGCLDIWP','CLDMED','CLDHGH']
-        var1_tmp = ['clwvi', '', 'clivi','','']
-        var1_range = [[0,100,5],[0,100,5],[0,100,5],[0,100,5],[0,100,5]]
-        var1_range_d = [[-5,5,0.5], [-5,5,0.5],[-5,5,0.5],[-5,5,0.5],[-5,5,0.5]]
-        var1_cntl_range_d = [[-20,20,2], [-20,20,2],[-20,20,2],[-20,20,2],[-20,20,2]]
+        var1 = ['TGCLDLWP','TGCLDIWP','CLDTOT','INCLDLWP','INCLDIWP','CLDLOW','CLDMED','CLDHGH']
+        var1_tmp = ['clwvi', 'clivi','', '','','','']
+        var1_range = [[0,100,5],[0,100,5],[0,100,5],[0,100,5],[0,100,5],[0,100,5],[0,100,5],[0,100,5]]
+        var1_range_d = [[-5,5,0.5], [-5,5,0.5],[-5,5,0.5],[-5,5,0.5],[-5,5,0.5],[-5,5,0.5],[-5,5,0.5],[-5,5,0.5]]
+        var1_cntl_range_d = [[-20,20,2], [-20,20,2],[-20,20,2],[-20,20,2],[-20,20,2],[-20,20,2],[-20,20,2],[-20,20,2]]
     
-        var1_out = ['Liquid Water Path','Low Cloud Fraction', 'Ice Water Path','Middle Cloud Fraction', 'High Cloud Fraction']
+        var1_out = ['Liquid Water Path','Ice Water Path','Total Cloud Fraction','In-cloud LWP','In-cloud IWP','Low Cloud Fraction','Middle Cloud Fraction','High Cloud Fraction']
     
-        var1_units = ['g/m$^2$','%','g/m$^2$','%','%']
-        var1_units1 = ['g/m2','%','g/m2','%','%']
+        var1_units = ['g/m$^2$','g/m$^2$','%','g/m$^2$','g/m$^2$','%','%','%']
+        var1_units1 = ['g/m$^2$','g/m$^2$','%','g/m$^2$','g/m$^2$','%','%','%']
     
         # ===============================================================        
         # ===============================================================        
@@ -2092,12 +2092,13 @@ class plots:
                     data_all_ano =  tmp2
     
                     # convert unit from kg/m2 to g/m2
-                    if svar in ['TGCLDLWP','TGCLDIWP']:
+                    if svar in ['TGCLDLWP','TGCLDIWP','INCLDLWP','INCLDIWP']:
                         data_all_pi = data_all_pi * 1e3
                         data_all_ano = data_all_ano * 1e3
-                    elif svar in ['CLDLOW','CLDMED','CLDHGH']:
+                    elif svar in ['CLDLOW','CLDMED','CLDHGH','CLDTOT']:
                         data_all_pi = data_all_pi * 1e2
                         data_all_ano = data_all_ano * 1e2
+
     
                     if svar in ['CLOUD'] and case == 'v1_coupled':
                         data_all_pi = data_all_pi/100.
@@ -2117,10 +2118,10 @@ class plots:
                     data_all_pi_ref = fref(svar_in+'_pi_clim').subRegion(lat=(latS,latE),lon=(lonS,lonE))
                     data_all_ano_ref = fref(svar_in+'_ano_clim').subRegion(lat=(latS,latE),lon=(lonS,lonE))
     
-                    if svar in ['TGCLDLWP','TGCLDIWP']:
+                    if svar in ['TGCLDLWP','TGCLDIWP','INCLDLWP','INCLDIWP']:
                         data_all_pi_ref = data_all_pi_ref * 1e3
                         data_all_ano_ref = data_all_ano_ref * 1e3
-                    elif svar in ['CLDLOW','CLDMED','CLDHGH']:
+                    elif svar in ['CLDLOW','CLDMED','CLDHGH','CLDTOT']:
                         data_all_pi_ref = data_all_pi_ref * 1e2
                         data_all_ano_ref = data_all_ano_ref * 1e2
     
