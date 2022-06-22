@@ -520,7 +520,7 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
             DATA.long_name = str(sec)+"_"+str(name)
             out1.write(DATA)
 
-            im1 = ax1.contourf(LON,LAT,np.round(DATA,5),bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both',corner_mask = False)
+            im1 = ax1.contourf(LON,LAT,np.round(DATA,3),bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both',corner_mask = False)
 
             ax1.coastlines()
             ax1.set_global()
