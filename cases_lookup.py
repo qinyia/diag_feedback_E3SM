@@ -1,6 +1,14 @@
 
 def get_lutable(version,exp):
     lu_table = {
+    'v1_coupled':[
+    'None',
+    'None',
+    ],
+    'v2_coupled':[
+    'None',
+    'None',
+    ],
     'v1':[
     '20211208.F2010C5-CMIP6-LR.IC.ne30_oECv3.compy.1080',
     '20211210.F2010C5-CMIP6-LR.IC.p4Ka.ne30_oECv3.compy.1080',
@@ -120,6 +128,14 @@ def get_lutable(version,exp):
     'v2.bk.clubb.g5':[
     '20220512.v2.F2010-CICE.IC.back.clubb.g5.ne30pg2_EC.compy',
     '20220512.v2.F2010-CICE.IC.back.clubb.g5.p4Ka.ne30pg2_EC.compy',
+    ],
+    'v2.bk.MG_accre':[
+    '20220513.v2.F2010-CICE.IC.back.MG_accre.ne30pg2_EC.compy',
+    '20220513.v2.F2010-CICE.IC.back.MG_accre.p4Ka.ne30pg2_EC.compy',
+    ],
+    'v2.bk.MG_auto':[
+    '20220513.v2.F2010-CICE.IC.back.MG_auto.ne30pg2_EC.compy',
+    '20220513.v2.F2010-CICE.IC.back.MG_auto.p4Ka.ne30pg2_EC.compy',
     ],
     }
 
