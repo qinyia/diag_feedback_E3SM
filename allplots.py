@@ -300,7 +300,7 @@ class plots:
                 df_all[case] = df2
         
         # start plotting 
-        fig = plt.figure(figsize=(18,12))
+        fig = plt.figure(figsize=(12,9))
         ax = fig.add_subplot(1,1,1)
         
         if 'ts' in df_all.index:
@@ -308,7 +308,9 @@ class plots:
         else:
             drop_index = ['tas','SWCLR','LWCLR']
     
-        df_plot = df_all.drop(index=drop_index)
+        df_plot = df_all.drop(index=drop_index).reindex(['FTOA','netCRE','SWCRE','LWCRE','FSNT','FLNT','FTOACLR','FSNTCLR','FLNTCLR'])
+        df_plot.index = ['$\lambda$','netCRE','SWCRE','LWCRE','SW','LW','$\lambda_{clr}$','clear-sky\nSW','clear-sky\nLW']
+        #print(df_plot.index)
     
         if self.Add_otherCMIPs:
             df_p4K_plot = df_p4K.drop(index=drop_index)
@@ -494,7 +496,7 @@ class plots:
             
         # start plotting 
         
-        fig = plt.figure(figsize=(18,9))
+        fig = plt.figure(figsize=(16,9))
         ax = fig.add_subplot(1,1,1)
         
         drop_index = ['T','dLW_adj','dSW_adj','dnet_adj','LW_resd','SW_resd',\
@@ -529,12 +531,24 @@ class plots:
             df_others_plot = df_others.drop(index=drop_index)
         
         for idx,index in enumerate(indexA):
+            # other CMIP models
+            if self.Add_otherCMIPs:
+                for icol,column in enumerate(df_others_plot.columns):
+                    if self.highlight_CESM2 and 'CESM2' in column:
+                        ax.scatter(x[idx], df_others_plot.loc[index,column].tolist(),s=self.s2,edgecolor='none',facecolor=self.lc_CESM2,alpha=1, marker='X',\
+                        label = column.split('_')[0]+'_amip-p4K')
+                    else:
+                        ax.scatter(x[idx]-0.2, df_others_plot.loc[index,column].tolist(),s=self.s2,edgecolor='none',facecolor='grey',alpha=0.3,marker='d')
+    
+                # ensemble mean
+                L2 = ax.scatter(x[idx]-0.2, df_others_plot.loc[index,:].mean(),s=self.s2,edgecolor='black',facecolor='black',marker='d')
+ 
             for icol,column in enumerate(df_plot.columns):
                 if column == 'v1_coupled' or column == 'v2_coupled':
                     label = column.split('_')[0]+" [abrupt4xCO2]"
                     if 'v2.NARRM.coupled' in df_plot.columns and column == 'v2_coupled':
                         label = 'v2.LR'
-                    L1 = ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=self.s1,alpha=self.a1,label=label,color=self.colors[icol],marker='x')
+                    L1 = ax.scatter(x[idx]-0.2,df_plot.loc[index,column].tolist(),s=self.s1,alpha=self.a1,label=label,color=self.colors[icol],marker='d')
                 elif column == 'v1_amip4K':
                     ax.scatter(x[idx],df_plot.loc[index,column].tolist(),s=self.s1,alpha=self.a1,label=column,color=self.colors[icol],marker='x')
                 elif column == 'v1_future4K':
@@ -544,23 +558,14 @@ class plots:
                         label = 'All'
                     elif column == 'v2.NARRM.coupled':
                         label = 'v2.NARRM'
+                    elif 'SST' in column:
+                        label = column
                     else:
                         label = column.split('.')[-1]
 
-                    ax.scatter(x[idx]+icol/20.-len(df_plot.columns)/2.*1/20.,df_plot.loc[index,column].tolist(),s=self.s1,alpha=self.a1,label=label,color=self.colors[icol],edgecolor='grey')
+                    ax.scatter(x[idx]+icol/20.-len(df_plot.columns)/2.*1/20.,df_plot.loc[index,column].tolist(),s=self.s1,alpha=self.a1,label=label,color=self.colors[icol])
                
-            # other CMIP models
-            if self.Add_otherCMIPs:
-                for icol,column in enumerate(df_others_plot.columns):
-                    if self.highlight_CESM2 and 'CESM2' in column:
-                        ax.scatter(x[idx], df_others_plot.loc[index,column].tolist(),s=self.s2,edgecolor='none',facecolor=self.lc_CESM2,alpha=1, marker='X',\
-                        label = column.split('_')[0]+'_amip-p4K')
-                    else:
-                        ax.scatter(x[idx]-0.2, df_others_plot.loc[index,column].tolist(),s=self.s2,edgecolor='none',facecolor='grey',alpha=0.3,marker='x')
-    
-                # ensemble mean
-                L2 = ax.scatter(x[idx]-0.2, df_others_plot.loc[index,:].mean(),s=self.s2,edgecolor='black',facecolor='black',marker='X')
-    
+   
             ax.tick_params(labelsize=self.fh)
             ax.set_ylabel('Feedback [W/m$^2$/K]',fontsize=self.fh)
             if idx == 0:
@@ -568,7 +573,7 @@ class plots:
                     if do_amip_cmip:
                         label = 'amip4K'
                     else:
-                        label = 'abrupt4xCO2'
+                        label = 'MMM\n[abrupt4xCO2]'
 
                     legend1 = ax.legend([L2],[label],fontsize=self.fh1,loc='upper left')
                     ax.legend(fontsize=self.fh1)
@@ -591,6 +596,8 @@ class plots:
         ax.axvline(x=8.5,ls='--',color='grey')
         # between Residual and Planck_fxRH
         ax.axvline(x=9.5,ls='--',color='grey')
+
+        ax.set_ylim((-3.5,2.5))
         
         fig.savefig(self.figdir+'ScatterPlot-RadKernel-Feedback_'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
         plt.close(fig)
@@ -895,7 +902,7 @@ class plots:
             # start plotting 
             fig, axes = plt.subplots(nrows=3,ncols=1,figsize=(12,15))
 
-            only_net = True # 2022-04-29 only plot net 
+            only_net = False # 2022-04-29 only plot net 
             
             titles = ['All Cloud CTP bins', "Non-Low Cloud CTP bins", "Low Cloud CTP bins"]
             labels = ['Total','Amount','Altitude','Optical Depth','Residual']
@@ -923,13 +930,13 @@ class plots:
         
                         else:
             #                L1 = axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='o',s=self.s2,color=self.colors[icol],alpha=self.a1,label=column)
-                            La = axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='v',s=self.s2,color=self.colors[icol],alpha=self.a1,label=column)
+                            La = axes[jj].scatter(x-w+w2,y1.values.tolist(),marker='v',s=self.s2,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
         
                 for icol,column in enumerate(df_net_all.columns):
                     print('Doing NET...')
                     y1 = df_net_all.iloc[jj*5:(jj+1)*5,icol]
                     if column == 'v1_coupled' or column == 'v2_coupled':
-                        Lb = axes[jj].scatter(x+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label=column)
+                        Lb = axes[jj].scatter(x+w2,y1.values.tolist(),marker='o',s=self.s1,color=self.colors[icol],alpha=self.a1,label=column)
                     elif column == 'v1_amip4K':
                         axes[jj].scatter(x+w2,y1.values.tolist(),marker='x',s=self.s1,color=self.colors[icol],alpha=self.a1,label=column)
                     elif column == 'v1_future4K':
@@ -955,20 +962,35 @@ class plots:
                             Lc = axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='^',s=self.s2,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
            
         
-                if not only_net:
-                    plt.legend([La,Lb,Lc],["LW","NET","SW"],scatterpoints=1,loc="upper left",fontsize=self.fh1)
+                #if not only_net:
+                #    legend = axes[0].legend([La,Lb,Lc],["LW","NET","SW"],scatterpoints=1,loc="lower right",fontsize=self.fh1)
+                #    leg = axes[0].get_legend()
+                #    leg.legendHandles[0].set_color('black')
+                #    leg.legendHandles[1].set_color('black')
+                #    leg.legendHandles[2].set_color('black')
+
+                if jj == 0:
+                    legend = axes[jj].legend([La,Lb,Lc],["LW","NET","SW"],scatterpoints=1,loc="lower right",fontsize=self.fh1)
+                    leg = axes[jj].get_legend()
+                    leg.legendHandles[0].set_color('black')
+                    leg.legendHandles[1].set_color('black')
+                    leg.legendHandles[2].set_color('black')
+
+                    axes[jj].legend(fontsize=self.fh1,ncol=2,loc='upper right')
+                    axes[jj].add_artist(legend)
+ 
 
                 # CMIP - other models
                 if self.Add_otherCMIPs:
-                    a2 = 0.3
+                    a2 = 0.2
                     s3 = 100
                     for icol,column in enumerate(df_LW_others.columns):
                         y1 = df_LW_others.iloc[jj*5:(jj+1)*5,icol]
                         if self.highlight_CESM2 and 'CESM2' in column:
-                            axes[jj].scatter(x-w+w2-w3,y1.values.tolist(),marker='X',s=s3,color='red',alpha=a2,\
+                            axes[jj].scatter(x-w+w2-w3,y1.values.tolist(),marker='X',s=s3,color='grey',alpha=a2,\
                             label=column.split('_')[0]+'_amip-p4K')
                         else:
-                            axes[jj].scatter(x-w+w2-w3,y1.values.tolist(),marker='v',s=s3,color='red',alpha=a2,label='_nolegend_')
+                            axes[jj].scatter(x-w+w2-w3,y1.values.tolist(),marker='v',s=s3,color='grey',alpha=a2,label='_nolegend_')
         
                     for icol,column in enumerate(df_net_others.columns):
                         y1 = df_net_others.iloc[jj*5:(jj+1)*5,icol]
@@ -981,21 +1003,19 @@ class plots:
                     for icol,column in enumerate(df_SW_others.columns):
                         y1 = df_SW_others.iloc[jj*5:(jj+1)*5,icol]
                         if self.highlight_CESM2 and 'CESM2' in column:
-                            axes[jj].scatter(x+w+w2-w3,y1.values.tolist(),marker='X',s=s3,color='blue',alpha=a2,\
+                            axes[jj].scatter(x+w+w2-w3,y1.values.tolist(),marker='X',s=s3,color='grey',alpha=a2,\
                             label=column.split('_')[0]+'_amip-p4K')
                         else:
-                            axes[jj].scatter(x+w+w2-w3,y1.values.tolist(),marker='^',s=s3,color='blue',alpha=a2,label='_nolegend_')
+                            axes[jj].scatter(x+w+w2-w3,y1.values.tolist(),marker='^',s=s3,color='grey',alpha=a2,label='_nolegend_')
         
         
-                    L1 = axes[jj].scatter(x-w+w2-w3,df_LW_others.iloc[jj*5:(jj+1)*5,:].mean(axis=1),marker='v',s=s3,color='red',alpha=1.0,label='_nolegend_')
+                    L1 = axes[jj].scatter(x-w+w2-w3,df_LW_others.iloc[jj*5:(jj+1)*5,:].mean(axis=1),marker='v',s=s3,color='grey',alpha=1.0,label='_nolegend_')
                     L2 = axes[jj].scatter(x+w2-w3,df_net_others.iloc[jj*5:(jj+1)*5,:].mean(axis=1),marker='o',s=s3,color='grey',alpha=1.0,label='_nolegend_')
-                    L3 = axes[jj].scatter(x+w+w2-w3,df_SW_others.iloc[jj*5:(jj+1)*5,:].mean(axis=1),marker='^',s=s3,color='blue',alpha=1.0,label='_nolegend_')
+                    L3 = axes[jj].scatter(x+w+w2-w3,df_SW_others.iloc[jj*5:(jj+1)*5,:].mean(axis=1),marker='^',s=s3,color='grey',alpha=1.0,label='_nolegend_')
         
                     #plt.legend((L1,L2,L3),["LW","NET","SW"],scatterpoints=1,bbox_to_anchor=(1,1),loc="best",fontsize=self.fh1)
         
-                if jj == 0:
-                    axes[jj].legend(fontsize=self.fh1,ncol=2)
-         
+        
                 axes[jj].grid(axis='y',which='major', linestyle='--', linewidth='1.0', color='grey')
                 
                 axes[jj].axhline(0, color="grey", linestyle="-",linewidth=2)
@@ -1023,7 +1043,9 @@ class plots:
                     if jj == 2:
                         plt.xticks(x,['Total','Amount','Altitude','Optical Depth','Residual'])
                     else:
-                        axes[jj].set_xticklabels("")
+                        #axes[jj].set_xticklabels("")
+                        axes[jj].set_xticklabels(['Total','Amount','Altitude','Optical Depth','Residual'])
+
                     
             plt.tight_layout()
             fig.savefig(self.figdir+'ScatterPlot-Cloud-feedback-Decomposition_'+str(np.round(ii,0))+'-'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
@@ -1320,7 +1342,11 @@ class plots:
         
         # generate figure based on case categories
         for icomp,component in enumerate(components):
+            if icomp > 0 :
+                continue
             for isec,sec in enumerate(sections):
+                if isec > 0:
+                    continue
     
                 # E3SM 
     
@@ -1387,6 +1413,8 @@ class plots:
                         nrow = 4
                         ncol = 3
                         #plt.suptitle(sec+' CTP bins ['+cases_here[icase]+' minus '+cases_here[iref]+']',fontsize=self.fh,y=0.95)
+                        #plt.suptitle('['+cases_here[icase]+' minus '+cases_here[iref]+']',fontsize=self.fh,y=0.95)
+
                         bounds = np.arange(-3,3.25,0.25)
                         cmap = plt.cm.RdBu_r
                         bounds2 = np.append(np.append(-500,bounds),500) # This is only needed for norm if colorbar is extended
@@ -1408,16 +1436,26 @@ class plots:
                             DATA.setAxis(1,lons)
                             avgDATA = avgdata[n,iref]
                             ax_test.contourf(lons[:],lats[:],DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
-                            ax_test.set_title(cases_here[iref]+'\n'+names_out[n]+' ['+str(np.round(avgDATA,3))+']',fontsize=self.fh,loc='right')
+                            if n != 0:
+                                title = names_out[n]+' ['+str(np.round(avgDATA,3))+']'
+                            else:
+                                title = cases_here[iref]+'\n'+names_out[n]+' ['+str(np.round(avgDATA,3))+']'
+                            ax_test.set_title(title,fontsize=self.fh)
 
                             # case
                             ax_ref = fig.add_subplot(nrow,ncol,(n+1)*ncol-1,projection=prj)
                             DATA = data_all[:,:,n,icase]
                             DATA.setAxis(0,lats)
+
                             DATA.setAxis(1,lons)
                             avgDATA = avgdata[n,icase]
                             ax_ref.contourf(lons[:],lats[:],DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
-                            ax_ref.set_title(cases_here[icase]+'\n'+names_out[n]+' ['+str(np.round(avgDATA,3))+']',fontsize=self.fh,loc='right')
+                            if n != 0:
+                                title = names_out[n]+' ['+str(np.round(avgDATA,3))+']'
+                            else:
+                                title = cases_here[icase]+'\n'+names_out[n]+' ['+str(np.round(avgDATA,3))+']'
+                               
+                            ax_ref.set_title(title,fontsize=self.fh)
 
                             # difference b/t icase and v1-coupled
                             ax1 = fig.add_subplot(nrow,ncol,(n+1)*ncol,projection=prj)
@@ -1441,7 +1479,12 @@ class plots:
  
                             #ax1.set_title(names_out[n]+' ['+str(np.round(avgDATA,3))+']\nNRMSE='+str(np.round(NRMSE,2))+', COR='+str(np.round(cor,2)),fontsize=self.fh,loc='right')
                             #ax1.set_title('Diff',fontsize=self.fh,loc='left')
-                            ax1.set_title(cases_here[icase]+'-'+cases_here[iref]+'\n'+names_out[n]+' ['+str(np.round(avgDATA,3))+']',fontsize=self.fh,loc='right')
+                            if n != 0:
+                                title = names_out[n]+' ['+str(np.round(avgDATA,3))+']'
+                            else:
+                                title = cases_here[icase]+'-'+cases_here[iref]+'\n'+names_out[n]+' ['+str(np.round(avgDATA,3))+']'
+ 
+                            ax1.set_title(title,fontsize=self.fh)
 
 
                             for ax in [ax_test,ax_ref,ax1]:
@@ -2489,7 +2532,7 @@ class plots:
                 # only plot the last case -- that is what we care about now.
                 for icase,case in enumerate(cases_here):
    
-                    fig=plt.figure(figsize=(18,12)) # this creates and increases the figure size
+                    fig=plt.figure(figsize=(18,15)) # this creates and increases the figure size
                     nrow = 3
                     ncol = 2
                     plt.suptitle(sec+' CTP bins ['+case+']',fontsize=self.fh,y=0.95)
@@ -2497,7 +2540,9 @@ class plots:
                     cmap = plt.cm.RdBu_r
                     bounds2 = np.append(np.append(-500,bounds),500) # This is only needed for norm if colorbar is extended
                     norm = mpl.colors.BoundaryNorm(bounds2, cmap.N) # make sure the colors vary linearly even if the desired color boundaries are at varied intervals
-                    names = [component+'cld_tot',component+'cld_amt',component+'cld_alt',component+'cld_tau']
+                    #names = [component+'cld_tot',component+'cld_amt',component+'cld_alt',component+'cld_tau']
+                    names = [component+' total cloud feedback',component+' cloud amount feedback',component+' cloud altitude feedback',component+' cloud optical depth feedback']
+
         
                     for n,name in enumerate(names):
                         DATA = data_all[:,:,n,icase]
@@ -2519,7 +2564,7 @@ class plots:
                         plt.title(name+' ['+str(np.round(avgDATA,3))+']',fontsize=self.fh)
 
                         #cb = plt.colorbar(im1,orientation='vertical',drawedges=True,ticks=bounds[::2])
-                        cb = plt.colorbar(im1,orientation='vertical',ticks=bounds[::2])
+                        cb = plt.colorbar(im1,orientation='vertical',ticks=bounds[::2],fraction=0.025)
                         cb.set_label('W/m$^2$/K')
         
                     fig.subplots_adjust(top=0.9)
