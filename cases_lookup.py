@@ -70,7 +70,7 @@ def get_lutable(version,exp):
     '20220108.F2010C5-CMIP6-LR.IC.future4K-abrupt4xCO2-E3SM.ne30_oECv3.compy.1080',
     ],
     'v2.SSTv2':[
-    '20211208.v2.F2010-CICE.IC.ne30pg2_EC.compy',
+    '20220222.v2.F2010-CICE.IC.OutTend.ne30pg2_EC.compy',
     '20220220.v2.F2010-CICE.IC.future4K-abrupt4xCO2-E3SM.ne30pg2_EC.compy',
     ],
     'v1.pert1e-14':[
