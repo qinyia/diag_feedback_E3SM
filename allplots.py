@@ -504,8 +504,10 @@ class plots:
         'T_clr','Planck_clr','LR_clr','WV_clr','ALB_clr','WV_clr_SW','WV_clr_LW','WV_SW','WV_LW',\
         'SWCRE','LWCRE','netCRE','Planck_clr_fxRH','LR_clr_fxRH','RH_clr','LW_clr_sum','SW_clr_sum',\
         'net_clr_sum','LW_clr_dir','SW_clr_dir','net_clr_dir','LW_cld_sum','SW_cld_sum',\
-        #,'net_cld_sum',\
-        'LW_cld_dir','SW_cld_dir','net_cld_dir','LW_clr_resd','SW_clr_resd','net_clr_resd']
+        'net_cld_sum',\
+        'LW_cld_dir','SW_cld_dir',\
+        #'net_cld_dir',\
+        'LW_clr_resd','SW_clr_resd','net_clr_resd']
         
     
         df_plot = df_all.drop(index=drop_index)
@@ -513,7 +515,7 @@ class plots:
         print(df_plot.index)
 
         # redefine column orders 
-        indexA = ['Planck','LR','WV','ALB','netCRE_adj','SWCRE_adj','LWCRE_adj','net_cld_sum','net_resd','Planck_fxRH','LR_fxRH','RH']
+        indexA = ['Planck','LR','WV','ALB','netCRE_adj','SWCRE_adj','LWCRE_adj','net_cld_dir','net_resd','Planck_fxRH','LR_fxRH','RH']
         xticks = ['Planck','LR','WV','Albedo','Cloud','Cloud$_{sw}$','Cloud$_{lw}$','Total','Residual','Planck\n[fixed RH]','LR\n[fixed RH]','RH']
 
         # output the dataframe df_plot as a table
@@ -1886,7 +1888,7 @@ class plots:
         #----------------------------------------------------------
         # start plotting ...
         #----------------------------------------------------------
-        fig = plt.figure(figsize=(12,9))
+        fig = plt.figure(figsize=(9,6))
         ax = fig.add_subplot(1,1,1)
     
         for col in df_all.columns:
@@ -2012,28 +2014,28 @@ class plots:
                             if idata in [0]:
                                 bounds = np.arange(var1_range[ivar][0],var1_range[ivar][1]+var1_range[ivar][2], var1_range[ivar][2])
                                 unit = var1_units[ivar]
-                                title = ref_case+' CNTL'
+                                title = ref_case+' CTL'
                             elif idata in [1]:
                                 bounds = np.arange(var1_range_d[ivar][0],var1_range_d[ivar][1]+var1_range_d[ivar][2], var1_range_d[ivar][2])
                                 unit = var1_units[ivar]+'/K'
-                                title = ref_case
+                                title = ref_case+' [P4K-CTL]'
                             elif idata in [2]:
                                 bounds = np.arange(var1_range[ivar][0],var1_range[ivar][1]+var1_range[ivar][2], var1_range[ivar][2])
                                 unit = var1_units[ivar]
-                                title = case+' CNTL'
+                                title = case+' CTL'
                             elif idata in [3,4,5]:
                                 bounds = np.arange(var1_range_d[ivar][0],var1_range_d[ivar][1]+var1_range_d[ivar][2], var1_range_d[ivar][2])
                                 if idata == 4:
                                     unit = var1_units[ivar]
                                 else:
                                     unit = var1_units[ivar]+'/K'
-                                title = case
+                                title = case+' [P4K-CTL]'
     
                                 if idata == 4:
                                     bounds = bounds * 5.
-                                    title = case+' CNTL minus '+ref_case+' CNTL'
+                                    title = case+' CTL minus '+ref_case+' CTL'
                                 elif idata == 5:
-                                    title = case+' minus '+ref_case
+                                    title = case+' minus '+ref_case+' [P4K-CTL]'
     
                             ax = fig.add_subplot(nrow,ncol,idata+1)
                             im1 = ax.contourf(clats, levs, data1,\
@@ -2117,14 +2119,23 @@ class plots:
                     nrow = 3
                     ncol = 2
                     fig = plt.figure(figsize=(ncol*5,nrow*2.5))
+                    plt.suptitle(var1_out[ivar],y=0.98)
+
                     # -------------------- generate figures -------------------
     
                     f1 = cdms.open(self.datadir_v2+'global_cloud_'+case+'.nc')
+                    fref = cdms.open(self.datadir_v2+'global_cloud_'+ref_case+'.nc')
+
                     if case == 'v1_coupled':
                         svar_in = var1_tmp[ivar]
                     else:
                         svar_in = var1[ivar]
     
+                    if svar_in+'_pi_clim' not in list(f1.variables) or svar_in+'_pi_clim' not in list(fref.variables):
+                        print(var1[ivar], list(f1.variables))
+                        print('Cannot find',var1[ivar],' Pls check.')
+                        continue
+
                     tmp1 = f1(svar_in+'_pi_clim').subRegion(lat=(latS,latE),lon=(lonS,lonE))
                     tmp2 = f1(svar_in+'_ano_clim').subRegion(lat=(latS,latE),lon=(lonS,lonE))
     
@@ -2152,7 +2163,7 @@ class plots:
                     print('data_all_ano.shape=',data_all_ano.shape)
         
                     # -------------- read reference p4K data -----------------
-                    fref = cdms.open(self.datadir_v2+'global_cloud_'+ref_case+'.nc')
+                    #fref = cdms.open(self.datadir_v2+'global_cloud_'+ref_case+'.nc')
                     if ref_case == 'v1_coupled':
                         svar_in = var1_tmp[ivar]
                     else:
@@ -2191,17 +2202,17 @@ class plots:
                             unit = var1_units[ivar]
     
                         if idata in [0]:
-                            title = ref_case+' CNTL'
+                            title = ref_case+' CTL'
                         elif idata in [1]:
-                            title = ref_case
+                            title = ref_case+' [P4K-CTL]'
                         elif idata in [2]:
-                            title = case+' CNTL'
+                            title = case+' CTL'
                         elif idata in [3]:
-                            title = case
+                            title = case+' [P4K-CTL]'
                         elif idata == 4:
-                            title = case+' CNTL minus '+ref_case+' CNTL'
+                            title = case+' CTL minus '+ref_case+' CTL'
                         elif idata == 5:
-                            title = case+' minus '+ref_case
+                            title = case+' minus '+ref_case+' [P4K-CTL]'
     
                         print(svar, genutil.minmax(data1))
     
@@ -2227,9 +2238,11 @@ class plots:
     #                    if idata in [0,1]:
     #                        ax.set_title(var1_out[ivar],loc='left')
     
-                        ax.set_title(title+'\n'+var1_out[ivar]+' ['+str(np.round(avgdata1,2))+']')
+                        #ax.set_title(title+'\n'+var1_out[ivar]+' ['+str(np.round(avgdata1,2))+']')
+                        ax.set_title(title+'\n'+' ['+str(np.round(avgdata1,2))+']')
+
     
-                    fig.tight_layout()
+                    fig.tight_layout(rect=(0,0,1,1))
                     fig.savefig(self.figdir+'LatLon_'+svar+'-'+case+'-vs-'+ref_case+'.png',bbox_inches='tight',dpi=300)
                     plt.close(fig)
 
