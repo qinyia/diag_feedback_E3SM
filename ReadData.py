@@ -144,6 +144,11 @@ def get_tropopause_pressure(Ta0):
         tropp[:,:,LO]=tp/100. # convert to hPa
 #        print('tropp minmax is',genutil.minmax(tropp[:,:,LO]))
 
+    ### 2022-07-09 update: 
+    ### This logic is reasonable for most cases. 
+    ### however, when the temperature increases by 8K, some tropical regions
+    ### will have lower tropopause pressure than plimlex. This leads to the 
+    ### tropopause pressure set as a negative number. 
     tropp=MV.masked_where(tropp>plimu/100.,tropp)
     tropp=MV.masked_where(tropp<0.,tropp)
 

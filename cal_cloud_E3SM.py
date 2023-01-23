@@ -43,9 +43,9 @@ def cal_cloud(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
 
     outfile = outdir+'global_cloud_'+case_stamp+'.nc'
 
-    #if os.path.isfile(outfile):
-    #    print('cal_cloud', case_stamp, 'output is ready. Please continue. ')
-    #    return 
+    if os.path.isfile(outfile):
+        print('cal_cloud', case_stamp, 'output is ready. Please continue. ')
+        return 
 
     yearS_4d = "{:04d}".format(yearS)
     yearE_4d = "{:04d}".format(yearE)

@@ -113,6 +113,10 @@ def get_lutable(version,exp):
     '20220512.v2.F2010-CICE.IC.back.clubb.g1.ne30pg2_EC.compy',
     '20220512.v2.F2010-CICE.IC.back.clubb.g1.p4Ka.ne30pg2_EC.compy',
     ],
+    'v2.bk.clubb.g1.1':[
+    '20221013.v2.F2010-CICE.IC.back.clubb.g1.1.ne30pg2_EC.compy',
+    '20221013.v2.F2010-CICE.IC.back.clubb.g1.1.p4Ka.ne30pg2_EC.compy',
+    ],
     'v2.bk.clubb.g2':[
     '20220512.v2.F2010-CICE.IC.back.clubb.g2.ne30pg2_EC.compy',
     '20220512.v2.F2010-CICE.IC.back.clubb.g2.p4Ka.ne30pg2_EC.compy',
@@ -125,9 +129,17 @@ def get_lutable(version,exp):
     '20220512.v2.F2010-CICE.IC.back.clubb.g4.ne30pg2_EC.compy',
     '20220512.v2.F2010-CICE.IC.back.clubb.g4.p4Ka.ne30pg2_EC.compy',
     ],
+    'v2.bk.clubb.g4.1':[
+    '20221013.v2.F2010-CICE.IC.back.clubb.g4.1.ne30pg2_EC.compy',
+    '20221013.v2.F2010-CICE.IC.back.clubb.g4.1.p4Ka.ne30pg2_EC.compy',
+    ],
     'v2.bk.clubb.g5':[
     '20220512.v2.F2010-CICE.IC.back.clubb.g5.ne30pg2_EC.compy',
     '20220512.v2.F2010-CICE.IC.back.clubb.g5.p4Ka.ne30pg2_EC.compy',
+    ],
+    'v2.bk.clubb.g6':[
+    '20221014.v2.F2010-CICE.IC.back.clubb.g6.ne30pg2_EC.compy',
+    '20221014.v2.F2010-CICE.IC.back.clubb.g6.p4Ka.ne30pg2_EC.compy',
     ],
     'v2.bk.MG_accre':[
     '20220513.v2.F2010-CICE.IC.back.MG_accre.ne30pg2_EC.compy',
@@ -136,6 +148,34 @@ def get_lutable(version,exp):
     'v2.bk.MG_auto':[
     '20220513.v2.F2010-CICE.IC.back.MG_auto.ne30pg2_EC.compy',
     '20220513.v2.F2010-CICE.IC.back.MG_auto.p4Ka.ne30pg2_EC.compy',
+    ],
+    'v2.P2K':[
+    '20220222.v2.F2010-CICE.IC.OutTend.ne30pg2_EC.compy',
+    '20220705.v2.F2010-CICE.IC.OutTend.p2Ka.ne30pg2_EC.compy',
+    ],
+    'v2.P6K':[
+    '20220222.v2.F2010-CICE.IC.OutTend.ne30pg2_EC.compy',
+    '20220705.v2.F2010-CICE.IC.OutTend.p6Ka.ne30pg2_EC.compy',
+    ],
+    'v2.P8K':[
+    '20220222.v2.F2010-CICE.IC.OutTend.ne30pg2_EC.compy',
+    '20220706.v2.F2010-CICE.IC.OutTend.p8Ka.ne30pg2_EC.compy',\
+    ],
+    'v2.OutTend.ZMout':[
+    '20220704.v2.F2010-CICE.IC.OutTend.ZMout.ne30pg2_EC.compy',\
+    '20220705.v2.F2010-CICE.IC.OutTend.ZMout.p4Ka.ne30pg2_EC.compy',\
+    ],
+    'v2.bk.trig.ZMout':[
+    '20220707.v2.F2010-CICE.IC.OutTend.back.trig.ZMout.ne30pg2_EC.compy',\
+    '20220707.v2.F2010-CICE.IC.OutTend.back.trig.ZMout.p4Ka.ne30pg2_EC.compy',\
+    ],
+    'v2.bk.MG_wsub':[
+    '20221227.v2.F2010-CICE.IC.back.MG_wsub.ne30pg2_EC.compy',\
+    '20221227.v2.F2010-CICE.IC.back.MG_wsub.p4Ka.ne30pg2_EC.compy',\
+    ],
+    'v2.bk.trig_ull':[
+    '20220808.v2.F2010-CICE.IC.OutTend.onlydcape.ZMout.ne30pg2_EC.compy',\
+    '20220808.v2.F2010-CICE.IC.OutTend.onlydcape.ZMout.p4Ka.ne30pg2_EC.compy',\
     ],
     }
 

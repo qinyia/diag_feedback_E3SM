@@ -26,10 +26,10 @@ elif machine == 'cori':
 
 e3sm_version = 2 # E3SM version 
 
-PreProcess = False  # True: prepare input data for feedback calculation, including regrid and reorganize data
+PreProcess = True  # True: prepare input data for feedback calculation, including regrid and reorganize data
 COSP_output = True # True: you have COSP output; False: no COSP output
 
-RunDiag = True # True: run feedback calculation
+RunDiag = False # True: run feedback calculation
 
 GetFigure = False # True: run figure plotting and generate webpage
 
@@ -49,14 +49,17 @@ case_short = [\
 #'v2.P2K',\
 #'v2.P6K',\
 #'v2.P8K',\
+#'v2.OutTend.ZMout',\
+#'v2.bk.trig.ZMout',\
+#'v2.OutTend',\
 #'v2.bk.clubb',\
 #'v2.bk.clubb.g1.1',\
 #'v2.bk.clubb.g2',\
 #'v2.bk.clubb.g3',\
 #'v2.bk.clubb.g4.1',\
 #'v2.bk.clubb.g5',\
-#'v2.bk.clubb.g6',\
-#'v2.bk.MG_wsub',\
+#'v2.bk.clubb.g6',
+'v2.bk.MG_wsub',\
 'v2.bk.trig_dcape',\
 ]
 
@@ -118,10 +121,11 @@ if COSP_output:
     #'cal_LCF',
     #'cal_cloud',
     #'cal_EIS',
-    #'cal_3dvar',
+    #'cal_pr',
+    'cal_3dvar',
     #'sort_cloud_regime',
     #'sort_cloud_3regime',
-    'RadKernel_regime',
+    #'RadKernel_regime',
     ]
 else:
     cal_types = [
@@ -131,6 +135,7 @@ else:
     'cal_LCF',
     'cal_cloud',
     #'cal_EIS',
+    #'cal_pr',
     'cal_3dvar',
     #'sort_cloud_3regime',
     #'RadKernel_regime',
@@ -172,9 +177,8 @@ for icase,case in enumerate(case_short):
         datadir_in0 = 'case_scripts/'
         os.system('sh archive_data.sh '+run_id1 + ' '+run_id2+' '+datadir_in1+' '+datadir_in0)
     
-        os.system('sh get_data_simple.sh '+ run_id1 + ' '+run_id2+' '+rgr_map+' '+str(yearS_CTL)+' '+str(yearE_CTL)+' '+str(yearS_P4K)+' '+str(yearE_P4K)+' '+datadir_in1+' '+datadir_in2+' '+outdir_out+' '+comp)
-
-    #continue
+        os.system('sh get_data_spec.sh '+ run_id1 + ' '+run_id2+' '+rgr_map+' '+str(yearS_CTL)+' '+str(yearE_CTL)+' '+str(yearS_P4K)+' '+str(yearE_P4K)+' '+datadir_in1+' '+datadir_in2+' '+outdir_out+' '+comp)
+        continue
 
     #################################################################
     # run diagnostics

@@ -31,6 +31,7 @@ import cal_EIS as calEIS
 import sort_cloud_regime as SCR
 import sort_cloud_3regime as SCR3
 import cal_RadKern_regime_wapEIS as RRW
+import cal_3dvar as cal3dvar
 
 import glob
 
@@ -73,6 +74,7 @@ def get_cal_dics(direc_data, case_stamp, yearS2, yearE2, run_id1, run_id2, outdi
     dics_cal['cal_LCF']             = my_cal.cal_LCF
     dics_cal['cal_cloud']           = my_cal.cal_cloud
     dics_cal['cal_EIS']             = my_cal.cal_EIS
+    dics_cal['cal_3dvar']           = my_cal.cal_3dvar
     dics_cal['sort_cloud_regime']   = my_cal.sort_cloud_regime
     dics_cal['sort_cloud_3regime']   = my_cal.sort_cloud_3regime
     dics_cal['RadKernel_regime']    = my_cal.cal_RadKernel_regime
@@ -121,6 +123,9 @@ class calculation:
 
     def cal_EIS(self):
         result = calEIS.cal_EIS(self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir,self.exp1,self.exp2)
+
+    def cal_3dvar(self):
+        result = cal3dvar.cal_3dvar(self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir,self.exp1,self.exp2)
 
     def sort_cloud_regime(self):
         result = SCR.sort_cloud_regime(self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir,self.exp1,self.exp2)
@@ -310,6 +315,7 @@ class plots:
     
         df_plot = df_all.drop(index=drop_index).reindex(['FTOA','netCRE','SWCRE','LWCRE','FSNT','FLNT','FTOACLR','FSNTCLR','FLNTCLR'])
         df_plot.index = ['$\lambda$','netCRE','SWCRE','LWCRE','SW','LW','$\lambda_{clr}$','clear-sky\nSW','clear-sky\nLW']
+
         #print(df_plot.index)
     
         if self.Add_otherCMIPs:
@@ -1709,8 +1715,7 @@ class plots:
         nlon = 144
         
         # E3SM
-        data_all = np.zeros((nlat,nlon,len(variables),len(cases_here)))
-        data_all_zm = np.zeros((nlat,len(variables),len(cases_here)))
+        data_all = np.ma.zeros((nlat,nlon,len(variables),len(cases_here)))
     
         for ivar,svar in enumerate(variables):
             for icase,case in enumerate(cases_here):
@@ -1731,7 +1736,6 @@ class plots:
     
                 # get zonal mean
                 data_all[:,:,ivar,icase] = data
-                data_all_zm[:,ivar,icase] = MV.average(data,axis=1)
         
         #=============================================================
         # start plotting ...
@@ -1792,6 +1796,7 @@ class plots:
     
                         # global-mean 
                         avgDATA = cdutil.averager(DATA,axis='xy',weights='weighted')
+                        print('avgDATA=',avgDATA)
 
                         if num0 == 2: # only for different plot
                             # get spatial correlation, NRMSE and RMSE
@@ -2384,9 +2389,8 @@ class plots:
                 lons = data.getLongitude()
 
                 if ivar==0 and icase==0:
-                    data_all = np.zeros((data.shape[0],data.shape[1],len(variables),len(cases_here)))
+                    data_all = np.ma.zeros((data.shape[0],data.shape[1],len(variables),len(cases_here)))
 
-                # get zonal mean
                 data_all[:,:,ivar,icase] = data
         
         #=============================================================
@@ -2568,7 +2572,7 @@ class plots:
                         else:
                             ax1 = fig.add_subplot(nrow,ncol,n+1,projection=ccrs.PlateCarree(central_longitude=180.))
 
-                        im1 = ax1.contourf(lons[:],lats[:],DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
+                        im1 = ax1.contourf(lons[:],lats[:],np.round(DATA,4),bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
                         ax1.coastlines()
                         #ax1.set_global()
         
