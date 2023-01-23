@@ -1,6 +1,7 @@
 
 import os
 import sys
+sys.path.append('./codes/')
 import cases_lookup as CL
 import PlotDefinedFunction as PDF
 import allplots as AP
@@ -8,13 +9,13 @@ import cal_global_radiation_feedback_E3SM as GRF
 import cal_RadKernel_E3SM as RK
 import cal_CloudRadKernel_E3SM as CRK
 import cal_LCF_E3SM as LCF
-import cal_cloud_E3SM as CLOUD
 import cal_webb_decomposition as WD
 import generate_html as gh
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # ----------------------------Hi, all modifications please start here --------------------------------------------
-machine = 'compy'
+machine = 'cori'
+#machine = 'compy'
 
 # model output directory www_dir and webpage directory run_dir
 if machine == 'compy':
@@ -22,42 +23,29 @@ if machine == 'compy':
     run_dir = "/compyfs/qiny108/" 
 elif machine == 'cori':
     www_dir = "/global/project/projectdirs/mp193/www/qinyi/"
-    run_dir = "/global/cscratch1/sd/qinyi/"
+    #run_dir = "/global/cscratch1/sd/qinyi/"
+    run_dir = "/global/project/projectdirs/mp193/www/qinyi/diagfbk_testdata/"
 
-e3sm_version = 2 # E3SM version 
+e3sm_version = 1 # E3SM version 
 
-PreProcess = False  # True: prepare input data for feedback calculation, including regrid and reorganize data
+PreProcess = True  # True: prepare input data for feedback calculation, including regrid and reorganize data
 COSP_output = True # True: you have COSP output; False: no COSP output
 
-RunDiag = True # True: run feedback calculation
+RunDiag = False # True: run feedback calculation
 
 GetFigure = False # True: run figure plotting and generate webpage
 
+if GetFigure:
+    # -------------------------
+    # If you are not on cori machine, please set it as False. The comparison with other CMIP models are not 
+    # supported on other machines currently. 
+    Add_otherCMIPs = False ## include option about whether adding results from other CMIP models
+
+
 # give one shorname for each pair experiment, like v1, v2, v3....
 case_short = [\
-#'v1_coupled',\
-#'v2_coupled',\
-#'v1',\
-#'v2.OutTend',\
-#'v2.bk.trig',\
+'v1',\
 #'v2',\
-#'v2.bk.MG_accre',\
-#'v2.bk.MG_auto',\
-#'v2.bk.MG_Berg',\
-#'v1.SSTv1',\
-#'v2.SSTv2',\
-#'v2.P2K',\
-#'v2.P6K',\
-#'v2.P8K',\
-#'v2.bk.clubb',\
-#'v2.bk.clubb.g1.1',\
-#'v2.bk.clubb.g2',\
-#'v2.bk.clubb.g3',\
-#'v2.bk.clubb.g4.1',\
-#'v2.bk.clubb.g5',\
-#'v2.bk.clubb.g6',\
-#'v2.bk.MG_wsub',\
-'v2.bk.trig_dcape',\
 ]
 
 # give the reference case: the reference case is used to compare with the case and generate difference maps. 
@@ -65,19 +53,15 @@ case_short = [\
 # 1. The length of "ref_case_short" must be the same as "case_short".
 # 2. Any cases in ref_case_short should be in "case_short" first.
 # 3. For each case, the corresponding reference cases can be any lengths.
-# 4. If you don't need any reference cases for one case, just set it as [].
+# 4. If you don't have any reference cases for one case, just set it as [].
 ref_case_short = [\
 [],\
-[],\
-['v2','v2.P6K'],\
-[],\
 #['v1'],\
-#['v2'],\
 ]
 
 # set start and end years: sometime, your start and end years are different for control (CTL) and warming (P4K) exps. 
-yearS_CTL,yearE_CTL = 2,6 #101,250
-yearS_P4K,yearE_P4K = 2,6 #1,150
+yearS_CTL,yearE_CTL = 2,3
+yearS_P4K,yearE_P4K = 2,3 
 
 # set model output data directory 
 if e3sm_version == 2: # E3SM version 2
@@ -87,7 +71,10 @@ if e3sm_version == 2: # E3SM version 2
     datadir_in2 = 'archive/atm/hist/'
 
     comp = 'eam.h0'
-    rgr_map = '/qfs/people/zender/data/maps/map_ne30pg2_to_cmip6_180x360_aave.20200201.nc'
+    if machine == 'compy':
+        rgr_map = '/qfs/people/zender/data/maps/map_ne30pg2_to_cmip6_180x360_aave.20200201.nc'
+    elif machine == 'cori':
+        rgr_map = '/global/cfs/cdirs/e3sm/zender/maps/map_ne30pg2_to_cmip6_180x360_aave.20200201.nc'
 
 elif e3sm_version == 1: # E3SM version 1
     # set input directory 1 --- the directory before casename in the whole directory
@@ -96,14 +83,21 @@ elif e3sm_version == 1: # E3SM version 1
     datadir_in2 = 'archive/atm/hist/'
 
     comp = 'cam.h0'
-    rgr_map = "/qfs/people/zender/data/maps/map_ne30np4_to_cmip6_180x360_aave.20181001.nc"
+    if machine == 'compy':
+        rgr_map = "/qfs/people/zender/data/maps/map_ne30np4_to_cmip6_180x360_aave.20181001.nc"
+    elif machine == 'cori':
+        rgr_map = "/global/cfs/cdirs/e3sm/zender/maps/map_ne30np4_to_cmip6_180x360_aave.20181001.nc"
+
  
 # set output directory for necessary variables after post-processing E3SM raw data
 outdir_out = run_dir+'/diag_feedback_E3SM_postdata/'
 
 ### NOTION: if you work on Cori, you should not change the below directories. If not, you should download data.
 # set RadKernel input kernel directory
-RadKernel_dir = '/qfs/people/qiny108/diag_feedback_E3SM/Huang_kernel_data/'
+if machine == 'compy':
+    RadKernel_dir = '/qfs/people/qiny108/diag_feedback_E3SM/Huang_kernel_data/'
+elif machine == 'cori':
+    RadKernel_dir = '/global/project/projectdirs/mp193/www/qinyi/DATA/Huang_kernel_data/'
 
 # ---------------------------- all main modifications please stop here --------------------------------------------
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -111,17 +105,13 @@ RadKernel_dir = '/qfs/people/qiny108/diag_feedback_E3SM/Huang_kernel_data/'
 # RunDiag types 
 if COSP_output: 
     cal_types = [
-    #'RadFeedback',
-    #'RadKernel',
-    #'Webb_Decomp',
-    #'CloudRadKernel',
-    #'cal_LCF',
-    #'cal_cloud',
-    #'cal_EIS',
-    #'cal_3dvar',
-    #'sort_cloud_regime',
-    #'sort_cloud_3regime',
-    'RadKernel_regime',
+    'RadFeedback',
+    'RadKernel',
+    'Webb_Decomp',
+    'CloudRadKernel',
+    'cal_LCF',
+    'cal_3dvar',
+    #'RadKernel_regime',
     ]
 else:
     cal_types = [
@@ -130,9 +120,7 @@ else:
     'Webb_Decomp',
     'cal_LCF',
     'cal_cloud',
-    #'cal_EIS',
     'cal_3dvar',
-    #'sort_cloud_3regime',
     #'RadKernel_regime',
     ]
 
@@ -171,7 +159,7 @@ for icase,case in enumerate(case_short):
         # Part -1: archive data from run directory to archive/atm/hist directory
         datadir_in0 = 'case_scripts/'
         os.system('sh archive_data.sh '+run_id1 + ' '+run_id2+' '+datadir_in1+' '+datadir_in0)
-    
+        # Part 1: regrid data  
         os.system('sh get_data_simple.sh '+ run_id1 + ' '+run_id2+' '+rgr_map+' '+str(yearS_CTL)+' '+str(yearE_CTL)+' '+str(yearS_P4K)+' '+str(yearE_P4K)+' '+datadir_in1+' '+datadir_in2+' '+outdir_out+' '+comp)
 
     #continue
@@ -194,31 +182,25 @@ for icase,case in enumerate(case_short):
 # Generate plots and get webpage 
 #################################################################
 if GetFigure:
-    # -------------------------
-    # If you are not on cori or LC machines, please set it as False. The comparison with other CMIP models are not 
-    # supported on other machines currently. 
-    Add_otherCMIPs = False ## include option about whether adding results from other CMIP models
 
     # ---------------- please set all plot types you want -----------------------------------------------------------------
     ## choose which type figures you want to plot. If not, just comment them out.
     if COSP_output:
         plot_types = [
-        #'CRE_globalmean',                   # scatter plot of global mean CRE feedbacks
-        #'RadKernel_globalmean',             # scatter plot of global mean RadKernel feedback: non-cloud and adjusted CRE feedbacks
-        #'RadKernel_zonalmean',              # zonal mean plot of adjusted CRE feedback
-        #'CldRadKernel_globalmean',          # scatter plot of global mean CldRadKernel feedback: decomposition into low and non-low clouds and amount, altitude, optical depth.
-        #'CldRadKernel_zonalmean',           # zonal mean plot of CldRadKernel feedback
-        #'RadKernel_latlon',                 # lat-lon plot of RadKernel feedback for each case
-        #'CldRadKernel_latlon',              # lat-lon plot of CldRadKernel feedback for each case
-        #'CldRadKernel_latlon_dif',          # lat-lon plot of CldRadKernel feedback difference between case and reference case
+        'CRE_globalmean',                   # scatter plot of global mean CRE feedbacks
+        'RadKernel_globalmean',             # scatter plot of global mean RadKernel feedback: non-cloud and adjusted CRE feedbacks
+        'RadKernel_zonalmean',              # zonal mean plot of adjusted CRE feedback
+        'CldRadKernel_globalmean',          # scatter plot of global mean CldRadKernel feedback: decomposition into low and non-low clouds and amount, altitude, optical depth.
+        'CldRadKernel_zonalmean',           # zonal mean plot of CldRadKernel feedback
+        'RadKernel_latlon',                 # lat-lon plot of RadKernel feedback for each case
+        'CldRadKernel_latlon',              # lat-lon plot of CldRadKernel feedback for each case
+        'CldRadKernel_latlon_dif',          # lat-lon plot of CldRadKernel feedback difference between case and reference case
         'RadKernel_latlon_dif',             # lat-lon plot of RadKernel feedback difference between case and reference case
-        #'tas_latlon',                       # lat-lon plot of surface air temperature and the difference between case and reference case
-        #'LCF',                              # Temperature - Liquid Condensate Fraction
-        #'zm_CLOUD',                         # zonal mean plot of cloud varaibles difference 
-        #'latlon_CLOUD',                     # lat-lon plot of cloud varaibles difference
-        #'webb_decomp',                      # decomposition of adjusted CRE feedback into low and non-low clouds
-        #'CLOUD_profile',                    # vertical cloud profile in different regions
-        #'NRMSE_RadKern',                   # NRMSE and spatial correlation (COR) evolution with incremental denial experiments [note: RadKernel_latlon_dif should run first.]
+        'tas_latlon',                       # lat-lon plot of surface air temperature and the difference between case and reference case
+        'LCF',                              # Temperature - Liquid Condensate Fraction
+        'zm_CLOUD',                         # zonal mean plot of cloud varaibles difference 
+        'latlon_CLOUD',                     # lat-lon plot of cloud varaibles difference
+        'webb_decomp',                      # decomposition of adjusted CRE feedback into low and non-low clouds
         ]
     else:
         plot_types = [
@@ -236,8 +218,6 @@ if GetFigure:
         'zm_CLOUD',                         # zonal mean plot of cloud varaibles difference 
         'latlon_CLOUD',                     # lat-lon plot of cloud varaibles difference
         'webb_decomp',                      # decomposition of adjusted CRE feedback into low and non-low clouds
-        #'CLOUD_profile',                    # vertical cloud profile in different regions
-        #'NRMSE_RadKern',                   # NRMSE and spatial correlation (COR) evolution with incremental denial experiments [note: RadKernel_latlon_dif should run first.]
         ]
 
     
@@ -272,9 +252,7 @@ if GetFigure:
     #regions = [24,55.5,-140,-70]
 
     # ----------- set up directories for necessary data --------------------------
-    if machine == 'LC':
-        datadir_CMIPs = '/p/lustre2/qin4/Data_cori/'
-    elif machine == 'compy':
+    if machine == 'compy':
         datadir_CMIPs = '/compyfs/qiny108/diag_feedback_otherCMIPs/'
     elif machine == 'cori':
         datadir_CMIPs = '/global/project/projectdirs/mp193/www/qinyi/DATA/'
