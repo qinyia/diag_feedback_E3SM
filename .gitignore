@@ -1,17 +1,7 @@
-
-Huang_kernel_data/
 __pycache__/
 data/
 figure/
-postdata/
-plot_data/
 *.so
-figure2/
 viewer/index.html
 csvfile/
-*v1*/
-*v2*/
-data_diffyrE/
-figure_diffyrE/
 .ipynb_checkpoints/
-NewRegress
