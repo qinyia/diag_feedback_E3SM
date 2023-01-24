@@ -30,9 +30,9 @@ e3sm_version = 1 # E3SM version
 PreProcess = False  # True: prepare input data for feedback calculation, including regrid and reorganize data
 hasCOSP = True   # True: include COSP output 
 
-RunDiag = False # True: run feedback calculation
+RunDiag = True # True: run feedback calculation
 
-GetFigure = True # True: run figure plotting and generate webpage
+GetFigure = False # True: run figure plotting and generate webpage
 
 if GetFigure:
     # -------------------------
@@ -141,14 +141,14 @@ CloudRadKernel_dir = curdir+'/CloudRadKernel_input/'
 # set final output directory
 outdir_final = curdir+'/data/'
 # set output figure directory
-figdir = curdir+'/figure/'
+diagfigdir = curdir+'/diagfigure/'
 
 # set the case tag for control and warming experiments. Dont modify it.
 exp1 = 'FC5'
 exp2 = 'FC5_4K'
 
 # ---------Create Directories--------------------------------------------
-for outdir in [outdir_out, outdir_final, figdir]:
+for outdir in [outdir_out, outdir_final, diagfigdir]:
     AP.make_dir(outdir)
 
 # ----------------------------------------------------------------------------
@@ -178,7 +178,7 @@ for icase,case in enumerate(case_short):
         direc_data = outdir_out
     
         dics_cal = AP.get_cal_dics(direc_data, case_short[icase], yearS_P4K, yearE_P4K, run_id1, run_id2, outdir_final,
-                          RadKernel_dir, figdir, exp1, exp2,
+                          RadKernel_dir, diagfigdir, exp1, exp2,
                           CloudRadKernel_dir)
 
         for key in dics_cal:
