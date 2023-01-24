@@ -32,9 +32,6 @@ def generate_html(casedir,webdir=None):
     dic['zm_CLOUD'] = {}
     dic['latlon_CLOUD'] = {}
     dic['webb_decomp'] = {}
-    dic['CLOUD_profile'] = {}
-    dic['NRMSE_RadKern'] = {}
-    dic['cal_regionCor'] = {}
 
     
     for key in dic.keys():
@@ -92,13 +89,6 @@ def generate_html(casedir,webdir=None):
         {table11}
       <h3>LAT-LON Cloud Feedbacks from Webb Method</h3>
         {table12}
-       <h3>Regional Mean Cloud Profiles</h3>
-        {table15}
-        <h3>NRMSE and COR evolution for RadKern</h3>
-        {table16}
-        <h3>regional NRMSE and COR evolution for RadKern</h3>
-        {table17}
- 
       </div>
       </body>
     </html>.
@@ -117,22 +107,15 @@ def generate_html(casedir,webdir=None):
                                    table8=dic['tas_latlon'].to_html(escape=False,index=False,border=0),
                                    table9=dic['LCF'].to_html(escape=False,index=False,border=0),
                                    table10=dic['zm_CLOUD'].to_html(escape=False,index=False,border=0),
-    
                                    table11=dic['latlon_CLOUD'].to_html(escape=False,index=False,border=0),
                                    table12=dic['webb_decomp'].to_html(escape=False,index=False,border=0),
-                                   table15=dic['CLOUD_profile'].to_html(escape=False,index=False,border=0),
-                                   table16=dic['NRMSE_RadKern'].to_html(escape=False,index=False,border=0),
-                                   table17=dic['cal_regionCor'].to_html(escape=False,index=False,border=0),
                                    )
                                    )
     
     
     print("=============Well done. check viewer/index.html for all plots.==============")
     
-    bashCommand = 'sh copy2webdir.sh '+casedir+' '+webdir
-    #process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
-    #output, error = process.communicate()
-
+    bashCommand = 'sh codes/copy2webdir.sh '+casedir+' '+webdir
     os.system(bashCommand)
     
     print("========You can check your web page here: ",webdir+"====================")
