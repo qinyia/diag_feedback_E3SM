@@ -26,7 +26,7 @@ import cal_RadKernel_E3SM as RK
 import cal_CloudRadKernel_E3SM as CRK
 import cal_LCF_E3SM as LCF
 import cal_webb_decomposition as WD
-import cal_RadKern_regime_wapEIS as RRW
+#import cal_RadKern_regime_wapEIS as RRW
 import cal_3dvar as cal3dvar
 
 import glob
@@ -68,9 +68,8 @@ def get_cal_dics(direc_data, case_stamp, yearS2, yearE2, run_id1, run_id2, outdi
     dics_cal['Webb_Decomp']         = my_cal.cal_webb_decomp
     dics_cal['CloudRadKernel']      = my_cal.cal_CloudRadKernel
     dics_cal['cal_LCF']             = my_cal.cal_LCF
-    dics_cal['cal_cloud']           = my_cal.cal_cloud
     dics_cal['cal_3dvar']           = my_cal.cal_3dvar
-    dics_cal['RadKernel_regime']    = my_cal.cal_RadKernel_regime
+#    dics_cal['RadKernel_regime']    = my_cal.cal_RadKernel_regime
 
 
     return dics_cal
@@ -102,8 +101,8 @@ class calculation:
     def cal_webb_decomp(self):
         result = WD.cal_webb_decomp(self.outdir_final,self.case_stamp,self.yearS2,self.yearE2,self.outdir_final,self.figdir)
 
-    def cal_RadKernel_regime(self):
-        result = RRW.RadKernel_regime(self.RadKernel_dir,self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir,self.exp1,self.exp2)
+#    def cal_RadKernel_regime(self):
+#        result = RRW.RadKernel_regime(self.RadKernel_dir,self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir,self.exp1,self.exp2)
 
     def cal_CloudRadKernel(self):
         result = CRK.CloudRadKernel(self.CloudRadKernel_dir,self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir)
@@ -116,13 +115,13 @@ class calculation:
 
 #############################################################################################
 
-def get_plot_dics(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir,ncase, linestyles, linewidths,Add_amipFutue,highlight_CESM2,lw_CESM2,ls_CESM2,lc_CESM2, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions):
+def get_plot_dics(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir,ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions):
     '''
     Aug 20, 201: get the plot dictionary for all plot types.
     '''
     dics_plots = {}
 
-    my_plot = plots(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir,ncase, linestyles, linewidths,Add_amipFutue,highlight_CESM2,lw_CESM2,ls_CESM2,lc_CESM2, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions)
+    my_plot = plots(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir,ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions)
 
     dics_plots['CRE_globalmean']             = my_plot.plot_CRE_globalmean
     dics_plots['RadKernel_globalmean']       = my_plot.plot_RadKernel_globalmean
@@ -148,7 +147,7 @@ def get_plot_dics(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2
 
 
 class plots:
-    def __init__(self, cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors,figdir,ncase, linestyles, linewidths,Add_amipFuture,highlight_CESM2,lw_CESM2,ls_CESM2,lc_CESM2, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions):
+    def __init__(self, cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors,figdir,ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions):
         self.cases = cases
         self.ref_casesA = ref_casesA
         self.Add_otherCMIPs = Add_otherCMIPs
@@ -164,11 +163,6 @@ class plots:
         self.ncase = ncase
         self.linestyles = linestyles
         self.linewidths = linewidths 
-        self.Add_amipFuture = Add_amipFuture
-        self.highlight_CESM2 = highlight_CESM2
-        self.lw_CESM2 = lw_CESM2
-        self.ls_CESM2 = ls_CESM2
-        self.lc_CESM2 = lc_CESM2
         self.datadir_Ringer = datadir_Ringer
         self.datadir_RadKernel = datadir_RadKernel
         self.datadir_CldRadKernel = datadir_CldRadKernel
@@ -178,8 +172,12 @@ class plots:
     ### bar plot for global mean CRE feedback: including E3SMv1 piControl and amip
     ####################################################################################
     def plot_CRE_globalmean(self):
-        print('ScatterPlot-CRE-feedback starts ........')
+        outfile = self.figdir+'ScatterPlot-CRE-feedback_'+self.cases[-1]+'.png'
+        if os.path.isfile(outfile):
+            print('ScatterPlot-CRE-feedback ready .......')
+            continue
 
+        print('ScatterPlot-CRE-feedback starts ........')
                 
         cases_here = copy.deepcopy(self.cases)
     
@@ -311,51 +309,29 @@ class plots:
             if self.Add_otherCMIPs:
                 # add other CMIP models
                 for icol,column in enumerate(df_p4K_plot.columns):
-                    if self.highlight_CESM2 and 'CESM2' in column:
-                        ax.scatter(x[idx]-0.2,df_p4K_plot.loc[index,column].tolist(),edgecolor='none',facecolor=self.lc_CESM2,alpha=1.0,s=self.s2,marker='x',\
-                        label=column.split('_')[0]+'_amip-p4K')
-                    else:
-                        ax.scatter(x[idx]-0.2,df_p4K_plot.loc[index,column].tolist(),edgecolor='none',facecolor='grey',alpha=self.a1,s=self.s2)
+                    ax.scatter(x[idx]-0.2,df_p4K_plot.loc[index,column].tolist(),edgecolor='none',facecolor='grey',alpha=self.a1,s=self.s2)
     
                 # ensemble mean
                 L2 = ax.scatter(x[idx]-0.2,df_p4K_plot.loc[index,:].mean().tolist(),color='black',s=self.s2)
-    
-                if self.Add_amipFuture:
-                    for icol,column in enumerate(df_future_plot.columns):
-                        if self.highlight_CESM2 and 'CESM2' in column:
-                            ax.scatter(x[idx]+0.2,df_future_plot.loc[index,column].tolist(),edgecolor='none',facecolor=self.lc_CESM2,alpha=1.0,s=self.s2,marker='x',\
-                            label=column.split('_')[0]+'_amip-future4K')
-                        else:
-                            ax.scatter(x[idx]+0.2,df_future_plot.loc[index,column].tolist(),edgecolor='none',facecolor='grey',alpha=self.a1,s=self.s2)
-    
-                    # ensemble mean
-                    L3 = ax.scatter(x[idx]+0.2,df_future_plot.loc[index,:].mean().tolist(),color='red',s=self.s2)
     
                 
             ax.tick_params(labelsize=self.fh)
             ax.set_ylabel('W/m$^2$/K',fontsize=self.fh)
             if idx==0:
-                if self.Add_amipFuture:
-                    if Add_otherCMIPs:
-                        legend1 = ax.legend([L2,L3],['amip4K','amipFuture'],fontsize=self.fh1,loc='upper left')
-                        ax.legend(fontsize=self.fh1)
-                        ax.add_artist(legend1) 
-                    else:
-                        ax.legend(fontsize=self.fh1)
+                if self.Add_otherCMIPs:
+                    legend1 = ax.legend([L2],['amip4K'],fontsize=self.fh1,loc='upper left')
+                    ax.legend(fontsize=self.fh1)
+                    ax.add_artist(legend1) 
                 else:
-                    if self.Add_otherCMIPs:
-                        legend1 = ax.legend([L2],['amip4K'],fontsize=self.fh1,loc='upper left')
-                        ax.legend(fontsize=self.fh1)
-                        ax.add_artist(legend1) 
-                    else:
-                        ax.legend(fontsize=self.fh1)
+                    ax.legend(fontsize=self.fh1)
         
         plt.xticks(x,df_plot.index)
         ax.set_title('Radiative Feedback',fontsize=self.fh)
         
         ax.set_ylim(-2.5,2.5)
         ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
-        fig.savefig(self.figdir+'ScatterPlot-CRE-feedback_'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
+
+        fig.savefig(outfile,bbox_inches='tight',dpi=300)
         plt.close(fig)
         
         #<2021-12-21
@@ -376,6 +352,12 @@ class plots:
     ### bar plot for radiative feedback based on Radiative kernel 
     ####################################################################
     def plot_RadKernel_globalmean(self):
+
+        outfile = self.figdir+'ScatterPlot-RadKernel-Feedback_'+self.cases[-1]+'.png'
+        if os.path.isfile(outfile):
+            print('ScatterPlot-RadKernel-Feedback ready........')
+            continue
+
         print('ScatterPlot-RadKernel-Feedback starts........')
     
         cases_here = copy.deepcopy(self.cases)
@@ -460,10 +442,7 @@ class plots:
                 df_all['v1_future4K'] = df_amip.iloc[:,0]
             else:    
                 df1 = pd.read_csv(self.datadir_v2+'FDBK_CMIP6_'+case+'.csv',index_col=0)
-                if 'a4SST' in case or 'amip-p4K-CESM2' in case:
-                    MODEL = 'CESM2'
-                else:
-                    MODEL = 'E3SM-1-0'
+                MODEL = 'E3SM-1-0'
                 
                 df2 = df1.loc[:,MODEL]
     
@@ -511,11 +490,7 @@ class plots:
             # other CMIP models
             if self.Add_otherCMIPs:
                 for icol,column in enumerate(df_others_plot.columns):
-                    if self.highlight_CESM2 and 'CESM2' in column:
-                        ax.scatter(x[idx], df_others_plot.loc[index,column].tolist(),s=self.s2,edgecolor='none',facecolor=self.lc_CESM2,alpha=1, marker='X',\
-                        label = column.split('_')[0]+'_amip-p4K')
-                    else:
-                        ax.scatter(x[idx]-0.2, df_others_plot.loc[index,column].tolist(),s=self.s2,edgecolor='none',facecolor='grey',alpha=0.3,marker='d')
+                    ax.scatter(x[idx]-0.2, df_others_plot.loc[index,column].tolist(),s=self.s2,edgecolor='none',facecolor='grey',alpha=0.3,marker='d')
     
                 # ensemble mean
                 L2 = ax.scatter(x[idx]-0.2, df_others_plot.loc[index,:].mean(),s=self.s2,edgecolor='black',facecolor='black',marker='d')
@@ -576,7 +551,7 @@ class plots:
 
         ax.set_ylim((-3.5,2.5))
         
-        fig.savefig(self.figdir+'ScatterPlot-RadKernel-Feedback_'+self.cases[-1]+'.png',bbox_inches='tight',dpi=300)
+        fig.savefig(outfile,bbox_inches='tight',dpi=300)
         plt.close(fig)
 
         #<2021-12-22
@@ -717,13 +692,7 @@ class plots:
         
                 L1 = ax.plot(clats,data_all,alpha=self.a1)
                 
-                # highlight CESM2
-                if self.highlight_CESM2:
-                    data_others = pd.DataFrame(data_others,columns = model_list)
-                    for column in data_others.columns:
-                        if column == 'CESM2':
-                            L3 = ax.plot(clats,data_others.loc[:,column],lw=self.lw_CESM2,ls=self.ls_CESM2,color=self.lc_CESM2)
-    
+   
                 # plot other CMIP models
                 if self.Add_otherCMIPs:
                     L2 = ax.plot(clats,np.average(data_others,axis=1),lw=3,label='ENS-MEAN',color='grey',linestyle='-')
@@ -744,11 +713,8 @@ class plots:
         
                 ax.axhline(y=0,color='grey',linestyle='--',lw=2)
                 if ivar == len(variables)-1:
-                    if self.highlight_CESM2:
-                        ax.legend(L1+L3,cases_here+['CESM2-amip4K'],fontsize=self.fh1,bbox_to_anchor=(1.04,0), loc='lower left')
-                    else:
-                        #ax.legend(L1,cases_here,fontsize=self.fh1,bbox_to_anchor=(1.04,0), loc='lower left')
-                        ax.legend(L1,cases_here,fontsize=self.fh1,loc='best')
+                    #ax.legend(L1,cases_here,fontsize=self.fh1,bbox_to_anchor=(1.04,0), loc='lower left')
+                    ax.legend(L1,cases_here,fontsize=self.fh1,loc='best')
     
                 num1 += 1
         
@@ -848,10 +814,7 @@ class plots:
                     df2 = df1.loc[:,'E3SM-1-0']
                     df_SW_all[case] = df2
                 else:
-                    if 'a4SST' in case or 'amip-p4K-CESM2' in case:
-                        MODEL = 'CESM2'
-                    else:
-                        MODEL = 'E3SM-1-0'
+                    MODEL = 'E3SM-1-0'
      
                     df1 = pd.read_csv(self.datadir_v2+'decomp_global_mean_lw_'+case+'.csv',index_col=0)
                     df2 = df1.loc[:,MODEL]
@@ -954,27 +917,15 @@ class plots:
                     s3 = 100
                     for icol,column in enumerate(df_LW_others.columns):
                         y1 = df_LW_others.iloc[jj*5:(jj+1)*5,icol]
-                        if self.highlight_CESM2 and 'CESM2' in column:
-                            axes[jj].scatter(x-w+w2-w3,y1.values.tolist(),marker='X',s=s3,color='grey',alpha=a2,\
-                            label=column.split('_')[0]+'_amip-p4K')
-                        else:
-                            axes[jj].scatter(x-w+w2-w3,y1.values.tolist(),marker='v',s=s3,color='grey',alpha=a2,label='_nolegend_')
+                        axes[jj].scatter(x-w+w2-w3,y1.values.tolist(),marker='v',s=s3,color='grey',alpha=a2,label='_nolegend_')
         
                     for icol,column in enumerate(df_net_others.columns):
                         y1 = df_net_others.iloc[jj*5:(jj+1)*5,icol]
-                        if self.highlight_CESM2 and 'CESM2' in column:
-                            axes[jj].scatter(x+w2-w3,y1.values.tolist(),marker='X',s=s3,color='grey',alpha=a2,\
-                            label=column.split('_')[0]+'_amip-p4K')
-                        else:
-                            axes[jj].scatter(x+w2-w3,y1.values.tolist(),marker='o',s=s3,color='grey',alpha=a2,label='_nolegend_')
+                        axes[jj].scatter(x+w2-w3,y1.values.tolist(),marker='o',s=s3,color='grey',alpha=a2,label='_nolegend_')
         
                     for icol,column in enumerate(df_SW_others.columns):
                         y1 = df_SW_others.iloc[jj*5:(jj+1)*5,icol]
-                        if self.highlight_CESM2 and 'CESM2' in column:
-                            axes[jj].scatter(x+w+w2-w3,y1.values.tolist(),marker='X',s=s3,color='grey',alpha=a2,\
-                            label=column.split('_')[0]+'_amip-p4K')
-                        else:
-                            axes[jj].scatter(x+w+w2-w3,y1.values.tolist(),marker='^',s=s3,color='grey',alpha=a2,label='_nolegend_')
+                        axes[jj].scatter(x+w+w2-w3,y1.values.tolist(),marker='^',s=s3,color='grey',alpha=a2,label='_nolegend_')
         
         
                     L1 = axes[jj].scatter(x-w+w2-w3,df_LW_others.iloc[jj*5:(jj+1)*5,:].mean(axis=1),marker='v',s=s3,color='grey',alpha=1.0,label='_nolegend_')
@@ -1287,9 +1238,6 @@ class plots:
         # get region bounds
         latS,latE,lonS,lonE = self.regions[0],self.regions[1],self.regions[2],self.regions[3]
         
-        # define DataFrame to save spatial correlation and NRMSE for further plot
-        pdata = pd.DataFrame(columns=['case','ref_case','lev','var','COR','NRMSE'])
-
         # define DataFrame to save figures to generate html file
         pd_plot_all = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
 
@@ -1430,10 +1378,7 @@ class plots:
                             cor,NRMSE, RMSE = PDF.pattern_cor(daa,dbb,wts,1)
                             print('cor=',cor, 'NRMSE=',NRMSE, 'RMSE=',RMSE)
 
-                            ##pdata = pd.DataFrame(columns=['case','ref_case','var','COR','NRMSE'])
                             pd_data = pd.DataFrame([[cases_here[icase],cases_here[iref],sec,name,cor,NRMSE]],columns=['case','ref_case','lev','var','COR','NRMSE'])
-                            pdata = pd.merge(pdata, pd_data, on = ['case','ref_case','lev','var','COR','NRMSE'], how='outer')
-                            print(pdata)
  
                             #ax1.set_title(names_out[n]+' ['+str(np.round(avgDATA,3))+']\nNRMSE='+str(np.round(NRMSE,2))+', COR='+str(np.round(cor,2)),fontsize=self.fh,loc='right')
                             #ax1.set_title('Diff',fontsize=self.fh,loc='left')
@@ -1467,10 +1412,6 @@ class plots:
                                       cases_here[icase]+' .VS. '+cases_here[iref])
 
                         pd_plot_all = pd.merge(pd_plot_all, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
-
-        print(pdata)
-        # save into csv file for further plot 
-        pdata.to_csv(self.datadir_v2+'COR_RMSE_CldRadKernel_latlon_dif_'+cases_here[-1]+'.csv')
 
         print('------------------------------------------------')
         print('plot_CldRadKernel_latlon_dif is done!')
@@ -1682,8 +1623,6 @@ class plots:
         #=============================================================
         # start plotting ...
         #=============================================================
-        # define DataFrame to save spatial correlation and NRMSE for further plot
-        pdata = pd.DataFrame(columns=['case','ref_case','var','COR','NRMSE'])
 
         pd_plot_all = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
 
@@ -1748,10 +1687,7 @@ class plots:
                             cor,NRMSE, RMSE = PDF.pattern_cor(daa,dbb,wts,1)
                             print('cor=',cor, 'NRMSE=',NRMSE, 'RMSE=',RMSE)
 
-                            ##pdata = pd.DataFrame(columns=['case','ref_case','var','COR','NRMSE'])
                             pd_data = pd.DataFrame([[cases_here[icase],cases_here[iref],variables_out[ivar],cor,NRMSE]],columns=['case','ref_case','var','COR','NRMSE'])
-                            pdata = pd.merge(pdata, pd_data, on = ['case','ref_case','var','COR','NRMSE'], how='outer')
-                            print(pdata)
     
                             #ax1.set_title(title_plot[num0]+' '+variables_out[ivar]+' ['+str(np.round(avgDATA,2))+']\nNRMSE='+str(np.round(NRMSE,2))+', COR='+str(np.round(cor,2)),fontsize=self.fh)
                             ax1.set_title('('+chr(ord('`')+(count+1))+') '+title_plot[num0]+' ['+str(np.round(avgDATA,2))+']',fontsize=self.fh)
@@ -1791,11 +1727,6 @@ class plots:
                                       case_out+' .VS. '+ref_case_out)
 
                 pd_plot_all = pd.merge(pd_plot_all, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
-
-                
-        print(pdata)
-        # save into csv file for further plot
-        pdata.to_csv(self.datadir_v2+'COR_RMSE_RadKernel_latlon_dif_'+cases_here[-1]+'.csv')
 
         print('------------------------------------------------')
         print('plot_RadKernel_latlon_dif is done!')
