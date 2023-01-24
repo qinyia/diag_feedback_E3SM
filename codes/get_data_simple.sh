@@ -21,12 +21,8 @@ exp_id=(FC5 FC5_4K)
 ncase=2 # two cases: one is control simulation, the other is plus4K simulation
 echo $ncase
 
-var_list=(FISCCP1_COSP FSDSC FSNSC TREFHT FSNT FSNTC FLUT FLUTC TS T FSDS FSNS Q SOLIN FSUTOA FSUTOAC PSL PS CLOUD CLDLIQ CLDICE PRECC PRECL U V OMEGA TGCLDCWP TGCLDIWP TGCLDLWP CLDLOW CLDLOW_CAL Z3 CLDMED CLDHGH CLDTOT RELHUM LHFLX SHFLX SWCF LWCF PBLH DP_MFUP_MAX DP_WCLDBASE DP_KCLDBASE QFLX TUQ TVQ CLOUDCOVER_CLUBB CLOUDFRAC_CLUBB RCMINLAYER_CLUBB RCM_CLUBB WP2_CLUBB WP3_CLUBB WPRCP_CLUBB WPRTP_CLUBB WPTHLP_CLUBB WPTHVP_CLUBB RTP2_CLUBB RTPTHLP_CLUBB THLP2_CLUBB RCMTEND_CLUBB MPDLIQ DPDLFLIQ MPDW2P TMQ FLDS FLNS QRL QRS QRLC QRSC FDLCA FDLA FULA FULCA FNLA FNLCA CMFMCDZM ZMMU ZMMD CONCLD)
-var_new_list=(FISCCP1_COSP rsdscs rsnsc tas rsnt rsntcs rlut rlutcs ts T rsds rsns Q rsdt FSUTOA FSUTOAC psl ps CLOUD CLDLIQ CLDICE PRECC PRECL U V OMEGA TGCLDCWP TGCLDIWP TGCLDLWP CLDLOW CLDLOW_CAL Z3 CLDMED CLDHGH CLDTOT RELHUM LHFLX SHFLX SWCF LWCF PBLH DP_MFUP_MAX DP_WCLDBASE DP_KCLDBASE QFLX TUQ TVQ CLOUDCOVER_CLUBB CLOUDFRAC_CLUBB RCMINLAYER_CLUBB RCM_CLUBB WP2_CLUBB WP3_CLUBB WPRCP_CLUBB WPRTP_CLUBB WPTHLP_CLUBB WPTHVP_CLUBB RTP2_CLUBB RTPTHLP_CLUBB THLP2_CLUBB RCMTEND_CLUBB MPDLIQ DPDLFLIQ MPDW2P TMQ rlds rlns QRL QRS QRLC QRSC FDLCA FDLA FULA FULCA FNLA FNLCA CMFMCDZM ZMMU ZMMD CONCLD)
-
-#var_list=(CLDLIQ TGCLDLWP TGCLDIWP MPDLIQ MPDICE DCCLDLIQ DCCLDICE RCMTEND_CLUBB ZMDLIQ DPDLFLIQ MPDW2P MPDW2I MPDW2V QCSEDTEN PRAO PRCO PSACWSO BERGSO)
-#var_new_list=(CLDLIQ TGCLDLWP TGCLDIWP MPDLIQ MPDICE DCCLDLIQ DCCLDICE RCMTEND_CLUBB ZMDLIQ DPDLFLIQ MPDW2P MPDW2I MPDW2V QCSEDTEN PRAO PRCO PSACWSO BERGSO)
-
+var_list=(FISCCP1_COSP FSDSC FSNSC TREFHT FSNT FSNTC FLUT FLUTC TS T FSDS FSNS Q SOLIN FSUTOA FSUTOAC PSL PS CLOUD CLDLIQ CLDICE PRECC PRECL U V OMEGA TGCLDCWP TGCLDIWP TGCLDLWP CLDLOW Z3 CLDMED CLDHGH CLDTOT RELHUM LHFLX SHFLX SWCF LWCF PBLH QFLX FLDS FLNS)
+var_new_list=(FISCCP1_COSP rsdscs rsnsc tas rsnt rsntcs rlut rlutcs ts T rsds rsns Q rsdt FSUTOA FSUTOAC psl ps CLOUD CLDLIQ CLDICE PRECC PRECL U V OMEGA TGCLDCWP TGCLDIWP TGCLDLWP CLDLOW Z3 CLDMED CLDHGH CLDTOT RELHUM LHFLX SHFLX SWCF LWCF PBLH QFLX rlds rlns)
 
 nvar=${#var_list[@]}
 echo $nvar
@@ -73,6 +69,7 @@ do
       done
     done
     
+
     # Generate time series files for each variable 
     for ivar in `seq 0 $[$nvar-1]`
     do
@@ -83,15 +80,25 @@ do
         outfile=${varout}_${exp_id[ii]}_${int_year_4d}${int_mon_2d}-${end_year_4d}${end_mon_2d}.nc
 
         if [ ! -f "${outfile}" ] ; then
+            if [[ "${comp}" == *"cam"* ]] ; then
+                mod=cam
+            else
+                mod=eam
+            fi
+                 
+            # YQIN 01/23/23. ncclimo changes the splitter mode into a specific --split argument...
+
             ncclimo \
-            -c ${run_id[ii]} \
+            --split \
             -v ${var} \
+            -c ${run_id[ii]} \
+            -m ${mod} \
             --yr_srt=${int_year} \
             --yr_end=${end_year} \
             --map=${rgr_map} \
-            -o trash \
-            -O output \
-            ${outdir}/tmp/${run_id[ii]}.${comp}.????-*.nc
+            -o ${outdir}/trash \
+            -O ${outdir}/output \
+            ${outdir}/tmp/*${comp}.????-*.nc
     
             # rename the output file to the desired format
             mv ${outdir}/output/${var}* ${outdir}/${outfile}
