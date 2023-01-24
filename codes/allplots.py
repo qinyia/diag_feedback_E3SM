@@ -175,7 +175,7 @@ class plots:
         outfile = self.figdir+'ScatterPlot-CRE-feedback_'+self.cases[-1]+'.png'
         if os.path.isfile(outfile):
             print('ScatterPlot-CRE-feedback ready .......')
-            continue
+            return 
 
         print('ScatterPlot-CRE-feedback starts ........')
                 
@@ -356,7 +356,7 @@ class plots:
         outfile = self.figdir+'ScatterPlot-RadKernel-Feedback_'+self.cases[-1]+'.png'
         if os.path.isfile(outfile):
             print('ScatterPlot-RadKernel-Feedback ready........')
-            continue
+            return 
 
         print('ScatterPlot-RadKernel-Feedback starts........')
     
