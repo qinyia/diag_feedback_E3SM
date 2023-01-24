@@ -23,17 +23,16 @@ if machine == 'compy':
     run_dir = "/compyfs/qiny108/" 
 elif machine == 'cori':
     www_dir = "/global/project/projectdirs/mp193/www/qinyi/"
-    #run_dir = "/global/cscratch1/sd/qinyi/"
-    run_dir = "/global/project/projectdirs/mp193/www/qinyi/diagfbk_testdata/"
+    run_dir = "/global/cscratch1/sd/qinyi/diagfbk_demo/"
 
 e3sm_version = 1 # E3SM version 
 
-PreProcess = True  # True: prepare input data for feedback calculation, including regrid and reorganize data
-COSP_output = True # True: you have COSP output; False: no COSP output
+PreProcess = False  # True: prepare input data for feedback calculation, including regrid and reorganize data
+hasCOSP = True   # True: include COSP output 
 
 RunDiag = False # True: run feedback calculation
 
-GetFigure = False # True: run figure plotting and generate webpage
+GetFigure = True # True: run figure plotting and generate webpage
 
 if GetFigure:
     # -------------------------
@@ -99,11 +98,8 @@ if machine == 'compy':
 elif machine == 'cori':
     RadKernel_dir = '/global/project/projectdirs/mp193/www/qinyi/DATA/Huang_kernel_data/'
 
-# ---------------------------- all main modifications please stop here --------------------------------------------
-# XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
 # RunDiag types 
-if COSP_output: 
+if RunDiag:
     cal_types = [
     'RadFeedback',
     'RadKernel',
@@ -111,18 +107,30 @@ if COSP_output:
     'CloudRadKernel',
     'cal_LCF',
     'cal_3dvar',
-    #'RadKernel_regime',
     ]
-else:
-    cal_types = [
-    'RadFeedback',
-    'RadKernel',
-    'Webb_Decomp',
-    'cal_LCF',
-    'cal_cloud',
-    'cal_3dvar',
-    #'RadKernel_regime',
+
+if GetFigure:
+    # ---------------- please set all plot types you want -----------------------------------------------------------------
+    ## choose which type figures you want to plot. If not, just comment them out.
+    plot_types = [
+    #'CRE_globalmean',                   # scatter plot of global mean CRE feedbacks
+    #'RadKernel_globalmean',             # scatter plot of global mean RadKernel feedback: non-cloud and adjusted CRE feedbacks
+    #'RadKernel_zonalmean',              # zonal mean plot of adjusted CRE feedback
+    #'CldRadKernel_globalmean',          # scatter plot of global mean CldRadKernel feedback: decomposition into low and non-low clouds and amount, altitude, optical depth.
+    #'CldRadKernel_zonalmean',           # zonal mean plot of CldRadKernel feedback
+    #'RadKernel_latlon',                 # lat-lon plot of RadKernel feedback for each case
+    #'CldRadKernel_latlon',              # lat-lon plot of CldRadKernel feedback for each case
+    #'CldRadKernel_latlon_dif',          # lat-lon plot of CldRadKernel feedback difference between case and reference case
+    #'RadKernel_latlon_dif',             # lat-lon plot of RadKernel feedback difference between case and reference case
+    #'tas_latlon',                       # lat-lon plot of surface air temperature and the difference between case and reference case
+    #'LCF',                              # Temperature - Liquid Condensate Fraction
+    'zm_CLOUD',                         # zonal mean plot of cloud varaibles difference 
+    'latlon_CLOUD',                     # lat-lon plot of cloud varaibles difference
+    #'webb_decomp',                      # decomposition of adjusted CRE feedback into low and non-low clouds
     ]
+
+# ---------------------------- all main modifications please stop here --------------------------------------------
+# XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 # current directory
 curdir = os. getcwd()
@@ -158,11 +166,10 @@ for icase,case in enumerate(case_short):
     if PreProcess:
         # Part -1: archive data from run directory to archive/atm/hist directory
         datadir_in0 = 'case_scripts/'
-        os.system('sh archive_data.sh '+run_id1 + ' '+run_id2+' '+datadir_in1+' '+datadir_in0)
+        os.system('sh ./codes/archive_data.sh '+run_id1 + ' '+run_id2+' '+datadir_in1+' '+datadir_in0)
         # Part 1: regrid data  
-        os.system('sh get_data_simple.sh '+ run_id1 + ' '+run_id2+' '+rgr_map+' '+str(yearS_CTL)+' '+str(yearE_CTL)+' '+str(yearS_P4K)+' '+str(yearE_P4K)+' '+datadir_in1+' '+datadir_in2+' '+outdir_out+' '+comp)
+        os.system('sh ./codes/get_data_simple.sh '+ run_id1 + ' '+run_id2+' '+rgr_map+' '+str(yearS_CTL)+' '+str(yearE_CTL)+' '+str(yearS_P4K)+' '+str(yearE_P4K)+' '+datadir_in1+' '+datadir_in2+' '+outdir_out+' '+comp)
 
-    #continue
 
     #################################################################
     # run diagnostics
@@ -176,51 +183,16 @@ for icase,case in enumerate(case_short):
 
         for key in dics_cal:
             if key in cal_types:
+                if not hasCOSP and 'CloudRadKernel' in key: 
+                    continue
+
                 dics_cal[key]()
  
 #################################################################
 # Generate plots and get webpage 
 #################################################################
-if GetFigure:
-
-    # ---------------- please set all plot types you want -----------------------------------------------------------------
-    ## choose which type figures you want to plot. If not, just comment them out.
-    if COSP_output:
-        plot_types = [
-        'CRE_globalmean',                   # scatter plot of global mean CRE feedbacks
-        'RadKernel_globalmean',             # scatter plot of global mean RadKernel feedback: non-cloud and adjusted CRE feedbacks
-        'RadKernel_zonalmean',              # zonal mean plot of adjusted CRE feedback
-        'CldRadKernel_globalmean',          # scatter plot of global mean CldRadKernel feedback: decomposition into low and non-low clouds and amount, altitude, optical depth.
-        'CldRadKernel_zonalmean',           # zonal mean plot of CldRadKernel feedback
-        'RadKernel_latlon',                 # lat-lon plot of RadKernel feedback for each case
-        'CldRadKernel_latlon',              # lat-lon plot of CldRadKernel feedback for each case
-        'CldRadKernel_latlon_dif',          # lat-lon plot of CldRadKernel feedback difference between case and reference case
-        'RadKernel_latlon_dif',             # lat-lon plot of RadKernel feedback difference between case and reference case
-        'tas_latlon',                       # lat-lon plot of surface air temperature and the difference between case and reference case
-        'LCF',                              # Temperature - Liquid Condensate Fraction
-        'zm_CLOUD',                         # zonal mean plot of cloud varaibles difference 
-        'latlon_CLOUD',                     # lat-lon plot of cloud varaibles difference
-        'webb_decomp',                      # decomposition of adjusted CRE feedback into low and non-low clouds
-        ]
-    else:
-        plot_types = [
-        'CRE_globalmean',                   # scatter plot of global mean CRE feedbacks
-        'RadKernel_globalmean',             # scatter plot of global mean RadKernel feedback: non-cloud and adjusted CRE feedbacks
-        'RadKernel_zonalmean',              # zonal mean plot of adjusted CRE feedback
-        #'CldRadKernel_globalmean',          # scatter plot of global mean CldRadKernel feedback: decomposition into low and non-low clouds and amount, altitude, optical depth.
-        #'CldRadKernel_zonalmean',           # zonal mean plot of CldRadKernel feedback
-        'RadKernel_latlon',                 # lat-lon plot of RadKernel feedback for each case
-        #'CldRadKernel_latlon',              # lat-lon plot of CldRadKernel feedback for each case
-        #'CldRadKernel_latlon_dif',          # lat-lon plot of CldRadKernel feedback difference between case and reference case
-        'RadKernel_latlon_dif',             # lat-lon plot of RadKernel feedback difference between case and reference case
-        'tas_latlon',                       # lat-lon plot of surface air temperature and the difference between case and reference case
-        'LCF',                              # Temperature - Liquid Condensate Fraction
-        'zm_CLOUD',                         # zonal mean plot of cloud varaibles difference 
-        'latlon_CLOUD',                     # lat-lon plot of cloud varaibles difference
-        'webb_decomp',                      # decomposition of adjusted CRE feedback into low and non-low clouds
-        ]
-
     
+if GetFigure:
     # ---------------- please set other optional setting for figure: start -------------------------------------------------
     colors = PDF.get_color('tab10',len(case_short)) #['tab:red','tab:blue','tab:cyan','tab:orange','tab:purple','tab:green']
         
@@ -299,20 +271,17 @@ if GetFigure:
         AP.make_dir(webdir)
         os.system("cp -p "+datadir+"/viewer/11.css "+viewdir)
     
-    # the following lines might be removed later....
-    Add_amipFuture = False
-    highlight_CESM2 = False
-    lw_CESM2 = 2
-    ls_CESM2 = ':'
-    lc_CESM2 = 'blue'
-    
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     # get dictionary of all plot type lists
-    dics_plots = AP.get_plot_dics(case_short,ref_case_short,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir, ncase, linestyles, linewidths,Add_amipFuture,highlight_CESM2,lw_CESM2, ls_CESM2, lc_CESM2, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions)
+    dics_plots = AP.get_plot_dics(case_short,ref_case_short,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir, ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions)
     
     for key in dics_plots:
         if key in plot_types:
+            # skip CldRadKernel if no COSP output
+            if not hasCOSP and 'CloudRadKernel' in key: 
+                continue
+
             pd2html = dics_plots[key]()
             # save pandas dataframe to csv file
             pd2html.to_csv(csvdir+"pd2html_"+key+".csv")
