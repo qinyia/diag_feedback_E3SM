@@ -46,7 +46,8 @@ def make_dir(outdir):
     if os.path.isdir(outdir):
         print("----------"+outdir+' exists.-------------')
     else:
-        os.mkdir(outdir)
+        os.makedirs(outdir)
+        #os.mkdir(outdir)
         print("----------Successfully created the directory %s " % outdir)
 
 #############################################################################################
