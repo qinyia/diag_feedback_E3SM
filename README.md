@@ -30,10 +30,12 @@ Installation:
 - please download radiative kernel data (Huang et al., 2017) from: https://www.dropbox.com/sh/ngfb7bxhwcbxwu8/AAC6AIha5rLjsl3lUZPiLO6Ua/toa?dl=0&subfolder_nav_tracking=1 first. Then, set RadKernel_dir = *datadir* in main-test.py.
 
 #### How to use it?
+- Modify cases_lookup.py: it is used to map the shortname of each pair of CTL and P4K cases with their long casename. Please add your defined shortname of case as a new dict key with real CTL and P4K experiment names as its value. After that, you can use the shortname in main-test.py to refer the cases.
+
 - main-test.py is the control script. Please modify it following all related settings in that script.
 -- Four main options: PreProcess, hasCOSP, RunDiag and GetFigure. Turning on all these will lead to a final webpage on your server's webpage directory. 
 
-- additionally, tropo.f90 is a fortran file. so, use f2py to convert it into one .so file: f2py -c tropo.f90 -m tropo [If some errors occurs, please try to 'module load gcc' first and then execute the command again.]
+- Note: tropo.f90 is a fortran file, so f2py is used to convert it into one .so file as shown above. If some errors occurs, please try to 'module load gcc' first and then execute the command again.
 
 
 #### Outputs?
