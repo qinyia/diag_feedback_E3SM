@@ -38,11 +38,14 @@ if GetFigure:
     # -------------------------
     # If you are not on cori machine, please set it as False. The comparison with other CMIP models are not 
     # supported on other machines currently. 
-    Add_otherCMIPs = False ## include option about whether adding results from other CMIP models
+    Add_otherCMIPs = True ## include option about whether adding results from other CMIP models
 
 
 # give one shorname for each pair experiment, like v1, v2, v3....
 case_short = [\
+'v1_coupled',
+#'v2_coupled',
+'v1_amip4K',
 #'v1',\
 'v2test',\
 ]
@@ -117,16 +120,16 @@ if GetFigure:
     'RadKernel_globalmean',             # scatter plot of global mean RadKernel feedback: non-cloud and adjusted CRE feedbacks
     'RadKernel_zonalmean',              # zonal mean plot of adjusted CRE feedback
     'CldRadKernel_globalmean',          # scatter plot of global mean CldRadKernel feedback: decomposition into low and non-low clouds and amount, altitude, optical depth.
-    'CldRadKernel_zonalmean',           # zonal mean plot of CldRadKernel feedback
-    'RadKernel_latlon',                 # lat-lon plot of RadKernel feedback for each case
-    'CldRadKernel_latlon',              # lat-lon plot of CldRadKernel feedback for each case
-    'CldRadKernel_latlon_dif',          # lat-lon plot of CldRadKernel feedback difference between case and reference case
-    'RadKernel_latlon_dif',             # lat-lon plot of RadKernel feedback difference between case and reference case
-    'tas_latlon',                       # lat-lon plot of surface air temperature and the difference between case and reference case
-    'LCF',                              # Temperature - Liquid Condensate Fraction
-    'zm_CLOUD',                         # zonal mean plot of cloud varaibles difference 
-    'latlon_CLOUD',                     # lat-lon plot of cloud varaibles difference
-    'webb_decomp',                      # decomposition of adjusted CRE feedback into low and non-low clouds
+    #'CldRadKernel_zonalmean',           # zonal mean plot of CldRadKernel feedback
+    #'RadKernel_latlon',                 # lat-lon plot of RadKernel feedback for each case
+    #'CldRadKernel_latlon',              # lat-lon plot of CldRadKernel feedback for each case
+    #'CldRadKernel_latlon_dif',          # lat-lon plot of CldRadKernel feedback difference between case and reference case
+    #'RadKernel_latlon_dif',             # lat-lon plot of RadKernel feedback difference between case and reference case
+    #'tas_latlon',                       # lat-lon plot of surface air temperature and the difference between case and reference case
+    #'LCF',                              # Temperature - Liquid Condensate Fraction
+    #'zm_CLOUD',                         # zonal mean plot of cloud varaibles difference 
+    #'latlon_CLOUD',                     # lat-lon plot of cloud varaibles difference
+    #'webb_decomp',                      # decomposition of adjusted CRE feedback into low and non-low clouds
     ]
 
 # ---------------------------- all main modifications please stop here --------------------------------------------
@@ -175,6 +178,9 @@ for icase,case in enumerate(case_short):
     # run diagnostics
     #################################################################
     if RunDiag:
+        if case_short[icase] in ['v1_coupled','v2_coupled','v1_amip4K']:
+            continue
+
         direc_data = outdir_out
     
         dics_cal = AP.get_cal_dics(direc_data, case_short[icase], yearS_P4K, yearE_P4K, run_id1, run_id2, outdir_final,
@@ -205,7 +211,7 @@ if GetFigure:
     fh1 = 13    # font size for legend
     s1 = 120    # marker size for E3SMv2
     s2 = 100    # marker size for other CMIP models
-    a1 = 1      # apparency for markers
+    a1 = 0.6      # apparency for markers
     
     # advanced setting: if plot_CldRadKernel_zonalmean, control the number of cases you want to show in one figure.
     # for example, if you would like to show the first three cases, then first 6 cases, and all cases, pls set ncase = [3,6,7]
