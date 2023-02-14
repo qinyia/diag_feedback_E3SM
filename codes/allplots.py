@@ -174,9 +174,9 @@ class plots:
     ####################################################################################
     def plot_CRE_globalmean(self):
         outfile = self.figdir+'ScatterPlot-CRE-feedback_'+self.cases[-1]+'.png'
-        if os.path.isfile(outfile):
-            print('ScatterPlot-CRE-feedback ready .......')
-            return 
+        #if os.path.isfile(outfile):
+        #    print('ScatterPlot-CRE-feedback ready .......')
+        #    return 
 
         print('ScatterPlot-CRE-feedback starts ........')
                 
@@ -286,11 +286,16 @@ class plots:
             drop_index = ['tas','SWCLR','LWCLR']
     
         df_plot = df_all.drop(index=drop_index).reindex(['FTOA','netCRE','SWCRE','LWCRE','FSNT','FLNT','FTOACLR','FSNTCLR','FLNTCLR'])
-        df_plot.index = ['$\lambda$','netCRE','SWCRE','LWCRE','SW','LW','$\lambda_{clr}$','clear-sky\nSW','clear-sky\nLW']
+        #df_plot.index = ['$\lambda$','netCRE','SWCRE','LWCRE','SW','LW','$\lambda_{clr}$','clear-sky\nSW','clear-sky\nLW']
 
         #print(df_plot.index)
     
         if self.Add_otherCMIPs:
+            if 'ts' in df_p4K.index:
+                drop_index = ['ts','SWCLR','LWCLR']
+            else:
+                drop_index = ['tas','SWCLR','LWCLR']
+                
             df_p4K_plot = df_p4K.drop(index=drop_index)
             df_future_plot = df_future.drop(index=drop_index)
        
@@ -326,7 +331,10 @@ class plots:
                 else:
                     ax.legend(fontsize=self.fh1)
         
-        plt.xticks(x,df_plot.index)
+        #plt.xticks(x,df_plot.index)
+        xticklabels = ['$\lambda$','netCRE','SWCRE','LWCRE','SW','LW','$\lambda_{clr}$','clear-sky\nSW','clear-sky\nLW']
+        plt.xticks(x,xticklabels)
+
         ax.set_title('Radiative Feedback',fontsize=self.fh)
         
         ax.set_ylim(-2.5,2.5)
@@ -355,9 +363,9 @@ class plots:
     def plot_RadKernel_globalmean(self):
 
         outfile = self.figdir+'ScatterPlot-RadKernel-Feedback_'+self.cases[-1]+'.png'
-        if os.path.isfile(outfile):
-            print('ScatterPlot-RadKernel-Feedback ready........')
-            return 
+        #if os.path.isfile(outfile):
+        #    print('ScatterPlot-RadKernel-Feedback ready........')
+        #    return 
 
         print('ScatterPlot-RadKernel-Feedback starts........')
     
@@ -914,7 +922,7 @@ class plots:
 
                 # CMIP - other models
                 if self.Add_otherCMIPs:
-                    a2 = 0.2
+                    a2 = 0.5
                     s3 = 100
                     for icol,column in enumerate(df_LW_others.columns):
                         y1 = df_LW_others.iloc[jj*5:(jj+1)*5,icol]
