@@ -1,6 +1,18 @@
 
 def get_lutable(version,exp):
     lu_table = {
+    'v1_coupled':[
+    'None',
+    'None',
+    ],
+    'v2_coupled':[
+    'None',
+    'None',
+    ], 
+    'v1_amip4K':[
+    'None',
+    'None',
+    ], 
     'v1':[
     '20211208.F2010C5-CMIP6-LR.IC.ne30_oECv3.compy.1080',
     '20211210.F2010C5-CMIP6-LR.IC.p4Ka.ne30_oECv3.compy.1080',
