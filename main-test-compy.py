@@ -27,10 +27,10 @@ elif machine == 'cori':
 
 e3sm_version = 2 # E3SM version: controls regrid file and 'eam' or 'cam' in searching files.
 
-PreProcess = False  # True: prepare input data for feedback calculation, including regrid and reorganize data
+PreProcess = True  # True: prepare input data for feedback calculation, including regrid and reorganize data
 hasCOSP = True   # True: include COSP output 
 
-RunDiag = False # True: run feedback calculation
+RunDiag = True # True: run feedback calculation
 
 GetFigure = True # True: run figure plotting and generate webpage
 
@@ -43,11 +43,12 @@ if GetFigure:
 
 # give one shorname for each pair experiment, like v1, v2, v3....
 case_short = [\
-'v1_coupled',
+#'v1_coupled',
 #'v2_coupled',
-'v1_amip4K',
+#'v1_amip4K',
 #'v1',\
 'v2test',\
+'v2test2',\
 ]
 
 # give the reference case: the reference case is used to compare with the case and generate difference maps. 
@@ -60,10 +61,6 @@ ref_case_short = [\
 #[],\
 [],\
 ]
-
-# set start and end years: sometime, your start and end years are different for control (CTL) and warming (P4K) exps. 
-yearS_CTL,yearE_CTL = 2,3
-yearS_P4K,yearE_P4K = 2,3 
 
 # set model output data directory 
 if e3sm_version == 2: # E3SM version 2
@@ -157,11 +154,11 @@ for outdir in [outdir_out, outdir_final, diagfigdir]:
 # ----------------------------------------------------------------------------
 for icase,case in enumerate(case_short):
 
-    run_id1 = CL.get_lutable(case,'amip')
-    run_id2 = CL.get_lutable(case,'amip4K')
+    run_id1,yearS_CTL,yearE_CTL = CL.get_lutable(case,'amip')
+    run_id2,yearS_P4K,yearE_P4K = CL.get_lutable(case,'amip4K')
     print(case)
-    print(run_id1)
-    print(run_id2)
+    print(run_id1,yearS_CTL, yearE_CTL)
+    print(run_id2,yearS_P4K, yearE_P4K)
 
     #################################################################
     # pre-process model output to get necessary input files
