@@ -1781,6 +1781,11 @@ class plots:
     
         ax.set_xlabel('Temperature [K]')
         ax.set_ylabel('Liquid Condensate Fraction') 
+
+        ax.axvline(x=273.15,ls='--',c='grey',lw=1.0)
+        ax.axhline(y=0.50,ls='--',c='grey',lw=1.0)
+
+        ax.grid(ls=':',alpha=0.7)
     
         ax.legend(fontsize=self.fh-3)
     
