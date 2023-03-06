@@ -171,12 +171,28 @@ def Global_RadFeedback(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,ex
                 thesevars = []
                 thesevars = np.append(thesevars, ['ts','SWCRE','LWCRE','netCRE','SWCLR','LWCLR','FTOA','FSNT','FLNT','FTOACLR','FSNTCLR','FLNTCLR'])  
 
+                # save climatological spatial map
+                # +++++++++++++++++++++++++++++++++++++++++++++++++++++
+                value = 0
+                cdms.setNetcdfShuffleFlag(value) ## where value is either 0 or 1
+                cdms.setNetcdfDeflateFlag(value) ## where value is either 0 or 1
+                cdms.setNetcdfDeflateLevelFlag(value) ## where value is a integer between 0 and 9 included
+                out_clim = cdms.open(outdir+'global_radiation_feedback_'+case_stamp+'.nc','w')
+                # +++++++++++++++++++++++++++++++++++++++++++++++++++++
+
                 df_gavg = pd.DataFrame()
 
                 dic_new = {}
                 ### get monthly climatology
                 for ivar,svar in enumerate(thesevars):
                     print('here we are processing ',svar)
+
+                    # +++++++++++++++++++++++++++++++++++++++++++++++++++++
+                    # save climatological spatial map
+                    datao = MV.average(dic_all[svar+'_ano'],axis=0)
+                    datao.id = svar+'_ano'
+                    out_clim.write(datao)
+                    # +++++++++++++++++++++++++++++++++++++++++++++++++++++
   
                     # Mar 11: add setting time bounds to avoid the 'Nontype error from time.py' while get annual mean using cdutil.YEAR
                     cdutil.setTimeBoundsMonthly(dic_all[svar+'_ano'],1)
@@ -220,4 +236,6 @@ def Global_RadFeedback(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,ex
                 print(df_gavg)
     
                 df_gavg.to_csv(outdir+'global_mean_features_'+case_stamp+'.csv')
+
+                out_clim.close()
 
