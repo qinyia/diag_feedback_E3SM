@@ -26,10 +26,10 @@ elif machine == 'cori':
 
 e3sm_version = 2 # E3SM version 
 
-PreProcess = True  # True: prepare input data for feedback calculation, including regrid and reorganize data
+PreProcess = False  # True: prepare input data for feedback calculation, including regrid and reorganize data
 COSP_output = True # True: you have COSP output; False: no COSP output
 
-RunDiag = False # True: run feedback calculation
+RunDiag = True # True: run feedback calculation
 
 GetFigure = False # True: run figure plotting and generate webpage
 
@@ -59,8 +59,10 @@ case_short = [\
 #'v2.bk.clubb.g4.1',\
 #'v2.bk.clubb.g5',\
 #'v2.bk.clubb.g6',
-'v2.bk.MG_wsub',\
-'v2.bk.trig_dcape',\
+#'v2.bk.MG_wsub',\
+#'v2.bk.trig_dcape',\
+'v1.4xCO2',\
+#'v2.4xCO2',\
 ]
 
 # give the reference case: the reference case is used to compare with the case and generate difference maps. 
@@ -115,14 +117,14 @@ RadKernel_dir = '/qfs/people/qiny108/diag_feedback_E3SM/Huang_kernel_data/'
 if COSP_output: 
     cal_types = [
     #'RadFeedback',
-    #'RadKernel',
+    'RadKernel',
     #'Webb_Decomp',
     #'CloudRadKernel',
     #'cal_LCF',
     #'cal_cloud',
     #'cal_EIS',
     #'cal_pr',
-    'cal_3dvar',
+    #'cal_3dvar',
     #'sort_cloud_regime',
     #'sort_cloud_3regime',
     #'RadKernel_regime',
