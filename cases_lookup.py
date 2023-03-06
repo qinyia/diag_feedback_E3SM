@@ -177,6 +177,14 @@ def get_lutable(version,exp):
     '20220808.v2.F2010-CICE.IC.OutTend.onlydcape.ZMout.ne30pg2_EC.compy',\
     '20220808.v2.F2010-CICE.IC.OutTend.onlydcape.ZMout.p4Ka.ne30pg2_EC.compy',\
     ],
+    'v1.4xCO2':[
+    '20211208.F2010C5-CMIP6-LR.IC.ne30_oECv3.compy.1080',\
+    '20230226.F2010C5-CMIP6-LR.IC.4xCO2.ne30_oECv3.compy.1080',\
+    ],
+    'v2.4xCO2':[
+    '20211208.v2.F2010-CICE.IC.ne30pg2_EC.compy',\
+    '20230226.v2.F2010-CICE.IC.4xCO2.ne30pg2_EC.compy',\
+    ],
     }
 
     if exp == 'amip':
