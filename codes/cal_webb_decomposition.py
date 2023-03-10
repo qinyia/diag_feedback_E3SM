@@ -15,21 +15,33 @@
 
 #IMPORT STUFF:
 #=====================
-import cdms2 as cdms
-import cdutil
-import MV2 as MV
 import numpy as np
+import xarray as xr
 import sys
-
-## qinyi 
 import os
-import genutil
-import numpy.ma as ma
 from global_land_mask import globe 
+sys.path.append('../')
+import cases_lookup as CL
  
 ###########################################################################
 # HELPFUL FUNCTIONS FOLLOW
 ###########################################################################
+def save_big_dataset(dic_mod,outfile):
+    '''
+    create a big dataset based on all variables in a dictionary and save to netcdf file.
+    '''
+    datalist = []
+    for svar in dic_mod.keys():
+        data = xr.DataArray(dic_mod[svar],name=svar)
+        datalist.append(data)
+
+    data_big = xr.merge(datalist,compat='override')
+    data_big.attrs['comments'] = 'created by cal_webb_decomposition.py; Author: Yi Qin'
+
+    #data_big.to_netcdf(outfile,encoding={'time':{'dtype': 'i4'},'bin':{'dtype':'i4'}})
+    data_big.to_netcdf(outfile)
+
+# ========================================================================
 def cal_webb_decomp(direc_data,case_stamp,yearS,yearE,outdir,figdir):
 
     outfile = outdir+'lat-lon-gfdbk-CMIP6-'+case_stamp+'-webb-decomp.nc'
@@ -38,9 +50,8 @@ def cal_webb_decomp(direc_data,case_stamp,yearS,yearE,outdir,figdir):
         print('cal_webb_decomp ', case_stamp, 'output is ready. Please continue. ')
         return
     else:
-        lats = np.arange(-90,92.5,2.5)
-        lons = np.arange(1.25,360,2.5)
-        grid = cdms.createGenericGrid(lats,lons)
+        lats_spc = np.arange(-90,92.5,2.5)
+        lons_spc = np.arange(1.25,360,2.5)
 
         var = ['SWCRE_ano_grd_adj', 'LWCRE_ano_grd_adj', 'netCRE_ano_grd_adj']
         var_out = ['SWCRE','LWCRE','netCRE']
@@ -54,8 +65,8 @@ def cal_webb_decomp(direc_data,case_stamp,yearS,yearE,outdir,figdir):
                 print(svar)
                 svar_out = var_out[ivar]
 
-                f1 = cdms.open(direc_data+'/lat-lon-gfdbk-CMIP6-'+case_stamp+'.nc')
-                pi_raw = f1(svar)
+                f1 = xr.open_dataset(direc_data+'/lat-lon-gfdbk-CMIP6-'+case_stamp+'.nc')
+                pi_raw = f1[svar]
                 f1.close()
 
                 dic_all[svar_out] = pi_raw
@@ -74,32 +85,33 @@ def cal_webb_decomp(direc_data,case_stamp,yearS,yearE,outdir,figdir):
 
         dic_all_mask = {}
 
-        dic_all_mask['SWCRE_lo'] = MV.masked_where(lo_mask == False, dic_all['SWCRE'])
-        dic_all_mask['SWCRE_nonlo'] = MV.masked_where(nonlo_mask == False, dic_all['SWCRE'])
+        dic_all_mask['SWCRE_lo']     = dic_all['SWCRE'].where(lo_mask == True)
+        dic_all_mask['SWCRE_lo'].attrs['long_name'] = 'SW low cloud feedback'
 
-        dic_all_mask['LWCRE_lo'] = MV.masked_where(lo_mask == False, dic_all['LWCRE'])
-        dic_all_mask['LWCRE_nonlo'] = MV.masked_where(nonlo_mask == False, dic_all['LWCRE'])
+        dic_all_mask['SWCRE_nonlo']  = dic_all['SWCRE'].where(nonlo_mask == True)
+        dic_all_mask['SWCRE_nonlo'].attrs['long_name'] = 'SW non-low cloud feedback'
 
-        dic_all_mask['netCRE_lo'] = MV.masked_where(lo_mask == False, dic_all['netCRE'])
-        dic_all_mask['netCRE_nonlo'] = MV.masked_where(nonlo_mask == False, dic_all['netCRE'])
+        dic_all_mask['LWCRE_lo']     = dic_all['LWCRE'].where(lo_mask == True)
+        dic_all_mask['LWCRE_lo'].attrs['long_name'] = 'LW low cloud feedback'
+
+        dic_all_mask['LWCRE_nonlo']  = dic_all['LWCRE'].where(nonlo_mask == True)
+        dic_all_mask['LWCRE_nonlo'].attrs['long_name'] = 'LW non-low cloud feedback'
+
+        dic_all_mask['netCRE_lo']    = dic_all['netCRE'].where(lo_mask == True)
+        dic_all_mask['netCRE_lo'].attrs['long_name'] = 'NET low cloud feedback'
+
+        dic_all_mask['netCRE_nonlo'] = dic_all['netCRE'].where(nonlo_mask == True)
+        dic_all_mask['netCRE_nonlo'].attrs['long_name'] = 'NET non-low cloud feedback'
+
+
+        # set units
+        for svar in dic_all_mask.keys():
+            dic_all_mask[svar].attrs['units'] = 'W/m2/K'
 
         # =============================================
         # save data into file     
         # =============================================
-        value = 0
-        cdms.setNetcdfShuffleFlag(value) ## where value is either 0 or 1
-        cdms.setNetcdfDeflateFlag(value) ## where value is either 0 or 1
-        cdms.setNetcdfDeflateLevelFlag(value) ## where value is a integer between 0 and 9 included
-
-        fout = cdms.open(outfile,'w')
-
-        for svar in dic_all_mask.keys():
-            print('svar = ', svar)
-            tmp = dic_all_mask[svar] 
-            fout.write(tmp, id = svar)
-            fout.comment = ''
-
-        fout.close()
+        save_big_dataset(dic_all_mask,outfile)
 
  # =========================================================================================
 def webb_decomposition(sw,lw):
@@ -166,4 +178,31 @@ def webb_decomposition(sw,lw):
     return lo_mask, nonlo_mask
 
 # =========================================================================================
+
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+if __name__ == "__main__":
+
+    #direc_data = '/compyfs/qiny108/diag_feedback_E3SM_postdata/'
+    direc_data = '/qfs/people/qiny108/colla/diag_feedback_E3SM/data/'
+
+    case_stamps = [\
+    'v2test'
+    ]
+
+    for case_stamp in case_stamps:
+
+        fname1,_,_ = CL.get_lutable(case_stamp,'amip')
+        fname2,_,_ = CL.get_lutable(case_stamp,'amip4K')
+
+        outdir = './'
+        figdir = './'
+
+        exp1 = 'FC5'
+        exp2 = 'FC5_4K'
+
+        yearS = 2
+        yearE = 6
+
+        cal_webb_decomp(direc_data,case_stamp,yearS,yearE,outdir,figdir)
 
