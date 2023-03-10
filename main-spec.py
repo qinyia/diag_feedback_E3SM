@@ -26,10 +26,10 @@ elif machine == 'cori':
 
 e3sm_version = 2 # E3SM version 
 
-PreProcess = False  # True: prepare input data for feedback calculation, including regrid and reorganize data
+PreProcess = True  # True: prepare input data for feedback calculation, including regrid and reorganize data
 COSP_output = True # True: you have COSP output; False: no COSP output
 
-RunDiag = True # True: run feedback calculation
+RunDiag = False # True: run feedback calculation
 
 GetFigure = False # True: run figure plotting and generate webpage
 
@@ -60,8 +60,8 @@ case_short = [\
 #'v2.bk.clubb.g5',\
 #'v2.bk.clubb.g6',
 #'v2.bk.MG_wsub',\
-#'v2.bk.trig_dcape',\
-'v1.4xCO2',\
+'v2.bk.trig_ull',\
+#'v1.4xCO2',\
 #'v2.4xCO2',\
 ]
 

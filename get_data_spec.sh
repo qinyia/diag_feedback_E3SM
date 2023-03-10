@@ -40,12 +40,20 @@ clb1_var_new_list=(WP2_CLUBB WP3_CLUBB WPRCP_CLUBB WPRTP_CLUBB WPTHLP_CLUBB WPTH
 clb2_var_list=(DPBLH PBLHI PBLHOLD FRQPBL ZLCL DCPPBL DTHVINV DTINV DZINV ENTEFF ENTEFFN ENTEFFP ENTEFF_ALL ENTEFF_ALLN ENTEFF_ALLP ENTRAT ENTRATN ENTRATP ENTRAT_ALL ENTRAT_ALLN ENTRAT_ALLP)
 clb2_var_new_list=(DPBLH PBLHI PBLHOLD FRQPBL ZLCL DCPPBL DTHVINV DTINV DZINV ENTEFF ENTEFFN ENTEFFP ENTEFF_ALL ENTEFF_ALLN ENTEFF_ALLP ENTRAT ENTRATN ENTRATP ENTRAT_ALL ENTRAT_ALLN ENTRAT_ALLP)
 
+# additional variables for LCF diagnostics
+oth_var_list=(CLDLIQ CLDICE SNOWQM)
+oth_var_new_list=(CLDLIQ CLDICE SNOWQM)
+
 # merge as the final list
 #var_list=( "${reg_var_list[@]}" "${ten_var_list[@]}" "${clb1_var_list[@]}" "${clb2_var_list[@]}" )
 #var_new_list=( "${reg_var_new_list[@]}" "${ten_var_new_list[@]}" "${clb1_var_new_list[@]}" "${clb2_var_new_list[@]}" )
 
-var_list=( "${reg_var_list[@]}" )
-var_new_list=( "${reg_var_new_list[@]}" )
+#var_list=( "${reg_var_list[@]}" )
+#var_new_list=( "${reg_var_new_list[@]}" )
+
+var_list=( "${oth_var_list[@]}" )
+var_new_list=( "${oth_var_new_list[@]}" )
+
 
 echo ${var_list[@]}
 echo ${var_new_list[@]}
