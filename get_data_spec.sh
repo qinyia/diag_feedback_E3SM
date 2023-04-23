@@ -22,8 +22,8 @@ ncase=2 # two cases: one is control simulation, the other is plus4K simulation
 echo $ncase
 
 # regular variables 
-reg_var_list=(FISCCP1_COSP FSDSC FSNSC TREFHT FSNT FSNTC FLUT FLUTC TS T FSDS FSNS Q SOLIN FSUTOA FSUTOAC PSL PS CLOUD CLDLIQ CLDICE PRECC PRECL U V OMEGA TGCLDCWP TGCLDIWP TGCLDLWP CLDLOW CLDLOW_CAL Z3 CLDMED CLDHGH CLDTOT RELHUM LHFLX SHFLX SWCF LWCF PBLH FREQZM CAPE QFLX QREFHT)
-reg_var_new_list=(FISCCP1_COSP rsdscs rsnsc tas rsnt rsntcs rlut rlutcs ts T rsds rsns Q rsdt FSUTOA FSUTOAC psl ps CLOUD CLDLIQ CLDICE PRECC PRECL U V OMEGA TGCLDCWP TGCLDIWP TGCLDLWP CLDLOW CLDLOW_CAL Z3 CLDMED CLDHGH CLDTOT RELHUM LHFLX SHFLX SWCF LWCF PBLH FREQZM CAPE QFLX QREFHT)
+reg_var_list=(FISCCP1_COSP FSDSC FSNSC TREFHT FSNT FSNTC FLUT FLUTC TS T FSDS FSNS Q SOLIN FSUTOA FSUTOAC PSL PS CLOUD CLDLIQ CLDICE PRECC PRECL OMEGA TGCLDCWP TGCLDIWP TGCLDLWP CLDLOW CLDMED CLDHGH CLDTOT RELHUM LHFLX SHFLX SWCF LWCF PBLH FREQZM QREFHT)
+reg_var_new_list=(FISCCP1_COSP rsdscs rsnsc tas rsnt rsntcs rlut rlutcs ts T rsds rsns Q rsdt FSUTOA FSUTOAC psl ps CLOUD CLDLIQ CLDICE PRECC PRECL OMEGA TGCLDCWP TGCLDIWP TGCLDLWP CLDLOW CLDMED CLDHGH CLDTOT RELHUM LHFLX SHFLX SWCF LWCF PBLH FREQZM QREFHT)
 
 #var_list=(DPDLFLIQ FREQZM dlf_out du_out ql_out mb_out dltaa_out dadt_out cape_out dcape_out deltat_out deltaq_out t_out q_out t_star_out q_star_out TUQ TVQ TUH TVH)
 #var_new_list=(DPDLFLIQ FREQZM dlf_out du_out ql_out mb_out dltaa_out dadt_out cape_out dcape_out deltat_out deltaq_out t_out q_out t_star_out q_star_out TUQ TVQ TUH TVH)
@@ -41,8 +41,11 @@ clb2_var_list=(DPBLH PBLHI PBLHOLD FRQPBL ZLCL DCPPBL DTHVINV DTINV DZINV ENTEFF
 clb2_var_new_list=(DPBLH PBLHI PBLHOLD FRQPBL ZLCL DCPPBL DTHVINV DTINV DZINV ENTEFF ENTEFFN ENTEFFP ENTEFF_ALL ENTEFF_ALLN ENTEFF_ALLP ENTRAT ENTRATN ENTRATP ENTRAT_ALL ENTRAT_ALLN ENTRAT_ALLP)
 
 # additional variables for LCF diagnostics
-oth_var_list=(CLDLIQ CLDICE SNOWQM)
-oth_var_new_list=(CLDLIQ CLDICE SNOWQM)
+#oth_var_list=(CLDLIQ CLDICE SNOWQM)
+#oth_var_new_list=(CLDLIQ CLDICE SNOWQM)
+
+oth_var_list=(FREQ_MINCDNC CLOUD CLDLIQ TREFHT)
+oth_var_new_list=(FREQ_MINCDNC CLOUD CLDLIQ tas)
 
 # merge as the final list
 #var_list=( "${reg_var_list[@]}" "${ten_var_list[@]}" "${clb1_var_list[@]}" "${clb2_var_list[@]}" )
