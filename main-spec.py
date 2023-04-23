@@ -60,9 +60,13 @@ case_short = [\
 #'v2.bk.clubb.g5',\
 #'v2.bk.clubb.g6',
 #'v2.bk.MG_wsub',\
-'v2.bk.trig_ull',\
+#'v2.bk.trig_ull',\
 #'v1.4xCO2',\
 #'v2.4xCO2',\
+'v2.freq_mincdnc',\
+#'v2.bk.MG_mincdnc.short',\
+#'v2ppe.FR',
+#'v2ppe.NDG',
 ]
 
 # give the reference case: the reference case is used to compare with the case and generate difference maps. 
@@ -73,23 +77,25 @@ case_short = [\
 # 4. If you don't need any reference cases for one case, just set it as [].
 ref_case_short = [\
 [],\
-[],\
-['v2','v2.P6K'],\
+['v2ppe.FR'],\
 [],\
 #['v1'],\
 #['v2'],\
 ]
 
 # set start and end years: sometime, your start and end years are different for control (CTL) and warming (P4K) exps. 
-yearS_CTL,yearE_CTL = 2,6 #101,250
-yearS_P4K,yearE_P4K = 2,6 #1,150
+#yearS_CTL,yearE_CTL = 2,6 #101,250
+#yearS_P4K,yearE_P4K = 2,6 #1,150
 
 # set model output data directory 
 if e3sm_version == 2: # E3SM version 2
     # set input directory 1 --- the directory before casename in the whole directory
     datadir_in1= run_dir+'/E3SMv2_simulations/'
+    #datadir_in1= run_dir+'/E3SMv2_simulations/PPE/'
+
     # set input directory 2 --- the directory after casename in the whole directory
     datadir_in2 = 'archive/atm/hist/'
+    #datadir_in2 = 'run/'
 
     comp = 'eam.h0'
     rgr_map = '/qfs/people/zender/data/maps/map_ne30pg2_to_cmip6_180x360_aave.20200201.nc'
@@ -119,7 +125,7 @@ if COSP_output:
     #'RadFeedback',
     'RadKernel',
     #'Webb_Decomp',
-    #'CloudRadKernel',
+    'CloudRadKernel',
     #'cal_LCF',
     #'cal_cloud',
     #'cal_EIS',
@@ -131,11 +137,11 @@ if COSP_output:
     ]
 else:
     cal_types = [
-    'RadFeedback',
-    'RadKernel',
-    'Webb_Decomp',
-    'cal_LCF',
-    'cal_cloud',
+    #'RadFeedback',
+    #'RadKernel',
+    #'Webb_Decomp',
+    #'cal_LCF',
+    #'cal_cloud',
     #'cal_EIS',
     #'cal_pr',
     'cal_3dvar',
@@ -165,11 +171,11 @@ for outdir in [outdir_out, outdir_final, figdir]:
 # ----------------------------------------------------------------------------
 for icase,case in enumerate(case_short):
 
-    run_id1 = CL.get_lutable(case,'amip')
-    run_id2 = CL.get_lutable(case,'amip4K')
+    run_id1,yearS_CTL,yearE_CTL = CL.get_lutable(case,'amip')
+    run_id2,yearS_P4K,yearE_P4K = CL.get_lutable(case,'amip4K')
     print(case)
-    print(run_id1)
-    print(run_id2)
+    print(run_id1,yearS_CTL,yearE_CTL)
+    print(run_id2,yearS_P4K,yearE_P4K)
 
     #################################################################
     # pre-process model output to get necessary input files
@@ -177,7 +183,7 @@ for icase,case in enumerate(case_short):
     if PreProcess:
         # Part -1: archive data from run directory to archive/atm/hist directory
         datadir_in0 = 'case_scripts/'
-        os.system('sh archive_data.sh '+run_id1 + ' '+run_id2+' '+datadir_in1+' '+datadir_in0)
+        #os.system('sh archive_data.sh '+run_id1 + ' '+run_id2+' '+datadir_in1+' '+datadir_in0)
     
         os.system('sh get_data_spec.sh '+ run_id1 + ' '+run_id2+' '+rgr_map+' '+str(yearS_CTL)+' '+str(yearE_CTL)+' '+str(yearS_P4K)+' '+str(yearE_P4K)+' '+datadir_in1+' '+datadir_in2+' '+outdir_out+' '+comp)
         continue
@@ -210,13 +216,13 @@ if GetFigure:
     if COSP_output:
         plot_types = [
         #'CRE_globalmean',                   # scatter plot of global mean CRE feedbacks
-        #'RadKernel_globalmean',             # scatter plot of global mean RadKernel feedback: non-cloud and adjusted CRE feedbacks
-        #'RadKernel_zonalmean',              # zonal mean plot of adjusted CRE feedback
-        #'CldRadKernel_globalmean',          # scatter plot of global mean CldRadKernel feedback: decomposition into low and non-low clouds and amount, altitude, optical depth.
-        #'CldRadKernel_zonalmean',           # zonal mean plot of CldRadKernel feedback
-        #'RadKernel_latlon',                 # lat-lon plot of RadKernel feedback for each case
-        #'CldRadKernel_latlon',              # lat-lon plot of CldRadKernel feedback for each case
-        #'CldRadKernel_latlon_dif',          # lat-lon plot of CldRadKernel feedback difference between case and reference case
+        'RadKernel_globalmean',             # scatter plot of global mean RadKernel feedback: non-cloud and adjusted CRE feedbacks
+        'RadKernel_zonalmean',              # zonal mean plot of adjusted CRE feedback
+        'CldRadKernel_globalmean',          # scatter plot of global mean CldRadKernel feedback: decomposition into low and non-low clouds and amount, altitude, optical depth.
+        'CldRadKernel_zonalmean',           # zonal mean plot of CldRadKernel feedback
+        'RadKernel_latlon',                 # lat-lon plot of RadKernel feedback for each case
+        'CldRadKernel_latlon',              # lat-lon plot of CldRadKernel feedback for each case
+        'CldRadKernel_latlon_dif',          # lat-lon plot of CldRadKernel feedback difference between case and reference case
         'RadKernel_latlon_dif',             # lat-lon plot of RadKernel feedback difference between case and reference case
         #'tas_latlon',                       # lat-lon plot of surface air temperature and the difference between case and reference case
         #'LCF',                              # Temperature - Liquid Condensate Fraction
