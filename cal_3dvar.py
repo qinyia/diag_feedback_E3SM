@@ -78,13 +78,14 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
 #             'CLOUDCOVER_CLUBB', 'CLOUDFRAC_CLUBB', 'RCMINLAYER_CLUBB', 'RCM_CLUBB',
 #             'RTP2_CLUBB', 'RTPTHLP_CLUBB', 'THLP2_CLUBB',
 #             'WP2_CLUBB', 'WP3_CLUBB', 'WPRCP_CLUBB', 'WPRTP_CLUBB', 'WPTHLP_CLUBB', 'WPTHVP_CLUBB','Skw',\
-             'RCMTEND_CLUBB', 'MPDLIQ','DPDLFLIQ', 'MPDW2P',
-             'DCQ','ZMDQ','MPDQ','RVMTEND_CLUBB','DYNTEQ',
-             'DCCLDLIQ','ZMDLIQ','DPDLFLIQ','MPDLIQ','RCMTEND_CLUBB',
+#             'RCMTEND_CLUBB', 'MPDLIQ','DPDLFLIQ', 'MPDW2P',
+#             'DCQ','ZMDQ','MPDQ','RVMTEND_CLUBB','DYNTEQ',
+#             'DCCLDLIQ','ZMDLIQ','DPDLFLIQ','MPDLIQ','RCMTEND_CLUBB',
 #             'ts', 'CLOUD', 'CLDLIQ', 'TGCLDLWP', 'RELHUM', 'T', 'Q', 'Qsfc_700', 
 #             'EIS', 'CLOUD','CLDLIQ',\
 #             'OMEGA', 'U', 'V', 'ts_tas', 'SHFLX', 'LHFLX', 'RHsfc', 'PRECT', 'rlus', 
-             'DTCOND','DTCORE', 'ZMDT', 'TTEND_CLUBB', 'MPDT', 'QRL', 'QRS', 
+#             'DTCOND','DTCORE', 'ZMDT', 'TTEND_CLUBB', 'MPDT', 'QRL', 'QRS', 
+             'FREQ_MINCDNC','CLOUD','CLDLIQ',
 #             'CONCLD', 
 #             'CMFMCDZM', 'ZMMU', 'ZMMD', 
 #             'PRECC', 
