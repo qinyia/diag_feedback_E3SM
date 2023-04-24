@@ -22,8 +22,8 @@ ncase=2 # two cases: one is control simulation, the other is plus4K simulation
 echo $ncase
 
 # regular variables 
-reg_var_list=(FISCCP1_COSP FSDSC FSNSC TREFHT FSNT FSNTC FLUT FLUTC TS T FSDS FSNS Q SOLIN FSUTOA FSUTOAC PSL PS CLOUD CLDLIQ CLDICE PRECC PRECL OMEGA TGCLDCWP TGCLDIWP TGCLDLWP CLDLOW CLDMED CLDHGH CLDTOT RELHUM LHFLX SHFLX SWCF LWCF PBLH FREQZM QREFHT)
-reg_var_new_list=(FISCCP1_COSP rsdscs rsnsc tas rsnt rsntcs rlut rlutcs ts T rsds rsns Q rsdt FSUTOA FSUTOAC psl ps CLOUD CLDLIQ CLDICE PRECC PRECL OMEGA TGCLDCWP TGCLDIWP TGCLDLWP CLDLOW CLDMED CLDHGH CLDTOT RELHUM LHFLX SHFLX SWCF LWCF PBLH FREQZM QREFHT)
+reg_var_list=(FISCCP1_COSP FSDSC FSNSC TREFHT FSNT FSNTC FLUT FLUTC TS T FSDS FSNS Q SOLIN FSUTOA FSUTOAC PSL PS CLOUD CLDLIQ CLDICE PRECC PRECL OMEGA TGCLDCWP TGCLDIWP TGCLDLWP CLDLOW CLDMED CLDHGH CLDTOT RELHUM LHFLX SHFLX SWCF LWCF PBLH QREFHT)
+reg_var_new_list=(FISCCP1_COSP rsdscs rsnsc tas rsnt rsntcs rlut rlutcs ts T rsds rsns Q rsdt FSUTOA FSUTOAC psl ps CLOUD CLDLIQ CLDICE PRECC PRECL OMEGA TGCLDCWP TGCLDIWP TGCLDLWP CLDLOW CLDMED CLDHGH CLDTOT RELHUM LHFLX SHFLX SWCF LWCF PBLH FQREFHT)
 
 #var_list=(DPDLFLIQ FREQZM dlf_out du_out ql_out mb_out dltaa_out dadt_out cape_out dcape_out deltat_out deltaq_out t_out q_out t_star_out q_star_out TUQ TVQ TUH TVH)
 #var_new_list=(DPDLFLIQ FREQZM dlf_out du_out ql_out mb_out dltaa_out dadt_out cape_out dcape_out deltat_out deltaq_out t_out q_out t_star_out q_star_out TUQ TVQ TUH TVH)
@@ -51,11 +51,11 @@ oth_var_new_list=(FREQ_MINCDNC CLOUD CLDLIQ tas)
 #var_list=( "${reg_var_list[@]}" "${ten_var_list[@]}" "${clb1_var_list[@]}" "${clb2_var_list[@]}" )
 #var_new_list=( "${reg_var_new_list[@]}" "${ten_var_new_list[@]}" "${clb1_var_new_list[@]}" "${clb2_var_new_list[@]}" )
 
-#var_list=( "${reg_var_list[@]}" )
-#var_new_list=( "${reg_var_new_list[@]}" )
+var_list=( "${reg_var_list[@]}" )
+var_new_list=( "${reg_var_new_list[@]}" )
 
-var_list=( "${oth_var_list[@]}" )
-var_new_list=( "${oth_var_new_list[@]}" )
+#var_list=( "${oth_var_list[@]}" )
+#var_new_list=( "${oth_var_new_list[@]}" )
 
 
 echo ${var_list[@]}
