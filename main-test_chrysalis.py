@@ -42,6 +42,7 @@ if GetFigure:
     # If you are not on cori machine, please set it as False. The comparison with other CMIP models are not 
     # supported on other machines currently. 
     Add_otherCMIPs = True ## include option about whether adding results from other CMIP models
+    use_amip = False # use amip or cmip results from other CMIP models: amip - True; cmip - False 
 
 
 # give one shorname for each pair experiment, like v1, v2, v3....

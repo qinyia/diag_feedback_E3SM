@@ -27,10 +27,10 @@ elif machine == 'cori':
 
 e3sm_version = 2 # E3SM version: controls regrid file and 'eam' or 'cam' in searching files.
 
-PreProcess = True  # True: prepare input data for feedback calculation, including regrid and reorganize data
+PreProcess = False  # True: prepare input data for feedback calculation, including regrid and reorganize data
 hasCOSP = True   # True: include COSP output 
 
-RunDiag = True # True: run feedback calculation
+RunDiag = False # True: run feedback calculation
 
 GetFigure = True # True: run figure plotting and generate webpage
 
@@ -39,6 +39,7 @@ if GetFigure:
     # If you are not on cori machine, please set it as False. The comparison with other CMIP models are not 
     # supported on other machines currently. 
     Add_otherCMIPs = True ## include option about whether adding results from other CMIP models
+    use_amip = False # use amip or cmip results from other CMIP models: amip - True; cmip - False 
 
 
 # give one shorname for each pair experiment, like v1, v2, v3....
@@ -114,9 +115,9 @@ if GetFigure:
     ## choose which type figures you want to plot. If not, just comment them out.
     plot_types = [
     'CRE_globalmean',                   # scatter plot of global mean CRE feedbacks
-    'RadKernel_globalmean',             # scatter plot of global mean RadKernel feedback: non-cloud and adjusted CRE feedbacks
-    'RadKernel_zonalmean',              # zonal mean plot of adjusted CRE feedback
-    'CldRadKernel_globalmean',          # scatter plot of global mean CldRadKernel feedback: decomposition into low and non-low clouds and amount, altitude, optical depth.
+    #'RadKernel_globalmean',             # scatter plot of global mean RadKernel feedback: non-cloud and adjusted CRE feedbacks
+    #'RadKernel_zonalmean',              # zonal mean plot of adjusted CRE feedback
+    #'CldRadKernel_globalmean',          # scatter plot of global mean CldRadKernel feedback: decomposition into low and non-low clouds and amount, altitude, optical depth.
     #'CldRadKernel_zonalmean',           # zonal mean plot of CldRadKernel feedback
     #'RadKernel_latlon',                 # lat-lon plot of RadKernel feedback for each case
     #'CldRadKernel_latlon',              # lat-lon plot of CldRadKernel feedback for each case
@@ -277,7 +278,7 @@ if GetFigure:
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     # get dictionary of all plot type lists
-    dics_plots = AP.get_plot_dics(case_short,ref_case_short,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir, ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions)
+    dics_plots = AP.get_plot_dics(case_short,ref_case_short,Add_otherCMIPs, use_amip, datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir, ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions)
     
     for key in dics_plots:
         if key in plot_types:

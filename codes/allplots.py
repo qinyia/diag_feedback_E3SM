@@ -116,13 +116,13 @@ class calculation:
 
 #############################################################################################
 
-def get_plot_dics(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir,ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions):
+def get_plot_dics(cases,ref_casesA,Add_otherCMIPs,use_amip,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir,ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions):
     '''
     Aug 20, 201: get the plot dictionary for all plot types.
     '''
     dics_plots = {}
 
-    my_plot = plots(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir,ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions)
+    my_plot = plots(cases,ref_casesA,Add_otherCMIPs,use_amip,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir,ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions)
 
     dics_plots['CRE_globalmean']             = my_plot.plot_CRE_globalmean
     dics_plots['RadKernel_globalmean']       = my_plot.plot_RadKernel_globalmean
@@ -148,10 +148,11 @@ def get_plot_dics(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2
 
 
 class plots:
-    def __init__(self, cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors,figdir,ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions):
+    def __init__(self, cases,ref_casesA,Add_otherCMIPs,use_amip, datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors,figdir,ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions):
         self.cases = cases
         self.ref_casesA = ref_casesA
         self.Add_otherCMIPs = Add_otherCMIPs
+        self.use_amip = use_amip
         self.datadir_v2 = datadir_v2
         self.datadir_v1 = datadir_v1
         self.s1 = s1
@@ -188,18 +189,29 @@ class plots:
             # read other CMIP5 and CMIP6 models
             # Oct 19, 2020: reduce model lists to fit both amip-p4K and amipFuture
     
-            exp_cntl = [['piControl','amip'],['piControl','amip']]
-            exp_new = [['abrupt4xCO2','amip4K'],['abrupt-4xCO2','amip-p4K']]
-            
+            # if only add those models with both amip and cmip runs, set use_amip = True
+
+            phases = ['CMIP5','CMIP6']
+
             prefix = 'global_mean_features'
-            suffix1 = '*.csv'
-            suffix2 = '*.csv'
-            
+            if self.use_amip:
+                exp_cntl = [['piControl','amip'],['piControl','amip']]
+                exp_new = [['abrupt4xCO2','amip4K'],['abrupt-4xCO2','amip-p4K']]
+                suffix1 = '*.csv'
+                suffix2 = '*.csv'
+            else:
+                exp_cntl = [['piControl','piControl'],['piControl','piControl']]
+                exp_new = [['abrupt4xCO2','abrupt4xCO2'],['abrupt-4xCO2','abrupt-4xCO2']]
+                suffix1 = '*.csv'
+                suffix2 = '*.csv'
+
             models_all,cmip5_models,cmip6_models = PDF.get_intersect_withripf(exp_cntl,exp_new,prefix,suffix1,suffix2,self.datadir_Ringer)
     
             exp_cntl = [['piControl','amip'],['piControl','amip']]
             exp_new = [['abrupt4xCO2','amipFuture'],['abrupt-4xCO2','amip-future4K']]
-           
+            suffix1 = '*.csv'
+            suffix2 = '*.csv'
+          
             models_all_future,cmip5_models_future,cmip6_models_future = PDF.get_intersect_withripf(exp_cntl,exp_new,prefix,suffix1,suffix2,self.datadir_Ringer)
             
             #print('models_all',models_all,len(models_all))
@@ -215,16 +227,24 @@ class plots:
             for model in models_all:
                 if model in cmip5_models:
     
-                    if model == 'CanESM2_r1i1p1':
-                        model_amip = 'CanAM4_r1i1p1'
-                    elif model == 'HadGEM2-ES_r1i1p1':
-                        model_amip = 'HadGEM2-A_r1i1p1'
-                    else:
-                	    model_amip = model
+                    if self.use_amip:
+                        if model == 'CanESM2_r1i1p1':
+                            model_amip = 'CanAM4_r1i1p1'
+                        elif model == 'HadGEM2-ES_r1i1p1':
+                            model_amip = 'HadGEM2-A_r1i1p1'
+                        else:
+                    	    model_amip = model
     
-                    filename = self.datadir_Ringer+'global_mean_features_CMIP5_amip4K_'+model_amip+'.csv'
+                        filename = self.datadir_Ringer+'global_mean_features_CMIP5_amip4K_'+model_amip+'.csv'
+                    else:
+                        filename = self.datadir_Ringer+'global_mean_features_CMIP5_abrupt4xCO2_'+model+'.csv'
+
                 else:
-                    filename = self.datadir_Ringer+'global_mean_features_CMIP6_amip-p4K_'+model+'.csv'
+                    if self.use_amip:
+                        filename = self.datadir_Ringer+'global_mean_features_CMIP6_amip-p4K_'+model+'.csv'
+                    else:
+                        filename = self.datadir_Ringer+'global_mean_features_CMIP6_abrupt-4xCO2_'+model+'.csv'
+
             
                 df = pd.read_csv(filename,index_col=0)
                 df.index = df.loc[:,'varname']
@@ -325,7 +345,12 @@ class plots:
             ax.set_ylabel('W/m$^2$/K',fontsize=self.fh)
             if idx==0:
                 if self.Add_otherCMIPs:
-                    legend1 = ax.legend([L2],['amip4K'],fontsize=self.fh1,loc='upper left')
+                    if self.use_amip:
+                        label = 'Multimodel Mean\n[amip4K]'
+                    else:
+                        label = 'Multimodel Mean\n[abrupt4xCO2]'
+
+                    legend1 = ax.legend([L2],[label],fontsize=self.fh1,loc='upper left')
                     ax.legend(fontsize=self.fh1)
                     ax.add_artist(legend1) 
                 else:
@@ -376,12 +401,12 @@ class plots:
         # read other CMIP5&6 models
         if self.Add_otherCMIPs:
     
-            # if only add those models with both amip and cmip runs, set do_amip_cmip = True
-            do_amip_cmip = False
+            # if only add those models with both amip and cmip runs, set use_amip = True
+            self.use_amip = False
 
             phases = ['CMIP5','CMIP6']
     
-            if do_amip_cmip:
+            if self.use_amip:
                 exp_cntl = [['piControl','amip'],['piControl','amip']]
                 exp_new = [['abrupt4xCO2','amip4K'],['abrupt-4xCO2','amip-p4K']]
 
@@ -414,7 +439,7 @@ class plots:
     
                 for imodel,model in enumerate(models[iphase]):
     
-                    if do_amip_cmip:
+                    if self.use_amip:
                         if model == 'CanESM2':
                             model_amip = 'CanAM4'
                         elif model == 'HadGEM2-ES':
@@ -531,10 +556,10 @@ class plots:
             ax.set_ylabel('Feedback [W/m$^2$/K]',fontsize=self.fh)
             if idx == 0:
                 if self.Add_otherCMIPs:
-                    if do_amip_cmip:
-                        label = 'amip4K'
+                    if self.use_amip:
+                        label = 'Multimodel Mean\n[amip4K]'
                     else:
-                        label = 'MMM\n[abrupt4xCO2]'
+                        label = 'Multimodel Mean\n[abrupt4xCO2]'
 
                     legend1 = ax.legend([L2],[label],fontsize=self.fh1,loc='upper left')
                     ax.legend(fontsize=self.fh1)
