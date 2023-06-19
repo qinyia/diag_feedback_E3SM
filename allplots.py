@@ -20,6 +20,8 @@ from genutil import statistics
 import scipy.stats
 import PlotDefinedFunction as PDF
 import copy
+import matplotlib.colors as mcolors
+
 
 import cal_global_radiation_feedback_E3SM as GRF
 import cal_RadKernel_E3SM as RK
@@ -32,6 +34,7 @@ import sort_cloud_regime as SCR
 import sort_cloud_3regime as SCR3
 import cal_RadKern_regime_wapEIS as RRW
 import cal_3dvar as cal3dvar
+import cal_APRP as calAPRP
 
 import glob
 
@@ -78,6 +81,7 @@ def get_cal_dics(direc_data, case_stamp, yearS2, yearE2, run_id1, run_id2, outdi
     dics_cal['sort_cloud_regime']   = my_cal.sort_cloud_regime
     dics_cal['sort_cloud_3regime']   = my_cal.sort_cloud_3regime
     dics_cal['RadKernel_regime']    = my_cal.cal_RadKernel_regime
+    dics_cal['cal_APRP']            = my_cal.cal_APRP
 
 
     return dics_cal
@@ -133,6 +137,9 @@ class calculation:
     def sort_cloud_3regime(self):
         result = SCR3.sort_cloud_3regime(self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir,self.exp1,self.exp2)
 
+    def cal_APRP(self):
+        result = calAPRP.cal_APRP(self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir,self.exp1,self.exp2)
+
 
 #############################################################################################
 
@@ -147,12 +154,15 @@ def get_plot_dics(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2
     dics_plots['CRE_globalmean']             = my_plot.plot_CRE_globalmean
     dics_plots['RadKernel_globalmean']       = my_plot.plot_RadKernel_globalmean
     dics_plots['CldRadKernel_globalmean']    = my_plot.plot_CldRadKernel_globalmean
+    #dics_plots['APRP_globalmean']            = my_plot.plot_APRP_globalmean
 
     dics_plots['RadKernel_zonalmean']        = my_plot.plot_RadKernel_zonalmean
     dics_plots['CldRadKernel_zonalmean']     = my_plot.plot_CldRadKernel_zonalmean
+    #dics_plots['APRP_zonalmean']             = my_plot.plot_APRP_zonalmean
 
     dics_plots['RadKernel_latlon']           = my_plot.plot_RadKernel_latlon
     dics_plots['CldRadKernel_latlon']        = my_plot.plot_CldRadKernel_latlon
+    dics_plots['APRP_latlon']                = my_plot.plot_APRP_latlon
 
     dics_plots['RadKernel_latlon_dif']           = my_plot.plot_RadKernel_latlon_dif
     dics_plots['CldRadKernel_latlon_dif']        = my_plot.plot_CldRadKernel_latlon_dif
@@ -2568,11 +2578,11 @@ class plots:
                         DATA.setAxis(1,lons)
         
                         if latS==-90:
-                            ax1 = fig.add_subplot(nrow,ncol,n+1,projection=ccrs.Robinson(central_longitude=180.))
+                            ax1 = fig.add_subplot(nrow,ncol,n+1,projection=ccrs.PlateCarree(central_longitude=180.))
                         else:
                             ax1 = fig.add_subplot(nrow,ncol,n+1,projection=ccrs.PlateCarree(central_longitude=180.))
 
-                        im1 = ax1.contourf(lons[:],lats[:],np.round(DATA,4),bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
+                        im1 = ax1.contourf(lons[:],lats[:],np.round(DATA,2),bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
                         ax1.coastlines()
                         #ax1.set_global()
         
@@ -2598,6 +2608,110 @@ class plots:
 
         print('------------------------------------------------')
         print('plot_CldRadKernel_latlon is done!')
+        print('------------------------------------------------')
+
+        return pd_plot_all
+
+
+    #####################################################################
+    ### LAT-LON cloud feedback based on cloud radiative kernel
+    #####################################################################
+    def plot_APRP_latlon(self):
+
+        print('LatLon-APRP starts ........')
+
+        cases_here = copy.deepcopy(self.cases)
+    
+        variables = [
+                    'sfc_alb',
+                    'noncld','noncld_scat','noncld_abs',
+                    'cld','cld_amt','cld_scat','cld_abs',
+                    ]
+        variables_out = [
+                    'Sfc Albedo',
+                    'Noncld','Noncld scattering', 'Noncld absorbing',
+                    'Cld', 'Cld amount', 'Cld scattering', 'Cld absorbing',
+#                    'Sfc Albedo', 
+#                    'ERFari', 'ERFari scattering', 'ERFari absorbing', 
+#                    'ERFaci', 'ERFaci amount', 'ERFaci scattering', 'ERFaci absorbing',
+                    ]
+
+        # E3SM
+        for ivar,svar in enumerate(variables):
+            for icase,case in enumerate(cases_here):
+                f1 = cdms.open(self.datadir_v2+'APRP_'+case+'.nc')
+    
+                # get region bounds
+                latS,latE,lonS,lonE = self.regions[0],self.regions[1],self.regions[2],self.regions[3]
+
+                data = f1(svar).subRegion(lat=(latS,latE),lon=(lonS,lonE))
+                lats = data.getLatitude()
+                lons = data.getLongitude()
+
+                if ivar==0 and icase==0:
+                    data_all = np.ma.zeros((data.shape[0],data.shape[1],len(variables),len(cases_here)))
+                    avgdata_all = np.ma.zeros((len(variables),len(cases_here)))
+
+                data_all[:,:,ivar,icase] = data
+                avgdata_all[ivar,icase] = cdutil.averager(data, axis='xy',weights='weighted')
+ 
+        # Plotting ...
+        # --------------------------------------------------------------------------------
+        pd_plot_all = pd.DataFrame(columns=['Variables','Description','Case.VS.Case','Plot'])
+
+        uneven_levels = np.arange(-3,3.2,0.2)
+        cmap_rb = plt.get_cmap('RdBu_r')
+        colors = cmap_rb(np.linspace(0, 1, len(uneven_levels) - 1))
+        cmap, norm = mcolors.from_levels_and_colors(uneven_levels, colors)
+
+        for icase,case in enumerate(cases_here):
+    
+            fig = plt.figure(figsize = (12,12))
+            plt.suptitle('APRP components')
+
+            axes = fig.subplots(nrows=4, ncols=2, subplot_kw={'projection': ccrs.PlateCarree(180)})
+            cnt=-1
+            for row in range(4):
+                for col in range(2):
+                    cnt+=1
+                    var = variables[cnt]
+                    title = variables_out[cnt] 
+
+                    avgmap = data_all[:,:,cnt,icase]
+                    avg = avgdata_all[cnt,icase]
+                    print(avgmap.shape, avg)
+
+                    im = axes[row,col].contourf(lons,lats, avgmap,
+                                                transform=ccrs.PlateCarree(),
+                                                levels = np.arange(-3,3.2,0.2),
+                                                cmap = 'RdBu_r', 
+                                                extend='both',
+                                               )
+                    
+                    axes[row,col].set_title(title+" (" + str(np.round(avg,2)) + ")")
+                    axes[row,col].coastlines()
+            
+            # fig.tight_layout()        
+            # ======= add common colorbar =============
+            fig.subplots_adjust(right=0.85, wspace=0.1, hspace=0.1)
+            
+            cbar_ax = fig.add_axes([0.88, 0.15, 0.01, 0.4]) # [left, bottom, width, height]
+            cb = fig.colorbar(im,cax = cbar_ax)
+            cb.set_label('W/m$^2$')
+            
+            figname = 'Latlon_APRP_'+cases_here[icase]+'.png'
+            fig.savefig(self.figdir+figname,dpi=300,bbox_inches='tight')  
+            plt.close(fig)
+
+            pd_plot = prepare_pd2html('../figure/'+figname,
+                          'APRP components',
+                          '',
+                          cases_here[icase])
+
+            pd_plot_all = pd.merge(pd_plot_all, pd_plot, on =['Variables','Description','Case.VS.Case','Plot'],how='outer')
+
+        print('------------------------------------------------')
+        print('plot_APRP_latlon is done!')
         print('------------------------------------------------')
 
         return pd_plot_all
