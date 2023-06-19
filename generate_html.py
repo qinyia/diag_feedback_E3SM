@@ -25,6 +25,7 @@ def generate_html(casedir,webdir=None):
     dic['CldRadKernel_zonalmean'] = {}
     dic['RadKernel_latlon'] = {}
     dic['CldRadKernel_latlon'] = {}
+    dic['APRP_latlon'] = {}
     dic['RadKernel_latlon_dif'] = {}
     dic['CldRadKernel_latlon_dif'] = {}
     dic['tas_latlon'] = {}
@@ -74,6 +75,8 @@ def generate_html(casedir,webdir=None):
         {table13}
       <h3>LAT-LON Cloud Radiative Kernel Feedback</h3>
         {table14}
+      <h3>LAT-LON APRP result</h3>
+        {table18}
       <h3>Zonal Mean Radiative Kernel Feedback</h3>
         {table4}
       <h3>Zonal Mean Cloud Radiative Kernel Feedback</h3>
@@ -112,6 +115,7 @@ def generate_html(casedir,webdir=None):
                                    table5=dic['CldRadKernel_zonalmean'].to_html(escape=False,index=False,border=0),
                                    table13=dic['RadKernel_latlon'].to_html(escape=False,index=False,border=0),
                                    table14=dic['CldRadKernel_latlon'].to_html(escape=False,index=False,border=0),
+                                   table18=dic['APRP_latlon'].to_html(escape=False,index=False,border=0),
                                    table6=dic['RadKernel_latlon_dif'].to_html(escape=False,index=False,border=0),
                                    table7=dic['CldRadKernel_latlon_dif'].to_html(escape=False,index=False,border=0),
                                    table8=dic['tas_latlon'].to_html(escape=False,index=False,border=0),
