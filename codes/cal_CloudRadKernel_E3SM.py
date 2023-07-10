@@ -448,6 +448,13 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
             # The following performs the amount/altitude/optical depth decomposition of
             # Zelinka et al., J Climate (2012b), as modified in Zelinka et al., J. Climate (2013)
             (LWcld_tot[mm,:],LWcld_amt[mm,:],LWcld_alt[mm,:],LWcld_tau[mm,:],LWcld_err[mm,:],SWcld_tot[mm,:],SWcld_amt[mm,:],SWcld_alt[mm,:],SWcld_tau[mm,:],SWcld_err[mm,:],dc_star[mm,:],dc_prop[mm,:]) = KT_decomposition_4D(c1,c2,Klw,Ksw)
+
+            print('SWcld_tot=',np.nanmean(SWcld_tot[mm,:]))
+            print('SWcld_amt=',np.nanmean(SWcld_amt[mm,:]))
+            print('SWcld_alt=',np.nanmean(SWcld_alt[mm,:]))
+            print('SWcld_tau=',np.nanmean(SWcld_tau[mm,:]))
+            print('SWcld_err=',np.nanmean(SWcld_err[mm,:]))
+
             
         # Set the SW cloud feedbacks to zero in the polar night
         # Do this since they may come out of previous calcs as undefined, but should be zero:
@@ -482,14 +489,15 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
                 print('anomtas_ann_gm.shape=',anomtas_ann_gm.shape, anomtas_ann_gm.mean().values)
 #                slope, intercept = genutil.statistics.linearregression(DATA_am,x=anomtas_ann_gm) # need revise...
             else:
-                print('DATA_am.shape=',DATA_am.shape, np.nanmean(DATA_anom))
+                print(DATA_am.coords)
+                print('DATA_am.shape=',DATA_am.shape, np.nanmean(DATA_am))
                 print('anomtas_ann_gm.shape=',anomtas_ann_gm.shape, anomtas_ann_gm.mean().values)
                 #slope = DATA_am.mean(axis=0)/anomtas_ann_gm.mean()
-                slope = DATA_am.groupby('time.month').mean('time').mean(axis=0)/anomtas_ann_gm.mean()
-                print(DATA_am.groupby('time.month').mean('time').mean(axis=0).values)
-                print(anomtas_ann_gm.mean().values)
-                print(np.nanmean(slope))
-                exit()
+                slope = DATA_anom.groupby('time.month').mean('time').mean(axis=0)/anomtas_ann_gm.mean()
+                print(DATA_anom.groupby('time.month').mean('time')[0,45,70].values)
+                print('DATA_anom=',DATA_anom.groupby('time.month').mean('time').mean(axis=0).values)
+                print('anomtas_ann_gm=',anomtas_ann_gm.mean().values)
+                print('slope=',np.nanmean(slope))
 
             dic_out1[str(sec)+'_'+str(name)] = slope 
             dic_out1[str(sec)+'_'+str(name)].attrs['long_name'] = str(sec)+'_'+str(name)
@@ -506,8 +514,8 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
     print(df_lw_all.head())
     print(df_sw_all.head())
     
-    df_lw_all.to_csv(outdir+'decomp_global_mean_lw_'+case_stamp+'.csv')
-    df_sw_all.to_csv(outdir+'decomp_global_mean_sw_'+case_stamp+'.csv')
+    df_lw_all.to_csv(outdir+'decomp_global_mean_lw_'+case_stamp+'_xr.csv')
+    df_sw_all.to_csv(outdir+'decomp_global_mean_sw_'+case_stamp+'_xr.csv')
 
     
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
