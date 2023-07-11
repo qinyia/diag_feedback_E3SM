@@ -57,6 +57,7 @@ import os
 import sys
 sys.path.append('../')
 import cases_lookup as CL
+from PlotDefinedFunction import linearregression_nd
 
 ###########################################################################
 # HELPFUL FUNCTIONS FOLLOW
@@ -128,7 +129,6 @@ def add_cyclic(data):
     lons=data.lon[:]
     dx=np.gradient(lons)[-1]
     lons_new = np.arange(0,np.max(lons),dx)
-    print(lons_new)
     data2 = data.assign_coords({"lon": lons_new})
     return data2
 
@@ -224,15 +224,10 @@ def KT_decomposition_4D(c1,c2,Klw,Ksw):
     Ksw_t_prime = np.tile(np.ma.sum(Ksw_prime*that,0),(P,1,1,1))                       # Eq. B8b
     Ksw_resid_prime = Ksw_prime - Ksw_p_prime - Ksw_t_prime                         # Eq. B9
     dRsw_true = np.ma.sum(np.ma.sum(Ksw*dc,1),0)                                          # SW total
-    print('dRsw_true=',np.nanmean(dRsw_true))
     dRsw_prop = Ksw0[0,0,:,:]*sum_dc[0,0,:,:]                                       # SW amount component
-    print('dRsw_prop=',np.nanmean(dRsw_prop))
     dRsw_dctp = np.ma.sum(np.ma.sum(Ksw_p_prime*dc_star,1),0)                             # SW altitude component
-    print('dRsw_dctp=',np.nanmean(dRsw_dctp))
     dRsw_dtau = np.ma.sum(np.ma.sum(Ksw_t_prime*dc_star,1),0)                             # SW optical depth component
-    print('dRsw_dtau=',np.nanmean(dRsw_dtau))
     dRsw_resid = np.ma.sum(np.ma.sum(Ksw_resid_prime*dc_star,1),0)                        # SW residual
-    print('dRsw_resid=',np.nanmean(dRsw_resid))
     dRsw_sum = dRsw_prop + dRsw_dctp + dRsw_dtau + dRsw_resid                       # sum of SW components -- should equal SW total
 
     dc_star = np.ma.transpose(dc_star,(1,0,2,3)) 
@@ -250,9 +245,9 @@ def KT_decomposition_4D(c1,c2,Klw,Ksw):
 ###########################################################################
 def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir):
 
-#    if os.path.isfile(outdir+'global_cloud_feedback_'+case_stamp+'.nc'):
-#        print('CloudRadKernel is already there.')
-#        return
+    if os.path.isfile(outdir+'global_cloud_feedback_'+case_stamp+'.nc'):
+        print('CloudRadKernel is already there.')
+        return
 
     yearS_4d = "{:04d}".format(yearS)
     yearE_4d = "{:04d}".format(yearE)
@@ -290,7 +285,6 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
     
     # LW kernel does not depend on albcs, just repeat the final dimension over longitudes:
     LWkernel_map=xr.DataArray(np.transpose(np.tile(np.tile(LWkernel[:,:,:,:,0],(1,nyears,1,1,1)),(144,1,1,1,1)),[1,2,3,4,0]))
-    print(LWkernel_map.shape)
 
     # Define the cloud kernel axis attributes
     lats=LWkernel.lat.values
@@ -308,11 +302,9 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
     f=xr.open_dataset(direc_data1+svar_in+'_'+exp1+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc')
     clisccp1=f[svar_in]#.transpose('time','cosp_tau','cosp_prs','lat','lon') # the old order is: (time, CTP, TAU, LAT, LON)
     f.close()
-    print('clisccp1.shape=',clisccp1.shape)
     f=xr.open_dataset(direc_data2+svar_in+'_'+exp2+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc')
     clisccp2=f[svar_in]#.transpose('time','cosp_tau','cosp_prs','lat','lon')
     f.close()
-    print('clisccp2.shape=',clisccp2.shape)
 
     # Make sure clisccp is in percent  
     sumclisccp1 = clisccp1.sum(axis=2).sum(axis=1)
@@ -362,7 +354,6 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
 
     # Compute tas anomaly and global annual mean 
     anomtas = xr.DataArray(tas2 - tas1, coords=tas2.coords)
-    print('anomtas shape is',anomtas.shape)
 
     # Define new time coordinate
     newtime = pd.date_range(start='1850-01-01', periods=tas1.shape[0], freq='MS')
@@ -372,7 +363,6 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
     anomtas_ann = weighted_temporal_mean(anomtas.time,anomtas)
 
     anomtas_ann_gm = area_averager(anomtas_ann)
-    print('anomtas_ann_gm shape is ',anomtas_ann_gm.shape, anomtas_ann_gm.mean().values)
 
     del(tas1,tas2)
     
@@ -388,14 +378,11 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
     avgalbcs1 = albcs1_grd.groupby('time.month').mean('time')
     SWkernel_map_tmp = map_SWkern_to_lon(SWkernel,avgalbcs1)
     SWkernel_map = xr.DataArray(np.tile(SWkernel_map_tmp,(nyears,1,1,1,1)), coords=clisccp1_grd.coords)
-    print('SWkernel_map.shape=',SWkernel_map.shape, SWkernel_map.mean().values)
     del SWkernel_map_tmp
 
     # The sun is down if every bin of the SW kernel is zero:
     sundown=np.ma.sum(np.ma.sum(SWkernel_map,axis=2),axis=1)  #12*nyears,90,144
     night=np.where(sundown==0)
-    print('sundown.shape=',sundown.shape, np.nanmean(sundown))
-
     print("data processing is done. Please continue.")
     
     ###########################################################################
@@ -449,13 +436,6 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
             # Zelinka et al., J Climate (2012b), as modified in Zelinka et al., J. Climate (2013)
             (LWcld_tot[mm,:],LWcld_amt[mm,:],LWcld_alt[mm,:],LWcld_tau[mm,:],LWcld_err[mm,:],SWcld_tot[mm,:],SWcld_amt[mm,:],SWcld_alt[mm,:],SWcld_tau[mm,:],SWcld_err[mm,:],dc_star[mm,:],dc_prop[mm,:]) = KT_decomposition_4D(c1,c2,Klw,Ksw)
 
-            print('SWcld_tot=',np.nanmean(SWcld_tot[mm,:]))
-            print('SWcld_amt=',np.nanmean(SWcld_amt[mm,:]))
-            print('SWcld_alt=',np.nanmean(SWcld_alt[mm,:]))
-            print('SWcld_tau=',np.nanmean(SWcld_tau[mm,:]))
-            print('SWcld_err=',np.nanmean(SWcld_err[mm,:]))
-
-            
         # Set the SW cloud feedbacks to zero in the polar night
         # Do this since they may come out of previous calcs as undefined, but should be zero:
         SWcld_tot[night]=0
@@ -481,23 +461,13 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
         for n,name in enumerate(names):
             DATA_anom = variables[n].filled(fill_value=np.nan) # convert masked array to array with nan as missing value
             DATA_anom = xr.DataArray(variables[n], coords=AX3)
-            #DATA_am = DATA_anom.resample(time='AS').mean('time')
             DATA_am = weighted_temporal_mean(DATA_anom.time,DATA_anom)
 
             if 'coupled' in case_stamp:
-                print('DATA_am.shape=',DATA_am.shape)
-                print('anomtas_ann_gm.shape=',anomtas_ann_gm.shape, anomtas_ann_gm.mean().values)
-#                slope, intercept = genutil.statistics.linearregression(DATA_am,x=anomtas_ann_gm) # need revise...
+                slope,intercept = linearregression_nd(DATA_am, x = np.reshape(anomtas_ann_gm.values, (anomtas_ann_gm.shape[0],1,1)))
+                #print('slope=',slope.shape, np.min(slope), np.max(slope), 'intercept=',intercept.shape, np.min(intercept), np.max(intercept))
             else:
-                print(DATA_am.coords)
-                print('DATA_am.shape=',DATA_am.shape, np.nanmean(DATA_am))
-                print('anomtas_ann_gm.shape=',anomtas_ann_gm.shape, anomtas_ann_gm.mean().values)
-                #slope = DATA_am.mean(axis=0)/anomtas_ann_gm.mean()
                 slope = DATA_anom.groupby('time.month').mean('time').mean(axis=0)/anomtas_ann_gm.mean()
-                print(DATA_anom.groupby('time.month').mean('time')[0,45,70].values)
-                print('DATA_anom=',DATA_anom.groupby('time.month').mean('time').mean(axis=0).values)
-                print('anomtas_ann_gm=',anomtas_ann_gm.mean().values)
-                print('slope=',np.nanmean(slope))
 
             dic_out1[str(sec)+'_'+str(name)] = slope 
             dic_out1[str(sec)+'_'+str(name)].attrs['long_name'] = str(sec)+'_'+str(name)
@@ -524,9 +494,10 @@ if __name__ == "__main__":
 
     direc_kernel = '../CloudRadKernel_input/'
     direc_data = '/compyfs/qiny108/diag_feedback_E3SM_postdata/'
+    #direc_data = '/compyfs/qiny108/colla/diag_feedback_E3SM_postdata/'
 
     case_stamps = [\
-    'v2test'
+    'v2test_coupled'
     ]
 
     for case_stamp in case_stamps:

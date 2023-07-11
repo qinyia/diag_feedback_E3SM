@@ -1,18 +1,11 @@
 
 # Aug 31, 2020: This py file is used to save all functions for plotting. 
 
-import cdms2 as cdms
-import cdutil
-import MV2 as MV
 import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
+import numpy 
 import os
 import pandas as pd
-import cdtime
 import time
-import genutil
-from genutil import statistics
 from scipy import stats
 import numpy.ma as ma
 import scipy as sp
@@ -580,7 +573,7 @@ def get_scaled_lat(lats, spec_lats):
     Feb 8, 2021: get scaled latitude values based on number of lats and specified latitudes. 
     '''
     clat = np.cos(np.deg2rad(lats))
-    clat1 = clat/MV.sum(clat)
+    clat1 = clat/np.ma.sum(clat)
     clat1[0] = 0.
     
     clats = np.zeros(len(clat1))
@@ -768,3 +761,224 @@ def mask_land(lons,lats,data,land=True):
     data_new = np.ma.masked_where(globe_land_mask_nd==land,data)
 
     return data_new
+
+# =========================================================
+# Multiple dimension linear regression along one dimension.
+# following genutil.statistics.linearregression() function
+# =========================================================
+def __betai1(a, b, x):
+    bt = numpy.ma.logical_or(numpy.ma.equal(x, 0.), numpy.ma.equal(x, 1.))
+    bt = numpy.ma.where(bt, 0., numpy.ma.exp(
+        __gammln1(a + b) - __gammln1(a) - __gammln1(b) +
+        a * numpy.ma.log(x) + b * numpy.ma.log(1. - x)
+    )
+    )
+    return numpy.ma.where(numpy.ma.less(x, (a + 1.) / (a + b + 2.)),
+                          bt * __betacf1(a, b, x) / a,
+                          1. - bt * __betacf1(b, a, 1. - x) / b)
+
+
+def __probnd1(x):
+    """
+    FUNCTION PROBND1.
+
+    Calculates the area under a normal curve (mean=0.0, variance=1.0)
+    to the right of x. The accuracy is better than 7.5 * 10.**-8.
+
+    REFERENCE:
+
+    M. Abramowitz and I.A. Stegun.
+    Handbook of Mathematical Functions.
+    Dover, 1970, pages 931-932 (26.2.1 and 26.2.17).
+"""
+    b1 = 0.319381530
+    b2 = -0.356563782
+    b3 = 1.781477937
+    b4 = -1.821255978
+    b5 = 1.330274429
+    p = 0.2316419
+    t = 1.0 / (1.0 + (p * x))
+    term1 = ((((b1 * t) + (b2 * (t ** 2))) +
+              (b3 * (t ** 3))) + (b4 * (t ** 4))) + \
+        (b5 * (t ** 5))
+    z = (1.0 / numpy.ma.sqrt(2.0 * numpy.pi)) * numpy.ma.exp(- ((x * x) / 2.0))
+    return numpy.ma.where(numpy.ma.greater(x, 7.), 0., z * term1)
+
+
+def __probf1(y, n1, n2, id):
+    """
+    FUNCTION PROBF1.
+
+    The output is either the one- or two-tailed test area: i.e., the
+    area under an F-curve (with N1 and N2 degrees of freedom) to the
+    right of X if X exceeds 1.0 (one-tailed test) or twice this area
+    (two-tailed test).
+
+    Note: if X is less than 1.0, this function gives the area to the
+    right of 1/X with reversed order for the degrees of freedom. This
+    ensures the accuracy of the numerical algorithm.
+
+    REFERENCE:
+
+    M. Abramowitz and I.A. Stegun.
+    Handbook of Mathematical Functions.
+    Dover, 1970, page 947 (26.6.15).
+
+    ** INPUT **
+    real y            Calculated F-value
+    real x            Inverse of Y if Y is less than 1.0
+    integer n1, n2    Degrees of freedom
+    integer id        Identifier for one- or two-tailed test
+
+    ** OUTPUT **
+    real probf1       Significance level (p-value) for F-value
+
+    EXTERNALS:
+
+    function PROBND1 - Calculates the area under a normal curve.
+    """
+    ly = numpy.ma.less(y, 1.)
+    x = numpy.ma.where(ly, 1. / numpy.ma.array(y), y)
+    n = numpy.ma.where(ly, n1, n2)
+    n1 = numpy.ma.where(ly, n2, n1)
+    n2 = numpy.ma.where(ly, n, n2)
+    term1 = 2.0 / (9.0 * n1)
+    term2 = 2.0 / (9.0 * n2)
+    term3 = ((x ** (1.0 / 3.0)) * (1.0 - term2)) - (1.0 - term1)
+    term4 = numpy.ma.sqrt(term1 + ((x ** (2.0 / 3.0)) * term2))
+    term5 = term3 / term4
+    probf1 = id * __probnd1(term5)
+
+    #     The numerical algorithm can have problems when the F-value is
+    #     close to 1.0 and the degrees of freedom are small. Therefore,
+    #     insure that the probabilities returned cannot exceed 1.0.
+
+    return numpy.ma.where(numpy.ma.greater(probf1, 1.), 1., probf1)
+
+def linearregression_nd(y, x, error=None, probability=None,
+                       noslope=None, nointercept=None):
+    """
+    returns slope/intercept for linear regression of dependant var y and indep var x
+    also possibly returns error and P values.
+    
+    YQIN: keep the dimension to do the regression as the first dimension. For example, the shape of y is (5,3), and the shape of x is (5,1). 
+    """
+    if (not (noslope is None or noslope == 0)) and (
+            not (nointercept is None or nointercept == 0)):
+        raise StatisticsError(
+            'Error in __linearregression, at least one of the following argument as to be None:' +
+            'noslope or nointercept, you are requesting nothing back !')
+    if (probability is not None) and (error is None):
+        raise StatisticsError(
+            'Error in __linearregression, error must not be None if probability is defined, probability is:' +
+            str(probability))
+    if error is not None:
+        if error > 3:
+            raise StatisticsError(
+                "Error in __linearregression, error must be None (0), 1, ,2 or 3")
+
+    xmean = numpy.ma.average(x, axis=0)
+    ymean = numpy.ma.average(y, axis=0)
+    x = x - xmean
+    y = y - ymean
+    xy = numpy.ma.sum(y * x, axis=0)
+    xx = numpy.ma.sum(x * x, axis=0)
+    slope = xy / xx
+    intercept = ymean - slope * xmean
+    V = []
+    if noslope is None or noslope == 0:
+        V.append(slope)
+    if nointercept is None or nointercept == 0:
+        V.append(intercept)
+    if error is None or error == 0:
+        return V
+    elif error == 1:
+        E = []
+        n1 = numpy.ma.count(y, axis=0)
+        # Unadjusted errors
+        res = (y + ymean) - (intercept + (x + xmean) *
+                             numpy.ma.resize(slope, numpy.ma.shape(y)))  # x2
+        ssd = numpy.ma.sum(res * res, axis=0)
+        amsd1 = ssd / (n1 - 2.)  # amsd1=ssd/idfd1
+        if noslope is None or noslope == 0:
+            E.append(numpy.ma.sqrt(amsd1 / xx))
+        if nointercept is None or nointercept == 0:
+            s1 = xmean * xmean / xx + 1. / n1
+            E.append(numpy.ma.sqrt(amsd1 * s1))
+        if probability is None or probability == 0:
+            return V, E
+        else:
+            Pt1 = []
+            Pt2 = []
+            Pf1 = []
+            Pf2 = []
+            f = numpy.ma.sum(y * y, axis=0) - ssd  # ssr
+            f = f / amsd1
+            aa1 = n1 / 2.0
+            if noslope is None or noslope == 0:
+                tb1 = slope / E[0]
+                xx3 = n1 / (n1 + (tb1 * tb1))
+                Pt1.append(__betai1(aa1, .5, xx3))
+                Pt2.append(None)
+                Pf1.append(__probf1(f, 1, n1 - 2, 1))
+                Pf2.append(__probf1(f, 1, n1 - 2, 2))
+            if nointercept is None or nointercept == 0:
+                tb1 = V[-1] / E[-1]
+                xx3 = n1 / (n1 + (tb1 * tb1))
+                Pt1.append(__betai1(aa1, .5, xx3))
+                Pt2.append(None)
+                Pf1.append(__probf1(f, 1, n1 - 2, 1))
+                Pf2.append(__probf1(f, 1, n1 - 2, 2))
+            return V, E, Pt1, Pt2, Pf1, Pf2
+    else:
+        E = []
+        # Adjusted error from residual
+        n1 = numpy.ma.count(y, axis=0)
+        res = (y + ymean) - (intercept + numpy.ma.resize(slope,
+                                                         numpy.ma.shape(y)) * (x + xmean))  # x2
+        ssd = numpy.ma.sum(res * res, axis=0)
+        if error == 2:
+            ac = __autocorrelation(res, 1, centered=1, partial=0)
+            rdfd2 = 1.0 + ac
+            rdfd2 = (1.0 - ac) / rdfd2
+        elif error == 3:
+            ac = __autocorrelation(y + ymean, 1, centered=1, partial=0)
+            rdfd2 = 1.0 + ac
+            rdfd2 = (1.0 - ac) / rdfd2
+        rneff = n1 * rdfd2  # rneff
+        amsd2 = ssd / (rneff - 2.)   # ssd/rdfd2
+        if noslope is None or noslope == 0:
+            E.append(numpy.ma.sqrt(amsd2 / xx))
+        if nointercept is None or nointercept == 0:
+            s1 = xmean * xmean / xx + 1. / n1
+            E.append(numpy.ma.sqrt(amsd2 * s1))
+        if probability is None or probability == 0:
+            return V, E
+        else:
+            Pt1 = []
+            Pt2 = []
+            Pf1 = []
+            Pf2 = []
+            f = numpy.ma.sum(y * y, axis=0) - ssd  # ssr = amsr
+            amsd1 = ssd / (n1 - 2.)  # amsd1=ssd/idfd1
+            f = f / amsd1  # amsr/ssd
+            aa1 = n1 / 2.0
+            aa2 = rneff / 2.0
+            if noslope is None or noslope == 0:
+                tb2 = slope / E[0]
+                xx1 = n1 / (n1 + (tb2 * tb2))
+                xx2 = rneff / (rneff + (tb2 * tb2))
+                Pt1.append(__betai1(aa1, .5, xx1))
+                Pt2.append(__betai1(aa2, .5, xx2))
+                Pf1.append(__probf1(f, 1, n1 - 2, 1))
+                Pf2.append(__probf1(f, 1, n1 - 2, 2))
+            if nointercept is None or nointercept == 0:
+                tb2 = V[-1] / E[-1]
+                xx1 = n1 / (n1 + (tb2 * tb2))
+                xx2 = rneff / (rneff + (tb2 * tb2))
+                Pt1.append(__betai1(aa1, .5, xx1))
+                Pt2.append(__betai1(aa2, .5, xx2))
+                Pf1.append(__probf1(f, 1, n1 - 2, 1))
+                Pf2.append(__probf1(f, 1, n1 - 2, 2))
+            return V, E, Pt1, Pt2, Pf1, Pf2
+# ======================================================
