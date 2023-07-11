@@ -762,98 +762,11 @@ def mask_land(lons,lats,data,land=True):
 
     return data_new
 
-# =========================================================
+# ========================================================================
 # Multiple dimension linear regression along one dimension.
 # following genutil.statistics.linearregression() function
-# =========================================================
-def __betai1(a, b, x):
-    bt = numpy.ma.logical_or(numpy.ma.equal(x, 0.), numpy.ma.equal(x, 1.))
-    bt = numpy.ma.where(bt, 0., numpy.ma.exp(
-        __gammln1(a + b) - __gammln1(a) - __gammln1(b) +
-        a * numpy.ma.log(x) + b * numpy.ma.log(1. - x)
-    )
-    )
-    return numpy.ma.where(numpy.ma.less(x, (a + 1.) / (a + b + 2.)),
-                          bt * __betacf1(a, b, x) / a,
-                          1. - bt * __betacf1(b, a, 1. - x) / b)
-
-
-def __probnd1(x):
-    """
-    FUNCTION PROBND1.
-
-    Calculates the area under a normal curve (mean=0.0, variance=1.0)
-    to the right of x. The accuracy is better than 7.5 * 10.**-8.
-
-    REFERENCE:
-
-    M. Abramowitz and I.A. Stegun.
-    Handbook of Mathematical Functions.
-    Dover, 1970, pages 931-932 (26.2.1 and 26.2.17).
-"""
-    b1 = 0.319381530
-    b2 = -0.356563782
-    b3 = 1.781477937
-    b4 = -1.821255978
-    b5 = 1.330274429
-    p = 0.2316419
-    t = 1.0 / (1.0 + (p * x))
-    term1 = ((((b1 * t) + (b2 * (t ** 2))) +
-              (b3 * (t ** 3))) + (b4 * (t ** 4))) + \
-        (b5 * (t ** 5))
-    z = (1.0 / numpy.ma.sqrt(2.0 * numpy.pi)) * numpy.ma.exp(- ((x * x) / 2.0))
-    return numpy.ma.where(numpy.ma.greater(x, 7.), 0., z * term1)
-
-
-def __probf1(y, n1, n2, id):
-    """
-    FUNCTION PROBF1.
-
-    The output is either the one- or two-tailed test area: i.e., the
-    area under an F-curve (with N1 and N2 degrees of freedom) to the
-    right of X if X exceeds 1.0 (one-tailed test) or twice this area
-    (two-tailed test).
-
-    Note: if X is less than 1.0, this function gives the area to the
-    right of 1/X with reversed order for the degrees of freedom. This
-    ensures the accuracy of the numerical algorithm.
-
-    REFERENCE:
-
-    M. Abramowitz and I.A. Stegun.
-    Handbook of Mathematical Functions.
-    Dover, 1970, page 947 (26.6.15).
-
-    ** INPUT **
-    real y            Calculated F-value
-    real x            Inverse of Y if Y is less than 1.0
-    integer n1, n2    Degrees of freedom
-    integer id        Identifier for one- or two-tailed test
-
-    ** OUTPUT **
-    real probf1       Significance level (p-value) for F-value
-
-    EXTERNALS:
-
-    function PROBND1 - Calculates the area under a normal curve.
-    """
-    ly = numpy.ma.less(y, 1.)
-    x = numpy.ma.where(ly, 1. / numpy.ma.array(y), y)
-    n = numpy.ma.where(ly, n1, n2)
-    n1 = numpy.ma.where(ly, n2, n1)
-    n2 = numpy.ma.where(ly, n, n2)
-    term1 = 2.0 / (9.0 * n1)
-    term2 = 2.0 / (9.0 * n2)
-    term3 = ((x ** (1.0 / 3.0)) * (1.0 - term2)) - (1.0 - term1)
-    term4 = numpy.ma.sqrt(term1 + ((x ** (2.0 / 3.0)) * term2))
-    term5 = term3 / term4
-    probf1 = id * __probnd1(term5)
-
-    #     The numerical algorithm can have problems when the F-value is
-    #     close to 1.0 and the degrees of freedom are small. Therefore,
-    #     insure that the probabilities returned cannot exceed 1.0.
-
-    return numpy.ma.where(numpy.ma.greater(probf1, 1.), 1., probf1)
+# Link: https://github.com/CDAT/genutil/blob/master/Lib/statistics.py#L86
+# ========================================================================
 
 def linearregression_nd(y, x, error=None, probability=None,
                        noslope=None, nointercept=None):
@@ -981,4 +894,277 @@ def linearregression_nd(y, x, error=None, probability=None,
                 Pf1.append(__probf1(f, 1, n1 - 2, 1))
                 Pf2.append(__probf1(f, 1, n1 - 2, 2))
             return V, E, Pt1, Pt2, Pf1, Pf2
+
+# ----------------------------------------------------------------
+def __laggedcovariance(x, y, lag=1, centered=1, partial=1):
+    """
+    Function: __laggedcovariance
+
+    Description of function:
+        Does the main computation for returning lagged covariance. See
+        documentation of laggedcovariance() for details.
+    """
+    if lag == 0:
+        return __covariance(x, y, centered=centered)
+
+    if partial == 1:
+        if lag > 0:
+            x = x[lag:]
+            y = y[:-lag]
+        else:
+            x = x[:lag]
+            y = y[-lag:]
+
+    if centered == 1:
+        xmean = numpy.ma.average(x, axis=0)
+        ymean = numpy.ma.average(y, axis=0)
+    else:
+        xmean = 0.
+        ymean = 0.
+    x = x - xmean
+    y = y - ymean
+    del(xmean)
+    del(ymean)
+
+    if partial == 1:
+        tmp = x * y
+    else:
+        if lag > 0:
+            tmp = x[lag:] * y[:-lag]
+        else:
+            tmp = x[:-lag] * y[lag:]
+    return numpy.ma.sum(tmp, axis=0) / numpy.ma.count(x * y, axis=0)
+
+# ----------------------------------------------------------------
+def __covariance(x, y, weights=None, centered=1, biased=1):
+    """
+    Function: __covariance
+
+    Description of function:
+        Does the main computation for returning covariance. See documentation
+        of covariance() for details.
+    """
+    if weights is not None and biased != 1:
+        raise StatisticsError(
+            'Error in covariance, you cannot have weights and unbiased together')
+
+    if centered == 1:
+        xmean = numpy.ma.average(x, weights=weights, axis=0)
+        ymean = numpy.ma.average(y, weights=weights, axis=0)
+        x = x - xmean
+        y = y - ymean
+        del(xmean)
+        del(ymean)
+    #
+    if weights is None:
+        weights = numpy.ma.ones(x.shape, dtype=x.dtype.char)
+    if not ((x.mask is None) or (x.mask is numpy.ma.nomask)):
+        weights = numpy.ma.masked_where(x.mask, weights)
+    if biased == 1:
+        cov = numpy.ma.sum(x * y * weights, axis=0) / \
+            numpy.ma.sum(weights, axis=0)
+    else:
+        cov = numpy.ma.sum(x * y, axis=0) / (numpy.ma.count(x * y, axis=0) - 1)
+
+    return cov
+
+# ----------------------------------------------------------------
+def __autocovariance(x, lag, centered=1, partial=1):
+    """
+    Function: __autocovariance
+
+    Description of function:
+        Does the main computation for returning autocovariance. See
+        documentation of autocovariance() for details.
+    """
+    return __laggedcovariance(x, x, lag, centered=centered, partial=partial)
+
+# ----------------------------------------------------------------
+def __autocorrelation(x, lag, centered=1, partial=1):
+    """
+    Function: __autocorrelation
+
+    Description of function:
+        Does the main computation for returning autocorrelation. See
+        documentation of autocorrelation() for details.
+    """
+    if partial == 1 and centered == 1 and lag != 0:
+        mean1 = numpy.ma.average(x[:-lag], axis=0)
+        mean2 = numpy.ma.average(x[lag:], axis=0)
+        x1 = x[:-lag] - mean1
+        x2 = x[lag:] - mean2
+        num = numpy.ma.sum(x1 * x2, axis=0)
+        den = numpy.ma.sum(numpy.ma.power(x1, 2), axis=0) * \
+            numpy.ma.sum(numpy.ma.power(x2, 2), axis=0)
+        return num / numpy.ma.sqrt(den)
+    else:
+        return __autocovariance(x, lag, centered=centered, partial=partial) / \
+            __autocovariance(x, 0, centered=centered, partial=partial)
+
+# ----------------------------------------------------------------
+def __gammln1(x):
+    cof = [76.18009172947146, -86.50532032941677,
+           24.01409824083091, -1.231739572450155,
+           .1208650973866179E-2, -.5395239384953E-5]
+    stp = 2.5066282746310005
+    y = x * 1.
+    tmp = x + 5.5
+    tmp = (x + 0.5) * numpy.ma.log(tmp) - tmp
+    ser = 1.000000000190015
+    for j in range(6):
+        y = y + 1.
+        ser = ser + cof[j] / y
+    return tmp + numpy.ma.log(stp * ser / x)
+
+# ----------------------------------------------------------------
+def __betacf1(a, b, x):
+    MAXIT = 100
+    EPS = 3.E-7
+    FPMIN = 1.E-30
+    qab = a + b
+    qap = a + 1.
+    qam = a - 1.
+    c = 1.
+    d = 1. - qab * x / qap
+    d = numpy.ma.where(numpy.ma.less(numpy.ma.absolute(d), FPMIN), FPMIN, d)
+    d = 1. / d
+    h = d
+    for m in range(1, MAXIT + 1):
+        m2 = 2 * m
+        aa = m * (b - m) * x / ((qam + m2) * (a + m2))
+        d = 1. + aa * d
+        d = numpy.ma.where(
+            numpy.ma.less(
+                numpy.ma.absolute(d),
+                FPMIN),
+            FPMIN,
+            d)
+        c = 1. + aa / c
+        c = numpy.ma.where(
+            numpy.ma.less(
+                numpy.ma.absolute(c),
+                FPMIN),
+            FPMIN,
+            c)
+        d = 1. / d
+        h = h * d * c
+        aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2))
+        d = 1. + aa * d
+        d = numpy.ma.where(
+            numpy.ma.less(
+                numpy.ma.absolute(d),
+                FPMIN),
+            FPMIN,
+            d)
+        c = 1. + aa / c
+        c = numpy.ma.where(
+            numpy.ma.less(
+                numpy.ma.absolute(c),
+                FPMIN),
+            FPMIN,
+            c)
+        d = 1. / d
+        delet = d * c
+        h = h * delet
+        if numpy.ma.allclose(delet, numpy.ones(
+                delet.shape), atol=EPS, rtol=0.):
+            break
+    h = numpy.ma.masked_where(
+        numpy.ma.greater(
+            numpy.ma.absolute(
+                delet - 1.), EPS), h)
+    return h
+
+# ----------------------------------------------------------------
+def __betai1(a, b, x):
+    bt = numpy.ma.logical_or(numpy.ma.equal(x, 0.), numpy.ma.equal(x, 1.))
+    bt = numpy.ma.where(bt, 0., numpy.ma.exp(
+        __gammln1(a + b) - __gammln1(a) - __gammln1(b) +
+        a * numpy.ma.log(x) + b * numpy.ma.log(1. - x)
+    )
+    )
+    return numpy.ma.where(numpy.ma.less(x, (a + 1.) / (a + b + 2.)),
+                          bt * __betacf1(a, b, x) / a,
+                          1. - bt * __betacf1(b, a, 1. - x) / b)
+
+
+# ----------------------------------------------------------------
+def __probnd1(x):
+    """
+    FUNCTION PROBND1.
+
+    Calculates the area under a normal curve (mean=0.0, variance=1.0)
+    to the right of x. The accuracy is better than 7.5 * 10.**-8.
+
+    REFERENCE:
+
+    M. Abramowitz and I.A. Stegun.
+    Handbook of Mathematical Functions.
+    Dover, 1970, pages 931-932 (26.2.1 and 26.2.17).
+"""
+    b1 = 0.319381530
+    b2 = -0.356563782
+    b3 = 1.781477937
+    b4 = -1.821255978
+    b5 = 1.330274429
+    p = 0.2316419
+    t = 1.0 / (1.0 + (p * x))
+    term1 = ((((b1 * t) + (b2 * (t ** 2))) +
+              (b3 * (t ** 3))) + (b4 * (t ** 4))) + \
+        (b5 * (t ** 5))
+    z = (1.0 / numpy.ma.sqrt(2.0 * numpy.pi)) * numpy.ma.exp(- ((x * x) / 2.0))
+    return numpy.ma.where(numpy.ma.greater(x, 7.), 0., z * term1)
+
+
+# ----------------------------------------------------------------
+def __probf1(y, n1, n2, id):
+    """
+    FUNCTION PROBF1.
+
+    The output is either the one- or two-tailed test area: i.e., the
+    area under an F-curve (with N1 and N2 degrees of freedom) to the
+    right of X if X exceeds 1.0 (one-tailed test) or twice this area
+    (two-tailed test).
+
+    Note: if X is less than 1.0, this function gives the area to the
+    right of 1/X with reversed order for the degrees of freedom. This
+    ensures the accuracy of the numerical algorithm.
+
+    REFERENCE:
+
+    M. Abramowitz and I.A. Stegun.
+    Handbook of Mathematical Functions.
+    Dover, 1970, page 947 (26.6.15).
+
+    ** INPUT **
+    real y            Calculated F-value
+    real x            Inverse of Y if Y is less than 1.0
+    integer n1, n2    Degrees of freedom
+    integer id        Identifier for one- or two-tailed test
+
+    ** OUTPUT **
+    real probf1       Significance level (p-value) for F-value
+
+    EXTERNALS:
+
+    function PROBND1 - Calculates the area under a normal curve.
+    """
+    ly = numpy.ma.less(y, 1.)
+    x = numpy.ma.where(ly, 1. / numpy.ma.array(y), y)
+    n = numpy.ma.where(ly, n1, n2)
+    n1 = numpy.ma.where(ly, n2, n1)
+    n2 = numpy.ma.where(ly, n, n2)
+    term1 = 2.0 / (9.0 * n1)
+    term2 = 2.0 / (9.0 * n2)
+    term3 = ((x ** (1.0 / 3.0)) * (1.0 - term2)) - (1.0 - term1)
+    term4 = numpy.ma.sqrt(term1 + ((x ** (2.0 / 3.0)) * term2))
+    term5 = term3 / term4
+    probf1 = id * __probnd1(term5)
+
+    #     The numerical algorithm can have problems when the F-value is
+    #     close to 1.0 and the degrees of freedom are small. Therefore,
+    #     insure that the probabilities returned cannot exceed 1.0.
+
+    return numpy.ma.where(numpy.ma.greater(probf1, 1.), 1., probf1)
+
 # ======================================================
