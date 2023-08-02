@@ -1,6 +1,6 @@
 #### ****************************************************************
 ####    Create: 2020-07-01 
-####    Last Modified: 2021-03-24 14:36:23
+####    Last Modified: 2023-08-02
 #### ****************************************************************
 
 
@@ -31,7 +31,10 @@ Detailed commands:
 #### How to use it?
 - main.py is the control script. Please modify it following all related settings in that script.
 - main-plot.py is used to get several plots for diagnosis. 
-- additionally, tropo.f90 is a fortran file. so, use f2py to convert it into one .so file: f2py -c tropo.f90 -m tropo [If some errors occurs, please try to 'module load gcc' first and then execute the command again.]
+- additionally, tropo.f90 is a fortran file. so, use f2py to convert it into one .so file: f2py -c tropo.f90 -m tropo
+  - If some errors occurs, please try to 'module load gcc' first and then execute the command again.]
+  - If loading gcc does not help and you get some errors like <img width="1057" alt="image" src="https://github.com/qinyia/diag_feedback_E3SM/assets/30620155/3dfbf072-17dc-47ba-80da-38d1d426e846">, please run 'export CFLAGS=-std=c99' first and then execute the command.
+
 
 - other cal_xxx.py files are defined functions used by main.py. Please don't modify them.
 
