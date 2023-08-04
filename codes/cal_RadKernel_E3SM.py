@@ -69,9 +69,9 @@ def RadKernel(kernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,
 
     outfile_map = "RadKern_map_"+case_stamp+".nc"
     outfile_gm  = "RadKern_gm_"+case_stamp+".csv" 
-    #if os.path.isfile(outdir+outfile_map) and os.path.isfile(outdir+outfile_gm):
-    #    print('RadKenel anlaysis is done.')
-    #    return 
+    if os.path.isfile(outdir+outfile_map) and os.path.isfile(outdir+outfile_gm):
+        print('RadKenel anlaysis is done.')
+        return 
 
     logger.remove()
     fmt = "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <cyan>{level}</cyan> | {message} |{elapsed}"
