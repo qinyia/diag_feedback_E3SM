@@ -44,6 +44,7 @@ mpl.use('Agg')
 import cases_lookup as CL
 import time
 from loguru import logger
+from PlotDefinedFunction import area_averager
 
 ### Horizontally regrid data into one defined grid first 
 do_hor_regrid = True
@@ -1207,21 +1208,6 @@ class Timer:
         h, m = divmod(m, 60)
         time_str = "%02d:%02d:%02d" % (h, m, s)
         return time_str
-
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-def area_averager(data_plot_xr):
-    '''
-    calculate weighted area mean
-    input data is xarray DataArray
-    '''    
-    weights = np.cos(np.deg2rad(data_plot_xr.lat))
-    weights.name = "weights"
-    # available in xarray version 0.15 and later
-    data_weighted = data_plot_xr.weighted(weights)
-    
-    weighted_mean = data_weighted.mean(("lat", "lon"))
-   
-    return weighted_mean
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 def make_dir(outdir_out):
