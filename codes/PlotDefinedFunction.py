@@ -1168,3 +1168,48 @@ def __probf1(y, n1, n2, id):
     return numpy.ma.where(numpy.ma.greater(probf1, 1.), 1., probf1)
 
 # ======================================================
+def weighted_annual_mean(time, obs):
+  """
+  weight by days in each month
+  """
+  import xarray as xr 
+
+  # Determine the month length
+  month_length = time.dt.days_in_month
+
+  # Calculate the weights
+  wgts = month_length.groupby("time.year") / month_length.groupby("time.year").sum()
+
+  # Make sure the weights in each year add up to 1
+  np.testing.assert_allclose(wgts.groupby("time.year").sum(xr.ALL_DIMS), 1.0)
+
+  # Setup our masking for nan values
+  cond = obs.isnull()
+  ones = xr.where(cond, 0.0, 1.0)
+
+  # Calculate the numerator
+  obs_sum = (obs * wgts).resample(time="AS").sum(dim="time")
+
+  # Calculate the denominator
+  ones_out = (ones * wgts).resample(time="AS").sum(dim="time")
+
+  # Return the weighted average
+  return obs_sum / ones_out
+
+# ======================================================
+def area_averager(data_plot_xr):
+    '''
+    calculate weighted area mean
+    input data is xarray DataArray
+    '''
+    weights = np.cos(np.deg2rad(data_plot_xr.lat))
+    weights.name = "weights"
+    # available in xarray version 0.15 and later
+    data_weighted = data_plot_xr.weighted(weights)
+
+    weighted_mean = data_weighted.mean(("lat", "lon"))
+
+    return weighted_mean
+
+
+
