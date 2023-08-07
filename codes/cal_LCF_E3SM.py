@@ -10,25 +10,11 @@ from global_land_mask import globe
 import sys
 sys.path.append('../')
 import cases_lookup as CL
+from PlotDefinedFunction import area_averager 
  
 ###########################################################################
 # HELPFUL FUNCTIONS FOLLOW
 ###########################################################################
-
-def area_averager(data_plot_xr):
-    '''
-    calculate weighted area mean
-    input data is xarray DataArray
-    '''
-    weights = np.cos(np.deg2rad(data_plot_xr.lat))
-    weights.name = "weights"
-    # available in xarray version 0.15 and later
-    data_weighted = data_plot_xr.weighted(weights)
-
-    weighted_mean = data_weighted.mean(("lat", "lon"))
-
-    return weighted_mean
-
 
 ########## MAIN SUBROUTINE STARTS HERE ....
 def sort_var_by_temperature(dbin,bins,ref_var,bin_var):
