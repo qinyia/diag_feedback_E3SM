@@ -12,26 +12,16 @@
 
 #IMPORT STUFF:
 #=====================
-import cdms2 as cdms
-import cdutil
-import MV2 as MV
 import numpy as np
-import pylab as pl
-import matplotlib as mpl
-import sys
-
-## qinyi 
-import matplotlib.pyplot as plt
 import os
 import pandas as pd
-import cdtime
-import time
-import ReadData as RD
-import genutil
-from genutil import statistics
-import numpy.ma as ma
-from global_land_mask import globe 
- 
+import xarray as xr
+from PlotDefinedFunction import linearregression_nd, area_averager, weighted_annual_mean
+import sys
+sys.path.append("../")
+import cases_lookup as CL
+
+# ============================================================ 
 def calc_EIS(Ts, SLP, T700, z700):
     '''
     Input:
@@ -120,27 +110,19 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
     monS_2d='{:02d}'.format(monS)
     monE_2d='{:02d}'.format(monE)
     
-    lats = np.arange(-90,92.5,2.5)
-    lons = np.arange(1.25,360,2.5)
+    latspc = np.arange(-90,92.5,2.5)
+    lonspc = np.arange(1.25,360,2.5)
 
-    lons_ax = cdms.createAxis(lons)
-    lons_ax.id="lon"
-    lons_ax.units="degrees_E"
-    lons_ax.designateLongitude()
+    var2d = [
+    'ts', 'TGCLDLWP','EIS',
+    'CLDLOW', 'CLDMED', 'CLDHGH',
+    ]
 
-    lats_ax = cdms.createAxis(lats)
-    lats_ax.id="lat"
-    lats_ax.units="degrees_N"
-    lats_ax.designateLatitude()
+    var3d = [
+    'CLOUD', 'CLDLIQ', 
+    ]
 
-    grid = cdms.createGenericGrid(lats,lons)
-
-    var3d = [\
-             'ts', 'CLOUD', 'CLDLIQ', 'TGCLDLWP','EIS',
-             'CLDLOW', 'CLDMED', 'CLDHGH'
-            ]
-
-    var = var3d
+    var = var2d + var3d
 
     # =============================================
     # read 2D variables
@@ -158,56 +140,39 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
         for svar in ['tas',svarh]:
             print(svar)
 
-            if svar in ['SWCRE','LWCRE','netCRE','Skw','EIS','Qsfc_700','DYNTEQ','ts_tas','RHsfc','PRECT']:
+            if svar in ['SWCRE','LWCRE','netCRE','EIS','PRECT']:
                 if svar == 'netCRE':
                     svar_here = ['rsutcs','rsut','rlutcs','rlut']
                 elif svar == 'SWCRE':
                     svar_here = ['rsutcs','rsut']
                 elif svar == 'LWCRE':
                     svar_here = ['rlutcs','rlut']
-                elif svar == 'Skw':
-                    svar_here = ['SKW_ZM_bf']
                 elif svar == 'EIS':
                     svar_here = ['Z3','T','OMEGA','psl','ts']
-                elif svar == 'Qsfc_700':
-                    svar_here = ['Q']
-                elif svar == 'DYNTEQ':
-                    svar_here = ['PTEQ']
-                elif svar == 'ts_tas':
-                    svar_here = ['ts','tas']
-                elif svar == 'RHsfc':
-                    svar_here = ['RELHUM']
                 elif svar == 'PRECT':
                     svar_here = ['PRECC','PRECL']
 
 
                 dics = {}
                 for svarh in svar_here:
-                    f1 = cdms.open(direc_data+fname1+'/'+svarh+'_'+exp1+'_'+yearS_4d+'01-'+yearE_4d+'12.nc')
-                    pi_raw1 = f1(svarh)
+                    f1 = xr.open_dataset(direc_data+fname1+'/'+svarh+'_'+exp1+'_'+yearS_4d+'01-'+yearE_4d+'12.nc')
+                    pi_raw1 = f1[svarh]
                     f1.close()
-                    f2 = cdms.open(direc_data+fname2+'/'+svarh+'_'+exp2+'_'+yearS_4d+'01-'+yearE_4d+'12.nc')
-                    ab_raw1 = f2(svarh)
+                    f2 = xr.open_dataset(direc_data+fname2+'/'+svarh+'_'+exp2+'_'+yearS_4d+'01-'+yearE_4d+'12.nc')
+                    ab_raw1 = f2[svarh]
                     f2.close()
 
                     if svarh in ['Z3','T']:
                         spec_lev = 700 
-                        pi_raw1 = pi_raw1.pressureRegrid(cdms.createAxis([spec_lev]))[:,0,:,:]
-                        ab_raw1 = ab_raw1.pressureRegrid(cdms.createAxis([spec_lev]))[:,0,:,:]
+                        pi_raw1 = pi_raw1.interp(lev=[spec_lev])[:,0,:,:]
+                        ab_raw1 = ab_raw1.interp(lev=[spec_lev])[:,0,:,:]
                     elif svarh in ['OMEGA']:
                         spec_lev = 500 
-                        pi_raw1 = pi_raw1.pressureRegrid(cdms.createAxis([spec_lev]))[:,0,:,:]
-                        ab_raw1 = ab_raw1.pressureRegrid(cdms.createAxis([spec_lev]))[:,0,:,:]
+                        pi_raw1 = pi_raw1.interp(lev=[spec_lev])[:,0,:,:]
+                        ab_raw1 = ab_raw1.interp(lev=[spec_lev])[:,0,:,:]
 
-                    pi_raw1_grd = pi_raw1.regrid(grid,regridTool='esmf',regridMethod='linear')
-                    ab_raw1_grd = ab_raw1.regrid(grid,regridTool='esmf',regridMethod='linear')
-
-                    if len(pi_raw1.shape) == 3:
-                        pi_raw1_grd.setAxis(1,lats_ax)
-                        pi_raw1_grd.setAxis(2,lons_ax)
-                    elif len(pi_raw1.shape) == 4:
-                        pi_raw1_grd.setAxis(2,lats_ax)
-                        pi_raw1_grd.setAxis(3,lons_ax)
+                    pi_raw1_grd = pi_raw1.interp(lat=latspc,lon=lonspc)
+                    ab_raw1_grd = ab_raw1.interp(lat=latspc,lon=lonspc)
 
                     print(pi_raw1_grd.shape, ab_raw1_grd.shape)
 
@@ -223,49 +188,27 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
                 elif svar == 'LWCRE':
                     cre_pi = dics['rlutcs'][0]-dics['rlut'][0]
                     cre_ab = dics['rlutcs'][1]-dics['rlut'][1]
-                elif svar == 'Skw':
-                    cre_pi = dics['SKW_ZM_bf'][0]
-                    cre_ab = dics['SKW_ZM_bf'][1]
                 elif svar == 'EIS':
                     cre_pi,_ = calc_EIS(dics['ts'][0], dics['psl'][0], dics['T'][0], dics['Z3'][0])
                     cre_ab,_ = calc_EIS(dics['ts'][1], dics['psl'][1], dics['T'][1], dics['Z3'][1])
-                elif svar == 'Qsfc_700':
-                    cre_pi = dics['Q'][0].pressureRegrid(cdms.createAxis([1000]))[:,0,:,:] - dics['Q'][0].pressureRegrid(cdms.createAxis([700]))[:,0,:,:]
-                    cre_ab = dics['Q'][1].pressureRegrid(cdms.createAxis([1000]))[:,0,:,:] - dics['Q'][1].pressureRegrid(cdms.createAxis([700]))[:,0,:,:]
-                elif svar == 'DYNTEQ':
-                    cre_pi = dics['PTEQ'][0] * (-1.)
-                    cre_ab = dics['PTEQ'][1] * (-1.)
-                elif svar == 'ts_tas':
-                    cre_pi = dics['ts'][0] - dics['tas'][0]
-                    cre_ab = dics['ts'][1] - dics['tas'][1]
-                elif svar == 'RHsfc':
-                    cre_pi = dics['RELHUM'][0].pressureRegrid(cdms.createAxis([1000]))[:,0,:,:]
-                    cre_ab = dics['RELHUM'][1].pressureRegrid(cdms.createAxis([1000]))[:,0,:,:]
                 elif svar == 'PRECT':
                     cre_pi = dics['PRECC'][0] + dics['PRECL'][0]
                     cre_ab = dics['PRECC'][1] + dics['PRECL'][1]
 
-                pi_raw_grd = cdms.asVariable(cre_pi)
-                ab_raw_grd = cdms.asVariable(cre_ab)
-
-                if svar in ['Qsfc_700','RHsfc']:
-                    pi_raw_grd.setAxisList(pi_raw1_grd[:,0,:,:].getAxisList())
-                    ab_raw_grd.setAxisList(ab_raw1_grd[:,0,:,:].getAxisList())
-                else:
-                    pi_raw_grd.setAxisList(pi_raw1_grd.getAxisList())
-                    ab_raw_grd.setAxisList(ab_raw1_grd.getAxisList())
+                pi_raw_grd = xr.DataArray(cre_pi, coords=dics[list(dics.keys())[0]][0].coords)
+                ab_raw_grd = xr.DataArray(cre_ab, coords=dics[list(dics.keys())[0]][0].coords)
 
                 # reverse lev direction
                 if len(pi_raw_grd.shape) == 4:
                     pi_raw_grd = pi_raw_grd[:,::-1,:,:]
                     ab_raw_grd = ab_raw_grd[:,::-1,:,:]
             else:
-                f1 = cdms.open(direc_data+fname1+'/'+svar+'_'+exp1+'_'+yearS_4d+'01-'+yearE_4d+'12.nc')
-                pi_raw = f1(svar)
+                f1 = xr.open_dataset(direc_data+fname1+'/'+svar+'_'+exp1+'_'+yearS_4d+'01-'+yearE_4d+'12.nc')
+                pi_raw = f1[svar]
                 f1.close()
 
-                f2 = cdms.open(direc_data+fname2+'/'+svar+'_'+exp2+'_'+yearS_4d+'01-'+yearE_4d+'12.nc')
-                ab_raw = f2(svar)
+                f2 = xr.open_dataset(direc_data+fname2+'/'+svar+'_'+exp2+'_'+yearS_4d+'01-'+yearE_4d+'12.nc')
+                ab_raw = f2[svar]
                 f2.close()
 
                 # reverse lev direction
@@ -276,20 +219,9 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
                 #----------------------------------------------------------
                 # regrid data                 
                 #----------------------------------------------------------
-                pi_raw_grd = pi_raw.regrid(grid,regridTool='esmf',regridMethod='linear')
-                ab_raw_grd = ab_raw.regrid(grid,regridTool='esmf',regridMethod='linear')
+                pi_raw_grd = pi_raw.interp(lat=latspc,lon=lonspc)
+                ab_raw_grd = ab_raw.interp(lat=latspc,lon=lonspc)
 
-                if len(pi_raw_grd.shape)==4:
-                    pi_raw_grd.setAxis(2,lats_ax)
-                    pi_raw_grd.setAxis(3,lons_ax)
-                    ab_raw_grd.setAxis(2,lats_ax)
-                    ab_raw_grd.setAxis(3,lons_ax)
-                else:
-                    pi_raw_grd.setAxis(1,lats_ax)
-                    pi_raw_grd.setAxis(2,lons_ax)
-                    ab_raw_grd.setAxis(1,lats_ax)
-                    ab_raw_grd.setAxis(2,lons_ax)
-                   
             print('pi_raw_grd.shape = ',pi_raw_grd.shape)
             print('ab_raw_grd.shape = ',ab_raw_grd.shape)
 
@@ -297,28 +229,27 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
             dic_all[svar+'_pi'] = pi_raw_grd
             dic_all[svar+'_ab'] = ab_raw_grd
 
-            dic_all[svar+'_ano'].setAxisList(pi_raw_grd.getAxisList())
-            dic_all[svar+'_pi'].setAxisList(pi_raw_grd.getAxisList())
-            dic_all[svar+'_ab'].setAxisList(pi_raw_grd.getAxisList())
-
             del(pi_raw_grd, ab_raw_grd)
+
+        # Define new time coordinate
+        newtime = pd.date_range(start='1850-01-01', periods=dic_all[list(dic_all.keys())[0]].shape[0], freq='MS')
 
         #----------------------------------------------------------
         # calculate global mean surface air temperature anomaly  
         #----------------------------------------------------------
-        anomtas = cdutil.ANNUALCYCLE.climatology(dic_all['tas_ano']) #(12, 90, 144)
-        avgdtas = cdutil.averager(MV.average(anomtas,axis=0), axis='xy', weights='weighted') # (scalar)
-
+        dic_all['tas_ano'] = dic_all['tas_ano'].assign_coords({'time':("time",newtime)})
+        anomtas = weighted_annual_mean(dic_all['tas_ano'].time, dic_all['tas_ano']) #(nyears, 90, 144)
+        avgdtas = area_averager(anomtas.mean(axis=0)) # (scalar)
         print('avgdtas = ',avgdtas)
 
         # get time-series of annual mean
         dic_all2 = {}
         for svar in dic_all.keys():
             if '_ano' in svar:
-                cdutil.setTimeBoundsMonthly(dic_all[svar])
-                dic_all2[svar+'_ann'] = cdutil.YEAR(dic_all[svar])
+                dic_all[svar] = dic_all[svar].assign_coords({'time':("time",newtime)})
+                dic_all2[svar+'_ann'] = weighted_annual_mean(dic_all[svar].time, dic_all[svar])
 
-        tas_ano_ann_gm = cdutil.averager(dic_all2['tas_ano_ann'], axis='xy', weights='weighted')
+        tas_ano_ann_gm = area_averager(dic_all2['tas_ano_ann'])
 
         #----------------------------------------------------------
         # calculate climatological control state 
@@ -326,33 +257,74 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
         dic_out = {}
         for svar in dic_all.keys():
             if '_pi' in svar:
-                dic_out[svar+'_clim'] = MV.average(dic_all[svar],axis=0)
+                dic_out[svar+'_clim'] = dic_all[svar].mean(axis=0)
             if '_ab' in svar:
-                dic_out[svar+'_clim'] = MV.average(dic_all[svar],axis=0)
+                dic_out[svar+'_clim'] = dic_all[svar].mean(axis=0)
             elif '_ano' in svar:
                 if 'coupled' not in case_stamp:
-                    dic_out[svar+'_clim'] = MV.average(dic_all[svar],axis=0)/avgdtas
+                    dic_out[svar+'_clim'] = dic_all[svar].mean(axis=0)/avgdtas
                 else:
                     print('doing regression...')
-                    dic_out[svar+'_clim'],intercept = statistics.linearregression(dic_all2[svar+'_ann'], x=tas_ano_ann_gm)
+                    dic_out[svar+'_clim'],intercept = linearregression_nd(dic_all2[svar+'_ann'], x=np.reshape(tas_ano_ann_gm,(dic_all2[svar+'_ann'].shape[0],1,1)))
 
         print('dic_out.keys() = ',dic_out.keys())
 
         #----------------------------------------------------------
         # save data into file     
         #----------------------------------------------------------
-        value = 0
-        cdms.setNetcdfShuffleFlag(value) ## where value is either 0 or 1
-        cdms.setNetcdfDeflateFlag(value) ## where value is either 0 or 1
-        cdms.setNetcdfDeflateLevelFlag(value) ## where value is a integer between 0 and 9 included
+        description = '_pi_clim is the climatological control state, _ab_clim is the climatological warming state and xxx_ano_clim is the anomaly normalized by global mean tas anomaly'
 
-        fout = cdms.open(outfile,'w')
-
+        data_vars = {}
         for svar in dic_out.keys():
             print('svar = ', svar)
             tmp = dic_out[svar] 
-            fout.write(tmp, id = svar)
-            fout.comment = '_pi_clim is the climatological control state, _ab_clim is the climatological warming state and xxx_ano_clim is the anomaly normalized by global mean tas anomaly'
+            if len(tmp.shape) == 2:
+                data_vars[svar] = (('lat','lon'),tmp.data)
+            elif len(tmp.shape) == 3:
+                data_vars[svar] = (('lev','lat','lon'),tmp.data)
+                levspc = tmp.lev.values
 
-        fout.close()
+        if svarh in var3d: 
+            da = xr.Dataset(
+            data_vars = data_vars, 
+            coords = {
+            "lev": levspc,
+            "lat": latspc,
+            "lon": lonspc, 
+            },
+            attrs=dict(description=description),
+            )
+        elif svarh in var2d: 
+            da = xr.Dataset(
+            data_vars = data_vars, 
+            coords = {
+            "lat": latspc,
+            "lon": lonspc, 
+            },
+            attrs=dict(description=description),
+            )
+
+        da.to_netcdf(outdir+outfile)
         
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+if __name__ == "__main__":
+
+    #direc_data = '/compyfs/qiny108/diag_feedback_E3SM_postdata/'
+    direc_data = '/compyfs/qiny108/colla/diag_feedback_E3SM_postdata/'
+
+    case_stamp = 'v2test'
+    yearS = 2
+    yearE = 3
+    fname1,_,_ = CL.get_lutable(case_stamp,'amip')
+    fname2,_,_ = CL.get_lutable(case_stamp,'amip4K')
+    outdir = './'
+    figdir = './'
+    exp1 = 'FC5'
+    exp2 = 'FC5_4K'
+    
+    cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1,exp2)
+
+
+
