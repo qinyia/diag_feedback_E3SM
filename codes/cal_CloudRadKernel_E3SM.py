@@ -57,7 +57,7 @@ import os
 import sys
 sys.path.append('../')
 import cases_lookup as CL
-from PlotDefinedFunction import linearregression_nd
+from PlotDefinedFunction import linearregression_nd,area_averager
 
 ###########################################################################
 # HELPFUL FUNCTIONS FOLLOW
@@ -88,21 +88,6 @@ def weighted_temporal_mean(time, obs):
   # Return the weighted average
   return obs_sum / ones_out
 
-
-# ----------------------------------------------------
-def area_averager(data_plot_xr):
-    '''
-    calculate weighted area mean
-    input data is xarray DataArray
-    '''
-    weights = np.cos(np.deg2rad(data_plot_xr.lat))
-    weights.name = "weights"
-    # available in xarray version 0.15 and later
-    data_weighted = data_plot_xr.weighted(weights)
-
-    weighted_mean = data_weighted.mean(("lat", "lon"))
-
-    return weighted_mean
 
 # ------------------------------------------------------------------------
 def YEAR(data):
@@ -493,11 +478,11 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
 if __name__ == "__main__":
 
     direc_kernel = '../CloudRadKernel_input/'
-    direc_data = '/compyfs/qiny108/diag_feedback_E3SM_postdata/'
-    #direc_data = '/compyfs/qiny108/colla/diag_feedback_E3SM_postdata/'
+    #direc_data = '/compyfs/qiny108/diag_feedback_E3SM_postdata/'
+    direc_data = '/compyfs/qiny108/colla/diag_feedback_E3SM_postdata/'
 
     case_stamps = [\
-    'v2test_coupled'
+    'v2test'
     ]
 
     for case_stamp in case_stamps:
@@ -512,6 +497,6 @@ if __name__ == "__main__":
         exp2 = 'FC5_4K'
 
         yearS = 2
-        yearE = 6
+        yearE = 3
 
         CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir)
