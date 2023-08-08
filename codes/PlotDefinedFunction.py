@@ -158,6 +158,8 @@ def get_color(colormap,color_nums):
     '''
     get color based on user-defined colormap and number or colors needed.
     '''
+    import matplotlib.pyplot as plt 
+
     palette = plt.get_cmap(colormap)
     colors = []
     for ic in range(color_nums):
@@ -1211,5 +1213,22 @@ def area_averager(data_plot_xr):
 
     return weighted_mean
 
+# ======================================================
+def save_big_dataset(dic_mod,outfile,comment):
+    '''
+    create a big dataset based on all variables in a dictionary and save to netcdf file.
+    '''
+    import xarray as xr 
+
+    datalist = []
+    for svar in dic_mod.keys():
+        data = xr.DataArray(dic_mod[svar],name=svar)
+        datalist.append(data)
+
+    data_big = xr.merge(datalist,compat='override')
+    data_big.attrs['comments'] = comment 
+
+    #data_big.to_netcdf(outfile,encoding={'time':{'dtype': 'i4'},'bin':{'dtype':'i4'}})
+    data_big.to_netcdf(outfile)
 
 
