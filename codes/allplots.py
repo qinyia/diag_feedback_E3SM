@@ -1,38 +1,28 @@
 
-import cdms2 as cdms
-import cdutil
-import MV2 as MV
+import xarray as xr
 import numpy as np
-import pylab as pl
 import matplotlib as mpl
 mpl.use('Agg')
-import sys
 
 import cartopy.crs as ccrs
-import cartopy
 import matplotlib.pyplot as plt
 import os
 import pandas as pd
-import cdtime
-import genutil
-from matplotlib import ticker
-from genutil import statistics
-import scipy.stats
 import PlotDefinedFunction as PDF
+from PlotDefinedFunction import area_averager
 import copy
+import glob
 
 import cal_global_radiation_feedback_E3SM as GRF
 import cal_RadKernel_E3SM as RK
 import cal_CloudRadKernel_E3SM as CRK
 import cal_LCF_E3SM as LCF
 import cal_webb_decomposition as WD
-#import cal_RadKern_regime_wapEIS as RRW
 import cal_3dvar as cal3dvar
-
-import glob
 
 import LonPivot as LP
 import matplotlib.patches as mpatches
+
 #############################################################################################
 def prepare_pd2html(outfig,varname,desc,casevscase=''):
     print(casevscase)
@@ -450,7 +440,7 @@ class plots:
                 df_amip = pd.read_csv(self.datadir_v1+'FDBK_CMIP6_amip-future4K_E3SM-1-0_r2i1p1f1_1yr-36yr.csv',index_col=0)
                 df_all['v1_future4K'] = df_amip.iloc[:,0]
             else:    
-                df1 = pd.read_csv(self.datadir_v2+'FDBK_CMIP6_'+case+'.csv',index_col=0)
+                df1 = pd.read_csv(self.datadir_v2+'RadKern_gm_'+case+'.csv',index_col=0)
                 MODEL = 'E3SM-1-0'
                 
                 df2 = df1.loc[:,MODEL]
@@ -637,11 +627,11 @@ class plots:
                             else:
                         	    model_amip = model
     
-                            f1 = cdms.open(self.datadir_RadKernel+'lat-lon-gfdbk-'+phase+'-'+exp_new[iphase][1]+'-'+model_amip+suffix+'.nc')
-                            tmp1 = f1(svar)
+                            f1 = xr.open_dataset(self.datadir_RadKernel+'lat-lon-gfdbk-'+phase+'-'+exp_new[iphase][1]+'-'+model_amip+suffix+'.nc')
+                            tmp1 = f1[svar]
                         
-                            lats = tmp1.getLatitude()[:]
-                            data1[:,imodel] = MV.average(tmp1,axis=1)
+                            lats = tmp1.lat.values
+                            data1[:,imodel] = tmp1.mean(axis=1)
                         if iphase == 0:
                             data_others[:,:len(cmip5_models)] = data1
                         else:
@@ -652,22 +642,25 @@ class plots:
                 data_all = np.zeros((nlat,len(cases_here[:ii])))
                 for icase,case in enumerate(cases_here[:ii]):
                     if case == 'v1_coupled':
-                        f1 = cdms.open(self.datadir_v1+'lat-lon-gfdbk-CMIP6-abrupt-4xCO2-E3SM-1-0_r1i1p1f1_1yr-150yr.nc')
+                        f1 = xr.open_dataset(self.datadir_v1+'lat-lon-gfdbk-CMIP6-abrupt-4xCO2-E3SM-1-0_r1i1p1f1_1yr-150yr.nc')
                     elif case == 'v1_amip4K':
-                        f1 = cdms.open(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-p4K-E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
+                        f1 = xr.open_dataset(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-p4K-E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
                     elif case == 'v1_future4K':
-                        f1 = cdms.open(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-future4K-E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
-    
+                        f1 = xr.open_dataset(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-future4K-E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
                     else:
-                        f1 = cdms.open(self.datadir_v2+'lat-lon-gfdbk-CMIP6-'+case+'.nc')
+                        f1 = xr.open_dataset(self.datadir_v2+'RadKern_map_'+case+'.nc')
         
-                    data = f1(svar)
-                    lats = data.getLatitude()[:]
+                    try: 
+                        data = f1[svar]
+                    except:
+                        data = f1[svar.split('_')[0]+'_'+svar.split('_')[-1]]
+
+                    lats = data.lat.values
         
                     ######################################################
                     # Compute weights and take weighted average over latitude dimension
                     clat = np.cos(np.deg2rad(lats))
-                    clat1 = clat/MV.sum(clat)
+                    clat1 = clat/np.sum(clat)
                     clat1[0] = 0.
     
                     clats = np.zeros(len(clat1))
@@ -692,7 +685,7 @@ class plots:
                     ######################################################
         
                     # get zonal mean
-                    data_all[:,icase] = MV.average(data,axis=1)    
+                    data_all[:,icase] = data.mean(axis=1)    
         
                 # start plotting ...
                 ax = fig.add_subplot(2,2,num1+1)
@@ -852,7 +845,7 @@ class plots:
             w = 0.25
             #w2 = 0.08
             w2 = 0.
-            w3 = 0.08
+            w3 = 0.06
         
             x = np.asarray([1,2,3,4,5])
             
@@ -901,13 +894,39 @@ class plots:
              #               L3 = axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='o',s=self.s2,color=self.colors[icol],alpha=self.a1,label=column)
                             Lc = axes[jj].scatter(x+w+w2,y1.values.tolist(),marker='^',s=self.s2,color=self.colors[icol],alpha=self.a1,label='_nolegend_')
            
+
+                # CMIP - other models
+                if self.Add_otherCMIPs:
+                    a2 = 0.5
+                    s3 = 80
+#                    for icol,column in enumerate(df_LW_others.columns):
+#                        y1 = df_LW_others.iloc[jj*5:(jj+1)*5,icol]
+#                        axes[jj].scatter(x-w+w2-w3,y1.values.tolist(),marker='v',s=s3,fc='grey',ec='None',alpha=a2,label='_nolegend_')
+#
+#                    for icol,column in enumerate(df_net_others.columns):
+#                        y1 = df_net_others.iloc[jj*5:(jj+1)*5,icol]
+#                        axes[jj].scatter(x+w2-w3,y1.values.tolist(),marker='o',s=s3,fc='grey',ec='None',alpha=a2,label='_nolegend_')
+#        
+#                    for icol,column in enumerate(df_SW_others.columns):
+#                        y1 = df_SW_others.iloc[jj*5:(jj+1)*5,icol]
+#                        axes[jj].scatter(x+w+w2-w3,y1.values.tolist(),marker='^',s=s3,fc='grey',ec='None',alpha=a2,label='_nolegend_')
         
-                #if not only_net:
-                #    legend = axes[0].legend([La,Lb,Lc],["LW","NET","SW"],scatterpoints=1,loc="lower right",fontsize=self.fh1)
-                #    leg = axes[0].get_legend()
-                #    leg.legendHandles[0].set_color('black')
-                #    leg.legendHandles[1].set_color('black')
-                #    leg.legendHandles[2].set_color('black')
+        
+#                    L1 = axes[jj].scatter(x-w+w2-w3,df_LW_others.iloc[jj*5:(jj+1)*5,:].mean(axis=1),marker='v',s=s3,c='grey',alpha=1.0,label='_nolegend_')
+#                    L2 = axes[jj].scatter(x+w2-w3,df_net_others.iloc[jj*5:(jj+1)*5,:].mean(axis=1),marker='o',s=s3,c='grey',alpha=1.0,label='_nolegend_')
+#                    L3 = axes[jj].scatter(x+w+w2-w3,df_SW_others.iloc[jj*5:(jj+1)*5,:].mean(axis=1),marker='^',s=s3,c='grey',alpha=1.0,label='_nolegend_')
+
+                    #plt.legend((L1,L2,L3),["LW","NET","SW"],scatterpoints=1,bbox_to_anchor=(1,1),loc="best",fontsize=self.fh1)
+                    
+                    # Show the box plot for other CMIP models' result 
+                    boxprops = dict(linestyle='-', linewidth=1.0, facecolor='lightgrey')
+                    meanlineprops = dict(linestyle='-', linewidth=1.0, color='black')
+                    medianprops = dict(linestyle='-', linewidth=1.0, color='firebrick')
+
+                    bp1 = axes[jj].boxplot(df_LW_others.iloc[jj*5:(jj+1)*5,:].transpose(), positions=x-w+w2-w3, widths=0.04, showmeans=True, meanline=True, whis=(0,100),meanprops=meanlineprops,medianprops=medianprops,boxprops=boxprops,patch_artist=True,)
+                    bp2 = axes[jj].boxplot(df_net_others.iloc[jj*5:(jj+1)*5,:].transpose(), positions=x+w2-w3, widths=0.04, showmeans=True, meanline=True, whis=(0,100),meanprops=meanlineprops,medianprops=medianprops,boxprops=boxprops,patch_artist=True,)
+                    bp3 = axes[jj].boxplot(df_SW_others.iloc[jj*5:(jj+1)*5,:].transpose(), positions=x+w+w2-w3, widths=0.04, showmeans=True, meanline=True, whis=(0,100),meanprops=meanlineprops,medianprops=medianprops,boxprops=boxprops,patch_artist=True,)
+
 
                 if jj == 0:
                     legend = axes[jj].legend([La,Lb,Lc],["LW","NET","SW"],scatterpoints=1,loc="lower right",fontsize=self.fh1)
@@ -916,34 +935,16 @@ class plots:
                     leg.legendHandles[1].set_color('black')
                     leg.legendHandles[2].set_color('black')
 
+                    if self.Add_otherCMIPs:
+                        legend2 = axes[jj].legend([bp1["boxes"][0]], ['MMM'], loc='upper left', fontsize=self.fh1)
+
                     axes[jj].legend(fontsize=self.fh1,ncol=2,loc='upper right')
                     axes[jj].add_artist(legend)
- 
 
-                # CMIP - other models
-                if self.Add_otherCMIPs:
-                    a2 = 0.5
-                    s3 = 100
-                    for icol,column in enumerate(df_LW_others.columns):
-                        y1 = df_LW_others.iloc[jj*5:(jj+1)*5,icol]
-                        axes[jj].scatter(x-w+w2-w3,y1.values.tolist(),marker='v',s=s3,color='grey',alpha=a2,label='_nolegend_')
+                    if self.Add_otherCMIPs:
+                        axes[jj].add_artist(legend2)
         
-                    for icol,column in enumerate(df_net_others.columns):
-                        y1 = df_net_others.iloc[jj*5:(jj+1)*5,icol]
-                        axes[jj].scatter(x+w2-w3,y1.values.tolist(),marker='o',s=s3,color='grey',alpha=a2,label='_nolegend_')
-        
-                    for icol,column in enumerate(df_SW_others.columns):
-                        y1 = df_SW_others.iloc[jj*5:(jj+1)*5,icol]
-                        axes[jj].scatter(x+w+w2-w3,y1.values.tolist(),marker='^',s=s3,color='grey',alpha=a2,label='_nolegend_')
-        
-        
-                    L1 = axes[jj].scatter(x-w+w2-w3,df_LW_others.iloc[jj*5:(jj+1)*5,:].mean(axis=1),marker='v',s=s3,color='grey',alpha=1.0,label='_nolegend_')
-                    L2 = axes[jj].scatter(x+w2-w3,df_net_others.iloc[jj*5:(jj+1)*5,:].mean(axis=1),marker='o',s=s3,color='grey',alpha=1.0,label='_nolegend_')
-                    L3 = axes[jj].scatter(x+w+w2-w3,df_SW_others.iloc[jj*5:(jj+1)*5,:].mean(axis=1),marker='^',s=s3,color='grey',alpha=1.0,label='_nolegend_')
-        
-                    #plt.legend((L1,L2,L3),["LW","NET","SW"],scatterpoints=1,bbox_to_anchor=(1,1),loc="best",fontsize=self.fh1)
-        
-        
+
                 axes[jj].grid(axis='y',which='major', linestyle='--', linewidth='1.0', color='grey')
                 
                 axes[jj].axhline(0, color="grey", linestyle="-",linewidth=2)
@@ -1064,17 +1065,20 @@ class plots:
                                 data1 = np.zeros((nlat,len(models[iphase])))
                                 avgdata1 = np.zeros((len(models[iphase])))
                                 for imodel,model in enumerate(models[iphase]):
-                                    f1 = cdms.open(self.datadir_CldRadKernel+'global_cloud_feedback_'+phase+'_'+exp_new[iphase][1]+'_'+model+'.nc')
+                                    f1 = xr.open_dataset(self.datadir_CldRadKernel+'global_cloud_feedback_'+phase+'_'+exp_new[iphase][1]+'_'+model+'.nc')
                                     if component in ['LW','SW']:
-                                        tmp1 = f1(varname)
+                                        tmp1 = f1[varname]
                                     else:
-                                        dataSW = f1(varSW)
-                                        dataLW = f1(varLW)
-                                        tmp1 = dataSW + dataLW
-                                        tmp1.setAxisList(dataSW.getAxisList())
+                                        dataSW = f1[varSW]
+                                        dataLW = f1[varLW]
+                                        tmp1 = xr.DataArray(dataSW + dataLW, coords=dataSW.coords)
     
-                                    data1[:,imodel] = MV.average(tmp1,axis=1)
-                                    avgdata1[imodel] = cdutil.averager(tmp1,axis='xy',weights='weighted')
+                                    # ensure the lat and lon names
+                                    latnew, lonnew = list(tmp1.coords.keys())[0], list(tmp1.coords.keys())[1]
+                                    tmp1 = tmp1.rename({lonnew: 'lon',latnew: 'lat'})
+
+                                    data1[:,imodel] = tmp1.mean(axis=1)
+                                    avgdata1[imodel] = area_averager(tmp1).values
                                 if iphase == 0:
                                     data_others[:,:len(cmip5_models)] = data1
                                     avgdata_others[:len(cmip5_models)] = avgdata1
@@ -1088,29 +1092,28 @@ class plots:
         
                         for icase,case in enumerate(cases_here[:ii]):
                             if case == 'v1_coupled':
-                                f1 = cdms.open(self.datadir_v1+'global_cloud_feedback_CMIP6_abrupt-4xCO2_E3SM-1-0_r1i1p1f1_1yr-150yr.nc')
+                                f1 = xr.open_dataset(self.datadir_v1+'global_cloud_feedback_CMIP6_abrupt-4xCO2_E3SM-1-0_r1i1p1f1_1yr-150yr.nc')
                             elif case == 'v1_amip4K':
-                                f1 = cdms.open(self.datadir_v1+'global_cloud_feedback_CMIP6_amip-p4K_E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
+                                f1 = xr.open_dataset(self.datadir_v1+'global_cloud_feedback_CMIP6_amip-p4K_E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
                             elif case == 'v1_future4K':
-                                f1 = cdms.open(self.datadir_v1+'global_cloud_feedback_CMIP6_amip-future4K_E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
+                                f1 = xr.open_dataset(self.datadir_v1+'global_cloud_feedback_CMIP6_amip-future4K_E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
                             else:
-                                f1 = cdms.open(self.datadir_v2+'global_cloud_feedback_'+case+'.nc')
+                                f1 = xr.open_dataset(self.datadir_v2+'global_cloud_feedback_'+case+'.nc')
         
                             if component in ['LW','SW']:
-                                data = f1(varname)
+                                data = f1[varname]
                             else:
         
-                                dataSW = f1(varSW)
-                                dataLW = f1(varLW)
-                                data = dataSW + dataLW
-                                data.setAxisList(dataSW.getAxisList())
+                                dataSW = f1[varSW]
+                                dataLW = f1[varLW]
+                                data = xr.DataArray(dataSW + dataLW, coords=dataSW.coords)
         
-                            lats = data.getLatitude()[:]
+                            lats = data.lat.values
         
                             ######################################################
                             # Compute weights and take weighted average over latitude dimension
                             clat = np.cos(np.deg2rad(lats))
-                            clat1 = clat/MV.sum(clat)
+                            clat1 = clat/np.sum(clat)
                             clat1[0] = 0.
         
                             clats = np.zeros(len(clat1))
@@ -1134,9 +1137,9 @@ class plots:
                             ######################################################
         
                             # get zonal mean
-                            data_all[:,icase] = MV.average(data,axis=1)
+                            data_all[:,icase] = data.mean(axis=1)
                             # get global mean
-                            avgdata[icase] = cdutil.averager(data,axis='xy',weights='weighted')
+                            avgdata[icase] = area_averager(data).values
     
     
                         # start plotting ...
@@ -1276,38 +1279,34 @@ class plots:
     
                     for icase,case in enumerate(cases_here):
                         if case == 'v1_coupled':
-                            f1 = cdms.open(self.datadir_v1+'global_cloud_feedback_CMIP6_abrupt-4xCO2_E3SM-1-0_r1i1p1f1_1yr-150yr.nc')
+                            f1 = xr.open_dataset(self.datadir_v1+'global_cloud_feedback_CMIP6_abrupt-4xCO2_E3SM-1-0_r1i1p1f1_1yr-150yr.nc')
                         elif case == 'v1_amip4K':
-                            f1 = cdms.open(self.datadir_v1+'global_cloud_feedback_CMIP6_amip-p4K_E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
+                            f1 = xr.open_dataset(self.datadir_v1+'global_cloud_feedback_CMIP6_amip-p4K_E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
                         elif case == 'v1_future4K':
-                            f1 = cdms.open(self.datadir_v1+'global_cloud_feedback_CMIP6_amip-future4K_E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
+                            f1 = xr.open_dataset(self.datadir_v1+'global_cloud_feedback_CMIP6_amip-future4K_E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
                         else:
-                            f1 = cdms.open(self.datadir_v2+'global_cloud_feedback_'+case+'.nc')
+                            f1 = xr.open_dataset(self.datadir_v2+'global_cloud_feedback_'+case+'.nc')
     
                         if component in ['LW','SW']:
-                            data = f1(varname).subRegion(lat=(latS,latE),lon=(lonS,lonE))
+                            data = f1[varname].sel(lat=slice(latS,latE),lon=slice(lonS,lonE))
                         else:
     
-                            dataSW = f1(varSW).subRegion(lat=(latS,latE),lon=(lonS,lonE))
-                            dataLW = f1(varLW).subRegion(lat=(latS,latE),lon=(lonS,lonE))
-                            data = dataSW + dataLW
-                            data.setAxisList(dataSW.getAxisList())
+                            dataSW = f1[varSW].sel(lat=slice(latS,latE),lon=slice(lonS,lonE))
+                            dataLW = f1[varLW].sel(lat=slice(latS,latE),lon=slice(lonS,lonE))
+                            data = xr.DataArray(dataSW + dataLW, coords=dataSW.coords)
     
-                        lats = data.getLatitude()
-                        lons = data.getLongitude()
+                        lats = data.lat
+                        lons = data.lon
 
                         if idecomp==0 and icase==0:
-                            data_all = np.zeros((data.shape[0],data.shape[1],len(decomps),len(cases_here)))
+                            data_all = xr.DataArray(np.zeros((data.shape[0],data.shape[1],len(decomps),len(cases_here))),
+                            coords={'lat':lats,'lon':lons,'decomp':range(len(decomps)),'case':range(len(cases_here))})
                             avgdata = np.zeros((len(decomps),len(cases_here)))
-                            data_all = cdms.asVariable(data_all)
 
                         ######################################################
                         data_all[:,:,idecomp,icase] = data
                         # get global mean
-                        avgdata[idecomp,icase] = cdutil.averager(data,axis='xy',weights='weighted')
-    
-                data_all.setAxis(0,lats)
-                data_all.setAxis(1,lons)
+                        avgdata[idecomp,icase] = area_averager(data).values
     
                 print('data_all.shape=',data_all.shape)
                 
@@ -1347,8 +1346,6 @@ class plots:
                             # ref_case
                             ax_test = fig.add_subplot(nrow,ncol,(n+1)*ncol-2,projection=prj)
                             DATA = data_all[:,:,n,iref]
-                            DATA.setAxis(0,lats)
-                            DATA.setAxis(1,lons)
                             avgDATA = avgdata[n,iref]
                             ax_test.contourf(lons[:],lats[:],DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
                             if n != 0:
@@ -1360,9 +1357,6 @@ class plots:
                             # case
                             ax_ref = fig.add_subplot(nrow,ncol,(n+1)*ncol-1,projection=prj)
                             DATA = data_all[:,:,n,icase]
-                            DATA.setAxis(0,lats)
-
-                            DATA.setAxis(1,lons)
                             avgDATA = avgdata[n,icase]
                             ax_ref.contourf(lons[:],lats[:],DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
                             if n != 0:
@@ -1375,8 +1369,6 @@ class plots:
                             # difference b/t icase and v1-coupled
                             ax1 = fig.add_subplot(nrow,ncol,(n+1)*ncol,projection=prj)
                             DATA = data_all[:,:,n,icase] - data_all[:,:,n,iref]
-                            DATA.setAxis(0,lats)
-                            DATA.setAxis(1,lons)
                             avgDATA = avgdata[n,icase] - avgdata[n,iref]
                             im1 = ax1.contourf(lons[:],lats[:],DATA,bounds,transform=ccrs.PlateCarree(),cmap=cmap,norm=norm,extend='both')
 
@@ -1483,13 +1475,13 @@ class plots:
                         else:
                     	    model_amip = model
     
-                        f1 = cdms.open(self.datadir_RadKernel+'lat-lon-gfdbk-'+phase+'-'+exp_new[iphase][1]+'-'+model_amip+suffix+'.nc')
-                        tmp1 = f1(svar)
+                        f1 = xr.open_dataset(self.datadir_RadKernel+'lat-lon-gfdbk-'+phase+'-'+exp_new[iphase][1]+'-'+model_amip+suffix+'.nc')
+                        tmp1 = f1[svar]
                     
-                        lats = tmp1.getLatitude()[:]
-                        lons = tmp1.getLongitude()[:]
+                        lats = tmp1.lat[:]
+                        lons = tmp1.lon[:]
                         data1[:,:,imodel] = tmp1
-                        data1_zm[:,imodel] = MV.average(tmp1,axis=1)
+                        data1_zm[:,imodel] = tmp1.mean(axis=1)
     
                     if iphase == 0:
                         data_others[:,:,:len(cmip5_models)] = data1
@@ -1504,21 +1496,30 @@ class plots:
     
             for icase,case in enumerate(cases_here):
                 if case == 'v1_coupled':
-                    f1 = cdms.open(self.datadir_v1+'lat-lon-gfdbk-CMIP6-abrupt-4xCO2-E3SM-1-0_r1i1p1f1_1yr-150yr.nc')
+                    f1 = xr.open_dataset(self.datadir_v1+'lat-lon-gfdbk-CMIP6-abrupt-4xCO2-E3SM-1-0_r1i1p1f1_1yr-150yr.nc')
                 elif case == 'v1_amip4K':
-                    f1 = cdms.open(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-p4K-E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
+                    f1 = xr.open_dataset(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-p4K-E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
                 elif case == 'v1_future4K':
-                    f1 = cdms.open(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-future4K-E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
+                    f1 = xr.open_dataset(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-future4K-E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
                 else:
-                    f1 = cdms.open(self.datadir_v2+'lat-lon-gfdbk-CMIP6-'+case+'.nc')
+                    f1 = xr.open_dataset(self.datadir_v2+'RadKern_map_'+case+'.nc')
     
-                data = f1(svar)
-                lats = data.getLatitude()
-                lons = data.getLongitude()
+                try:
+                    data = f1[svar]
+                except:
+                    data = f1[svar.split('_')[0]]
+                lats = data.lat
+                lons = data.lon
     
+                if icase==0:
+                    data_all = xr.DataArray(np.zeros((data.shape[0],data.shape[1],len(cases_here))),
+                    coords={'lat':lats,'lon':lons,'case':range(len(cases_here))})
+                    data_all_zm = xr.DataArray(np.zeros((data.shape[0],len(cases_here))),
+                    coords={'lat':lats,'case':range(len(cases_here))})
+
                 # get zonal mean
                 data_all[:,:,icase] = data
-                data_all_zm[:,icase] = MV.average(data,axis=1)    
+                data_all_zm[:,icase] = data.mean(axis=1)    
     
             #----------------------------------------------------------
             # start plotting ...
@@ -1547,11 +1548,7 @@ class plots:
                     norm1 = mpl.colors.BoundaryNorm(bounds11, cmap1.N) # make sure the colors vary linearly even if the desired color boundaries are at varied intervals
     
                     # difference b/t icase and reference case
-                    DATAd = data_all[:,:,icase] - data_all[:,:,iref]
-                    DATAd = cdms.asVariable(DATAd)
-    
-                    DATAd.setAxis(0,lats)
-                    DATAd.setAxis(1,lons)
+                    DATAd = xr.DataArray(data_all[:,:,icase] - data_all[:,:,iref], coords=data_all[:,:,0].coords)
     
                     DATA_all = [data_all[:,:,icase], data_all[:,:,iref], DATAd]
                     titles = [cases_here[icase], cases_here[iref], cases_here[icase]+' minus '+cases_here[iref]]
@@ -1614,17 +1611,21 @@ class plots:
         for ivar,svar in enumerate(variables):
             for icase,case in enumerate(cases_here):
                 if case == 'v1_coupled':
-                    f1 = cdms.open(self.datadir_v1+'lat-lon-gfdbk-CMIP6-abrupt-4xCO2-E3SM-1-0_r1i1p1f1_1yr-150yr.nc')
+                    f1 = xr.open_dataset(self.datadir_v1+'lat-lon-gfdbk-CMIP6-abrupt-4xCO2-E3SM-1-0_r1i1p1f1_1yr-150yr.nc')
                 elif case == 'v1_amip4K':
-                    f1 = cdms.open(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-p4K-E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
+                    f1 = xr.open_dataset(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-p4K-E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
                 elif case == 'v1_future4K':
-                    f1 = cdms.open(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-future4K-E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
+                    f1 = xr.open_dataset(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-future4K-E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
                 else:
-                    f1 = cdms.open(self.datadir_v2+'lat-lon-gfdbk-CMIP6-'+case+'.nc')
+                    f1 = xr.open_dataset(self.datadir_v2+'RadKern_map_'+case+'.nc')
     
-                data = f1(svar)
-                lats = data.getLatitude()
-                lons = data.getLongitude()
+                try:
+                    data = f1[svar]
+                except:
+                    data = f1[svar.split('_')[0]+'_'+svar.split('_')[-1]]
+
+                lats = data.lat
+                lons = data.lon
     
                 # get zonal mean
                 data_all[:,:,ivar,icase] = data
@@ -1672,10 +1673,8 @@ class plots:
                     num0 = 0
                     for DATA in data_plot:
 
-                        print('minmax DATA=',genutil.minmax(DATA))
-                        DATA = cdms.asVariable(DATA)
-                        DATA.setAxis(0,lats)
-                        DATA.setAxis(1,lons)
+                        print('minmax DATA=',DATA.min(), DATA.max())
+                        DATA = xr.DataArray(DATA, coords={'lat':lats,'lon':lons})
     
                         ax1 = fig.add_subplot(nrow,ncol,ivar*ncol+num0+1,projection=ccrs.Robinson(central_longitude=180.))
                         im1 = ax1.contourf(lons[:],lats[:],DATA,bounds,transform=ccrs.PlateCarree(),cmap=new_cmap,norm=norm,extend='both')
@@ -1685,7 +1684,7 @@ class plots:
                         ax1.set_global()
     
                         # global-mean 
-                        avgDATA = cdutil.averager(DATA,axis='xy',weights='weighted')
+                        avgDATA = area_averager(DATA).values
                         print('avgDATA=',avgDATA)
 
                         if num0 == 2: # only for different plot
@@ -1714,7 +1713,7 @@ class plots:
                         count += 1
 
                         # 2022-03-31: add box over specific regions in panel (c)
-                        if True and count == 3:
+                        if False and count == 3:
                             #for xx,yy,width,height in zip([240,330,195],[-30,-30,10],[40,30,30],[20,20,20]):
                             for xx,yy,width,height in zip([240,330],[-30,-30],[40,30],[20,20]):
                                 ax1.add_patch(mpatches.Rectangle(xy=[xx, yy], width=width, height=height,
@@ -1842,20 +1841,20 @@ class plots:
                         fig = plt.figure(figsize=(ncol*5,nrow*3))
                         # -------------------- generate figures -------------------
     
-                        f1 = cdms.open(self.datadir_v2+'global_'+svar+'_'+case+'.nc')
+                        f1 = xr.open_dataset(self.datadir_v2+'global_'+svar+'_'+case+'.nc')
                         if case == 'v1_coupled':
                             svar_in = var1_tmp[ivar]
                         else:
                             svar_in = var1[ivar]
     
-                        tmp1 = f1(svar_in+'_pi_clim')
-                        tmp2 = f1(svar_in+'_ano_clim')
+                        tmp1 = f1[svar_in+'_pi_clim']
+                        tmp2 = f1[svar_in+'_ano_clim']
     
-                        levs = tmp1.getLevel()[:]
-                        lats = tmp1.getLatitude()[:]
+                        levs = tmp1.lev[:]
+                        lats = tmp1.lat[:]
     
-                        data_all_pi = MV.average(tmp1,axis=2)
-                        data_all_ano =  MV.average(tmp2,axis=2)
+                        data_all_pi = tmp1.mean(axis=2)
+                        data_all_ano =  tmp2.mean(axis=2)
     
                         # convert unit from kg/kg to mg/kg
                         if svar in ['CLDLIQ','CLDICE']:
@@ -1874,14 +1873,14 @@ class plots:
                         clats,spec_clats = PDF.get_scaled_lat(lats, spec_lats)
     
                         # -------------- read reference P4K data -----------------
-                        fref = cdms.open(self.datadir_v2+'global_'+svar+'_'+ref_case+'.nc')
+                        fref = xr.open_dataset(self.datadir_v2+'global_'+svar+'_'+ref_case+'.nc')
                         if ref_case == 'v1_coupled':
                             svar_in = var1_tmp[ivar]
                         else:
                             svar_in = var1[ivar]
     
-                        data_all_pi_ref = MV.average(fref(svar_in+'_pi_clim'),axis=2)
-                        data_all_ano_ref = MV.average(fref(svar_in+'_ano_clim'),axis=2)
+                        data_all_pi_ref = fref[svar_in+'_pi_clim'].mean(axis=2)
+                        data_all_ano_ref = fref[svar_in+'_ano_clim'].mean(axis=2)
     
                         if svar in ['CLDLIQ','CLDICE']:
                             data_all_pi_ref = data_all_pi_ref * 1e6
@@ -1970,16 +1969,16 @@ class plots:
     
         cases_here = copy.deepcopy(self.cases)
     
-        var1 = ['TGCLDLWP','TGCLDIWP','CLDTOT','INCLDLWP','INCLDIWP','CLDLOW','CLDMED','CLDHGH']
+        var1 = ['TGCLDLWP','TGCLDIWP','CLDTOT','CLDLOW','CLDMED','CLDHGH']
         var1_tmp = ['clwvi', 'clivi','', '','','','']
-        var1_range = [[0,100,5],[0,100,5],[0,100,5],[0,100,5],[0,100,5],[0,100,5],[0,100,5],[0,100,5]]
-        var1_range_d = [[-5,5,0.5], [-5,5,0.5],[-5,5,0.5],[-5,5,0.5],[-5,5,0.5],[-5,5,0.5],[-5,5,0.5],[-5,5,0.5]]
-        var1_cntl_range_d = [[-20,20,2], [-20,20,2],[-20,20,2],[-20,20,2],[-20,20,2],[-20,20,2],[-20,20,2],[-20,20,2]]
+        var1_range = [[0,100,5],[0,100,5],[0,100,5],[0,100,5],[0,100,5],[0,100,5]]
+        var1_range_d = [[-5,5,0.5], [-5,5,0.5],[-5,5,0.5],[-5,5,0.5],[-5,5,0.5],[-5,5,0.5],[-5,5,0.5]]
+        var1_cntl_range_d = [[-20,20,2], [-20,20,2],[-20,20,2],[-20,20,2],[-20,20,2],[-20,20,2],[-20,20,2]]
     
-        var1_out = ['Liquid Water Path','Ice Water Path','Total Cloud Fraction','In-cloud LWP','In-cloud IWP','Low Cloud Fraction','Middle Cloud Fraction','High Cloud Fraction']
+        var1_out = ['Liquid Water Path','Ice Water Path','Total Cloud Fraction','Low Cloud Fraction','Middle Cloud Fraction','High Cloud Fraction']
     
-        var1_units = ['g/m$^2$','g/m$^2$','%','g/m$^2$','g/m$^2$','%','%','%']
-        var1_units1 = ['g/m$^2$','g/m$^2$','%','g/m$^2$','g/m$^2$','%','%','%']
+        var1_units = ['g/m$^2$','g/m$^2$','%','%','%','%']
+        var1_units1 = ['g/m$^2$','g/m$^2$','%','%','%','%']
     
         # ===============================================================        
         # ===============================================================        
@@ -2009,8 +2008,8 @@ class plots:
 
                     # -------------------- generate figures -------------------
     
-                    f1 = cdms.open(self.datadir_v2+'global_'+svar+'_'+case+'.nc')
-                    fref = cdms.open(self.datadir_v2+'global_'+svar+'_'+ref_case+'.nc')
+                    f1 = xr.open_dataset(self.datadir_v2+'global_'+svar+'_'+case+'.nc')
+                    fref = xr.open_dataset(self.datadir_v2+'global_'+svar+'_'+ref_case+'.nc')
 
                     if case == 'v1_coupled':
                         svar_in = var1_tmp[ivar]
@@ -2022,11 +2021,11 @@ class plots:
                         print('Cannot find',var1[ivar],' Pls check.')
                         continue
 
-                    tmp1 = f1(svar_in+'_pi_clim').subRegion(lat=(latS,latE),lon=(lonS,lonE))
-                    tmp2 = f1(svar_in+'_ano_clim').subRegion(lat=(latS,latE),lon=(lonS,lonE))
+                    tmp1 = f1[svar_in+'_pi_clim'].sel(lat=slice(latS,latE),lon=slice(lonS,lonE))
+                    tmp2 = f1[svar_in+'_ano_clim'].sel(lat=slice(latS,latE),lon=slice(lonS,lonE))
     
-                    lats = tmp1.getLatitude()[:]
-                    lons = tmp1.getLongitude()[:]
+                    lats = tmp1.lat
+                    lons = tmp1.lon
     
                     data_all_pi = tmp1
                     data_all_ano =  tmp2
@@ -2049,14 +2048,14 @@ class plots:
                     print('data_all_ano.shape=',data_all_ano.shape)
         
                     # -------------- read reference p4K data -----------------
-                    #fref = cdms.open(self.datadir_v2+'global_cloud_'+ref_case+'.nc')
+                    #fref = xr.open_dataset(self.datadir_v2+'global_cloud_'+ref_case+'.nc')
                     if ref_case == 'v1_coupled':
                         svar_in = var1_tmp[ivar]
                     else:
                         svar_in = var1[ivar]
     
-                    data_all_pi_ref = fref(svar_in+'_pi_clim').subRegion(lat=(latS,latE),lon=(lonS,lonE))
-                    data_all_ano_ref = fref(svar_in+'_ano_clim').subRegion(lat=(latS,latE),lon=(lonS,lonE))
+                    data_all_pi_ref = fref[svar_in+'_pi_clim'].sel(lat=slice(latS,latE),lon=slice(lonS,lonE))
+                    data_all_ano_ref = fref[svar_in+'_ano_clim'].sel(lat=slice(latS,latE),lon=slice(lonS,lonE))
     
                     if svar in ['TGCLDLWP','TGCLDIWP','INCLDLWP','INCLDIWP']:
                         data_all_pi_ref = data_all_pi_ref * 1e3
@@ -2100,8 +2099,6 @@ class plots:
                         elif idata == 5:
                             title = case+' minus '+ref_case+' [P4K-CTL]'
     
-                        print(svar, genutil.minmax(data1))
-    
                         if latS==-90:
                             ax = fig.add_subplot(nrow,ncol,idata+1,projection=ccrs.Robinson(central_longitude=180.))
                         else:
@@ -2113,7 +2110,7 @@ class plots:
                         cmap='RdBu_r',\
                         extend='both')
     
-                        avgdata1 = cdutil.averager(data1,axis='xy',weights='weighted')
+                        avgdata1 = area_averager(data1).values
                         print('avgdata1 = ',avgdata1)
     
                         ax.coastlines()
@@ -2171,21 +2168,21 @@ class plots:
 
         for icase,case in enumerate(cases_here):
             if case == 'v1_coupled':
-                f1 = cdms.open(self.datadir_v1+'lat-lon-gfdbk-CMIP6-abrupt-4xCO2-E3SM-1-0_r1i1p1f1_1yr-150yr-webb-decomp.nc')
+                f1 = xr.open_dataset(self.datadir_v1+'lat-lon-gfdbk-CMIP6-abrupt-4xCO2-E3SM-1-0_r1i1p1f1_1yr-150yr-webb-decomp.nc')
             elif case == 'v1_amip4K':
-                f1 = cdms.open(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-p4K-E3SM-1-0_r2i1p1f1_1yr-36yr-webb-decomp.nc')
+                f1 = xr.open_dataset(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-p4K-E3SM-1-0_r2i1p1f1_1yr-36yr-webb-decomp.nc')
             elif case == 'v1_future4K':
-                f1 = cdms.open(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-future4K-E3SM-1-0_r2i1p1f1_1yr-36yr-webb-decomp.nc')
+                f1 = xr.open_dataset(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-future4K-E3SM-1-0_r2i1p1f1_1yr-36yr-webb-decomp.nc')
             else:
-                f1 = cdms.open(self.datadir_v2+'lat-lon-gfdbk-CMIP6-'+case+'-webb-decomp.nc')
+                f1 = xr.open_dataset(self.datadir_v2+'RadKern_map_'+case+'-webb-decomp.nc')
     
             nrow = 3; ncol = 2
             fig = plt.figure(figsize=(ncol*8,nrow*4)) # this creates and increases the figure size
     
             for ivar,svar in enumerate(variables):
-                data = f1(svar)
-                lats = data.getLatitude()
-                lons = data.getLongitude()
+                data = f1[svar]
+                lats = data.lat
+                lons = data.lon
     
                 #----------------------------------------------------------
                 # start plotting ...
@@ -2201,7 +2198,7 @@ class plots:
                 ax1.set_global()
     
                 # global-mean 
-                avgDATA = cdutil.averager(data,axis='xy',weights='weighted')
+                avgDATA = area_averager(data).values
         
                 case_out = case
     
@@ -2246,20 +2243,24 @@ class plots:
         for ivar,svar in enumerate(variables):
             for icase,case in enumerate(cases_here):
                 if case == 'v1_coupled':
-                    f1 = cdms.open(self.datadir_v1+'lat-lon-gfdbk-CMIP6-abrupt-4xCO2-E3SM-1-0_r1i1p1f1_1yr-150yr.nc')
+                    f1 = xr.open_dataset(self.datadir_v1+'lat-lon-gfdbk-CMIP6-abrupt-4xCO2-E3SM-1-0_r1i1p1f1_1yr-150yr.nc')
                 elif case == 'v1_amip4K':
-                    f1 = cdms.open(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-p4K-E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
+                    f1 = xr.open_dataset(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-p4K-E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
                 elif case == 'v1_future4K':
-                    f1 = cdms.open(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-future4K-E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
+                    f1 = xr.open_dataset(self.datadir_v1+'lat-lon-gfdbk-CMIP6-amip-future4K-E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
                 else:
-                    f1 = cdms.open(self.datadir_v2+'lat-lon-gfdbk-CMIP6-'+case+'.nc')
+                    f1 = xr.open_dataset(self.datadir_v2+'RadKern_map_'+case+'.nc')
     
                 # get region bounds
                 latS,latE,lonS,lonE = self.regions[0],self.regions[1],self.regions[2],self.regions[3]
 
-                data = f1(svar).subRegion(lat=(latS,latE),lon=(lonS,lonE))
-                lats = data.getLatitude()
-                lons = data.getLongitude()
+                try:
+                    data = f1[svar].sel(lat=slice(latS,latE),lon=slice(lonS,lonE))
+                except:
+                    data = f1[svar.split('_')[0]+'_'+svar.split('_')[-1]].sel(lat=slice(latS,latE),lon=slice(lonS,lonE))
+
+                lats = data.lat
+                lons = data.lon
 
                 if ivar==0 and icase==0:
                     data_all = np.ma.zeros((data.shape[0],data.shape[1],len(variables),len(cases_here)))
@@ -2295,10 +2296,8 @@ class plots:
                 num0 = 0
                 for DATA in data_plot:
 
-                    print('minmax DATA=',genutil.minmax(DATA))
-                    DATA = cdms.asVariable(DATA)
-                    DATA.setAxis(0,lats)
-                    DATA.setAxis(1,lons)
+                    print('minmax DATA=',DATA.min(), DATA.max())
+                    DATA = xr.DataArray(DATA, coords={'lat':lats,'lon':lons})
     
                     if latS==-90: #global
                         ax1 = fig.add_subplot(nrow,ncol,ivar*ncol+num0+1,projection=ccrs.Robinson(central_longitude=180.))
@@ -2310,7 +2309,7 @@ class plots:
                     #ax1.set_global()
     
                     # global-mean 
-                    avgDATA = cdutil.averager(DATA,axis='xy',weights='weighted')
+                    avgDATA = area_averager(DATA).values
 
                     PDF.make_colorbar(ax1, 'W/m$^2$/K', self.fh-5, im1, orientation='vertical')
 
@@ -2375,38 +2374,34 @@ class plots:
     
                     for icase,case in enumerate(cases_here):
                         if case == 'v1_coupled':
-                            f1 = cdms.open(self.datadir_v1+'global_cloud_feedback_CMIP6_abrupt-4xCO2_E3SM-1-0_r1i1p1f1_1yr-150yr.nc')
+                            f1 = xr.open_dataset(self.datadir_v1+'global_cloud_feedback_CMIP6_abrupt-4xCO2_E3SM-1-0_r1i1p1f1_1yr-150yr.nc')
                         elif case == 'v1_amip4K':
-                            f1 = cdms.open(self.datadir_v1+'global_cloud_feedback_CMIP6_amip-p4K_E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
+                            f1 = xr.open_dataset(self.datadir_v1+'global_cloud_feedback_CMIP6_amip-p4K_E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
                         elif case == 'v1_future4K':
-                            f1 = cdms.open(self.datadir_v1+'global_cloud_feedback_CMIP6_amip-future4K_E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
+                            f1 = xr.open_dataset(self.datadir_v1+'global_cloud_feedback_CMIP6_amip-future4K_E3SM-1-0_r2i1p1f1_1yr-36yr.nc')
                         else:
-                            f1 = cdms.open(self.datadir_v2+'global_cloud_feedback_'+case+'.nc')
+                            f1 = xr.open_dataset(self.datadir_v2+'global_cloud_feedback_'+case+'.nc')
     
                         if component in ['LW','SW']:
-                            data = f1(varname).subRegion(lat=(latS,latE),lon=(lonS,lonE))
+                            data = f1[varname].sel(lat=slice(latS,latE),lon=slice(lonS,lonE))
                         else:
     
-                            dataSW = f1(varSW).subRegion(lat=(latS,latE),lon=(lonS,lonE))
-                            dataLW = f1(varLW).subRegion(lat=(latS,latE),lon=(lonS,lonE))
-                            data = dataSW + dataLW
-                            data.setAxisList(dataSW.getAxisList())
+                            dataSW = f1[varSW].sel(lat=slice(latS,latE),lon=slice(lonS,lonE))
+                            dataLW = f1[varLW].sel(lat=slice(latS,latE),lon=slice(lonS,lonE))
+                            data = xr.DataArray(dataSW + dataLW, coords=dataSW.coords)
     
-                        lats = data.getLatitude()
-                        lons = data.getLongitude()
+                        lats = data.lat
+                        lons = data.lon
 
                         if idecomp==0 and icase==0:
-                            data_all = np.zeros((data.shape[0],data.shape[1],len(decomps),len(cases_here)))
+                            data_all = xr.DataArray(np.zeros((data.shape[0],data.shape[1],len(decomps),len(cases_here))),
+                            coords={'lat':lats,'lon':lons,'decomp':range(len(decomps)),'case':range(len(cases_here))})
                             avgdata = np.zeros((len(decomps),len(cases_here)))
-                            data_all = cdms.asVariable(data_all)
 
                         ######################################################
                         data_all[:,:,idecomp,icase] = data
                         # get global mean
-                        avgdata[idecomp,icase] = cdutil.averager(data,axis='xy',weights='weighted')
-    
-                data_all.setAxis(0,lats)
-                data_all.setAxis(1,lons)
+                        avgdata[idecomp,icase] = area_averager(data).values
     
                 print('data_all.shape=',data_all.shape)
                 
@@ -2431,9 +2426,6 @@ class plots:
                     for n,name in enumerate(names):
                         DATA = data_all[:,:,n,icase]
        
-                        DATA.setAxis(0,lats)
-                        DATA.setAxis(1,lons)
-        
                         if latS==-90:
                             ax1 = fig.add_subplot(nrow,ncol,n+1,projection=ccrs.Robinson(central_longitude=180.))
                         else:
