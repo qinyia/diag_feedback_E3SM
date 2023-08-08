@@ -2181,6 +2181,9 @@ class plots:
     
             for ivar,svar in enumerate(variables):
                 data = f1[svar]
+
+                data = data.fillna(0)
+
                 lats = data.lat
                 lons = data.lon
     
