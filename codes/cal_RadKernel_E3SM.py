@@ -51,11 +51,11 @@ do_hor_regrid = True
 
 ### define uniform horizontal grids 
 if do_hor_regrid:
-#    Dlats = np.arange(-90,92.5,2.5)
-#    Dlons = np.arange(0,360,2.5)
+    Dlats = np.arange(-90,92.5,2.5)
+    Dlons = np.arange(0,360,2.5)
 
-    Dlats = np.arange(-87.5,90,2.5)
-    Dlons = np.arange(1.25,360,2.5)
+#    Dlats = np.arange(-87.5,90,2.5)
+#    Dlons = np.arange(1.25,360,2.5)
 
 ### Define standard pressure levels  [hPa]
 Dlevs = np.array([100000, 92500, 85000, 70000, 60000, 50000, 40000, 30000, 25000, 20000, 15000, 10000, 7000, 5000, 3000, 2000, 1000])/100.
@@ -268,7 +268,7 @@ def RadKernel(kernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,
 
     dic_rad_wap = dic_rad
     del dic_mod_tropo, dic_kern_tropo
-
+    
     time_coord = pd.date_range("1850-01", periods=dtas_avg.shape[0]*12, name="time",freq='MS')
 
     #=============================================================
@@ -294,7 +294,7 @@ def RadKernel(kernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,
 
     sub_name = 'Get outputs'
     print_memory_status(sub_name)
-    
+
     #=============================================================
     # print regional/global values for test                    
     #=============================================================
@@ -369,6 +369,7 @@ def output_file(outdir,dic_final,model_out, outfile_map, outfile_gm):
         "LW_clr_resd":     (('lat','lon'),dic_final['LW_clr_dir_sum_'+name].data),
         "SW_clr_resd":     (('lat','lon'),dic_final['SW_clr_dir_sum_'+name].data),
         "net_clr_resd":    (('lat','lon'),dic_final['net_clr_dir_sum_'+name].data),
+        "tas":             (('lat','lon'),dic_final['tas_'+name].data),
         },
         coords = {
         "lat": dic_final['ALB_'+name].coords['lat'].values,
@@ -479,7 +480,7 @@ def plt_figure(dic_final,case_stamp,figdir):
 def prints_gm(dic_final):
     for svar in dic_final.keys():
         if 'gfbk' in svar:
-            logger.debug(f'{svar}.mean = {dic_final[svar]}')
+            logger.debug(f'{svar}.mean = {dic_final[svar].values}')
 
     str_len = 60
     print('------ Hi, summary all feedbacks except for cloud feedback------------')
@@ -1301,6 +1302,9 @@ def cal_Kern_rad_separate(dic_mod_wap,dic_kern_wap,dp4d,rsdt_ab):
         var1_in = [var+'_'+case for var in var1]
         out1_in = [out+'_'+case for out in out1]
         dic_rad = get_mult_latlon(dic_rad,kern1_in,var1_in,out1_in,dic_kern_wap,dic_mod_wap,dp4d)
+
+        # Save surface temperature itself
+        dic_rad['tas_'+case] = dic_mod_wap['tas_'+case]
 
               
         # add TS feedback to get total temperature and Planck feedbacks 
