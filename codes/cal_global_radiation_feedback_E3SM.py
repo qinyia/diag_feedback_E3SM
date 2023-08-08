@@ -40,9 +40,9 @@ import PlotDefinedFunction as PDF
 ########## MAIN SUBROUTINE STARTS HERE ....
 def Global_RadFeedback(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,exp1,exp2):
 
-    #if os.path.isfile(outdir+'global_mean_features_'+case_stamp+'.csv'):
-    #    print('Global_RadFeedback is done.')
-    #    return 
+    if os.path.isfile(outdir+'global_mean_features_'+case_stamp+'.csv'):
+        print('Global_RadFeedback is done.')
+        return 
 
     yearS_4d = "{:04d}".format(yearS)
     yearE_4d = "{:04d}".format(yearE)
