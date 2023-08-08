@@ -57,37 +57,11 @@ import os
 import sys
 sys.path.append('../')
 import cases_lookup as CL
-from PlotDefinedFunction import linearregression_nd,area_averager
+from PlotDefinedFunction import linearregression_nd,area_averager,weighted_annual_mean, save_big_dataset
 
 ###########################################################################
 # HELPFUL FUNCTIONS FOLLOW
 ###########################################################################
-def weighted_temporal_mean(time, obs):
-  """
-  weight by days in each month
-  """
-  # Determine the month length
-  month_length = time.dt.days_in_month
-
-  # Calculate the weights
-  wgts = month_length.groupby("time.year") / month_length.groupby("time.year").sum()
-
-  # Make sure the weights in each year add up to 1
-  np.testing.assert_allclose(wgts.groupby("time.year").sum(xr.ALL_DIMS), 1.0)
-
-  # Setup our masking for nan values
-  cond = obs.isnull()
-  ones = xr.where(cond, 0.0, 1.0)
-
-  # Calculate the numerator
-  obs_sum = (obs * wgts).resample(time="AS").sum(dim="time")
-
-  # Calculate the denominator
-  ones_out = (ones * wgts).resample(time="AS").sum(dim="time")
-
-  # Return the weighted average
-  return obs_sum / ones_out
-
 
 # ------------------------------------------------------------------------
 def YEAR(data):
@@ -230,8 +204,11 @@ def KT_decomposition_4D(c1,c2,Klw,Ksw):
 ###########################################################################
 def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir):
 
-    if os.path.isfile(outdir+'global_cloud_feedback_'+case_stamp+'.nc'):
-        print('CloudRadKernel is already there.')
+    outfile_gm_sw = outdir+'decomp_global_mean_sw_'+case_stamp+'.csv'
+    outfile_gm_lw = outdir+'decomp_global_mean_lw_'+case_stamp+'.csv'
+    outfile_map = outdir+'global_cloud_feedback_'+case_stamp+'.nc'
+    if os.path.isfile(outfile_gm_sw) and os.path.isfile(outfile_gm_lw) and os.path.isfile(outfile_map):
+        print('CloudRadKernel result is already there.')
         return
 
     yearS_4d = "{:04d}".format(yearS)
@@ -345,7 +322,7 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
     anomtas = anomtas.assign_coords({'time':("time",newtime)})
 
 #    anomtas_ann = anomtas.groupby('time.year').mean('time')
-    anomtas_ann = weighted_temporal_mean(anomtas.time,anomtas)
+    anomtas_ann = weighted_annual_mean(anomtas.time,anomtas)
 
     anomtas_ann_gm = area_averager(anomtas_ann)
 
@@ -368,7 +345,8 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
     # The sun is down if every bin of the SW kernel is zero:
     sundown=np.ma.sum(np.ma.sum(SWkernel_map,axis=2),axis=1)  #12*nyears,90,144
     night=np.where(sundown==0)
-    print("data processing is done. Please continue.")
+    print("Data processing is done.")
+    print()
     
     ###########################################################################
     # Part 2: Compute cloud feedbacks and their breakdown into components
@@ -387,10 +365,6 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
     
 
     dic_out1 = {}
-    #<qinyi 2021-02-25 #------------------
-    # add output of monthly radiation anomalies caused by different cloud properties
-    dic_out2 = {}
-
     for sec in sections:
         print ('Using '+sec+' CTP bins')
         choose=sec_dic[sec]
@@ -446,7 +420,7 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
         for n,name in enumerate(names):
             DATA_anom = variables[n].filled(fill_value=np.nan) # convert masked array to array with nan as missing value
             DATA_anom = xr.DataArray(variables[n], coords=AX3)
-            DATA_am = weighted_temporal_mean(DATA_anom.time,DATA_anom)
+            DATA_am = weighted_annual_mean(DATA_anom.time,DATA_anom)
 
             if 'coupled' in case_stamp:
                 slope,intercept = linearregression_nd(DATA_am, x = np.reshape(anomtas_ann_gm.values, (anomtas_ann_gm.shape[0],1,1)))
@@ -469,8 +443,13 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
     print(df_lw_all.head())
     print(df_sw_all.head())
     
-    df_lw_all.to_csv(outdir+'decomp_global_mean_lw_'+case_stamp+'_xr.csv')
-    df_sw_all.to_csv(outdir+'decomp_global_mean_sw_'+case_stamp+'_xr.csv')
+    # Save global mean values
+    df_lw_all.to_csv(outfile_gm_lw)
+    df_sw_all.to_csv(outfile_gm_sw)
+
+    # Save nc file
+    comment = 'created by cal_CloudRadKernel_E3SM.py; Author: Yi Qin (yi.qin@pnnl.gov)'
+    save_big_dataset(dic_out1,outfile_map,comment)
 
     
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
