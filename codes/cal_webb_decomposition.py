@@ -44,7 +44,7 @@ def save_big_dataset(dic_mod,outfile):
 # ========================================================================
 def cal_webb_decomp(direc_data,case_stamp,yearS,yearE,outdir,figdir):
 
-    outfile = outdir+'lat-lon-gfdbk-CMIP6-'+case_stamp+'-webb-decomp.nc'
+    outfile = outdir+'RadKern_map_'+case_stamp+'-webb-decomp.nc'
 
     if os.path.isfile(outfile):
         print('cal_webb_decomp ', case_stamp, 'output is ready. Please continue. ')
@@ -53,7 +53,7 @@ def cal_webb_decomp(direc_data,case_stamp,yearS,yearE,outdir,figdir):
         lats_spc = np.arange(-90,92.5,2.5)
         lons_spc = np.arange(1.25,360,2.5)
 
-        var = ['SWCRE_ano_grd_adj', 'LWCRE_ano_grd_adj', 'netCRE_ano_grd_adj']
+        var = ['SWCRE_adj', 'LWCRE_adj', 'netCRE_adj']
         var_out = ['SWCRE','LWCRE','netCRE']
 
         # =============================================
@@ -65,7 +65,7 @@ def cal_webb_decomp(direc_data,case_stamp,yearS,yearE,outdir,figdir):
                 print(svar)
                 svar_out = var_out[ivar]
 
-                f1 = xr.open_dataset(direc_data+'/lat-lon-gfdbk-CMIP6-'+case_stamp+'.nc')
+                f1 = xr.open_dataset(direc_data+'/RadKern_map_'+case_stamp+'.nc')
                 pi_raw = f1[svar]
                 f1.close()
 
