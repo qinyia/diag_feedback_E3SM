@@ -22,24 +22,11 @@ import os
 from global_land_mask import globe 
 sys.path.append('../')
 import cases_lookup as CL
+from PlotDefinedFunction import save_big_dataset
  
 ###########################################################################
 # HELPFUL FUNCTIONS FOLLOW
 ###########################################################################
-def save_big_dataset(dic_mod,outfile):
-    '''
-    create a big dataset based on all variables in a dictionary and save to netcdf file.
-    '''
-    datalist = []
-    for svar in dic_mod.keys():
-        data = xr.DataArray(dic_mod[svar],name=svar)
-        datalist.append(data)
-
-    data_big = xr.merge(datalist,compat='override')
-    data_big.attrs['comments'] = 'created by cal_webb_decomposition.py; Author: Yi Qin'
-
-    #data_big.to_netcdf(outfile,encoding={'time':{'dtype': 'i4'},'bin':{'dtype':'i4'}})
-    data_big.to_netcdf(outfile)
 
 # ========================================================================
 def cal_webb_decomp(direc_data,case_stamp,yearS,yearE,outdir,figdir):
@@ -111,7 +98,9 @@ def cal_webb_decomp(direc_data,case_stamp,yearS,yearE,outdir,figdir):
         # =============================================
         # save data into file     
         # =============================================
-        save_big_dataset(dic_all_mask,outfile)
+        comment = 'created by cal_webb_decomposition.py; Author: Yi Qin (yi.qin@pnnl.gov)'
+
+        save_big_dataset(dic_all_mask,outfile,comment)
 
  # =========================================================================================
 def webb_decomposition(sw,lw):
