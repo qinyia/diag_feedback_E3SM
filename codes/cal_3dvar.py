@@ -114,12 +114,13 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
     lonspc = np.arange(1.25,360,2.5)
 
     var2d = [
-    'ts', 'TGCLDLWP','EIS',
-    'CLDLOW', 'CLDMED', 'CLDHGH',
+    'ts', 'TGCLDLWP','TGCLDIWP',
+    'EIS',
+    'CLDLOW', 'CLDMED', 'CLDHGH','CLDTOT',
     ]
 
     var3d = [
-    'CLOUD', 'CLDLIQ', 
+    'CLOUD', 'CLDLIQ', 'CLDICE',
     ]
 
     var = var2d + var3d
@@ -304,7 +305,7 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
             attrs=dict(description=description),
             )
 
-        da.to_netcdf(outdir+outfile)
+        da.to_netcdf(outfile)
         
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
