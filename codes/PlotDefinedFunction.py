@@ -427,9 +427,10 @@ def make_colorbar(ax, units, fh, mappable,nbins=11, **kwargs):
     cb.set_label(units,fontsize=fh)
     cb.ax.tick_params(labelsize=fh)
 
-    tick_locator = ticker.MaxNLocator(nbins=nbins)
-    cb.locator = tick_locator
-    cb.update_ticks()
+    #tick_locator = ticker.MaxNLocator(nbins=nbins)
+    #cb.locator = tick_locator
+    #cb.update_ticks()
+
 # ==========================================================================================================================
 
 def add_common_colorbar(fig,im,axes,units,orientation='vertical',nbins=9,fontsize=15):
