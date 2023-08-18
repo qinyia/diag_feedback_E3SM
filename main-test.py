@@ -58,10 +58,6 @@ ref_case_short = [\
 #['v1'],\
 ]
 
-# set start and end years: sometime, your start and end years are different for control (CTL) and warming (P4K) exps. 
-yearS_CTL,yearE_CTL = 2,3
-yearS_P4K,yearE_P4K = 2,3 
-
 # set model output data directory 
 if e3sm_version == 2: # E3SM version 2
     # set input directory 1 --- the directory before casename in the whole directory
@@ -113,7 +109,7 @@ if GetFigure:
     # ---------------- please set all plot types you want -----------------------------------------------------------------
     ## choose which type figures you want to plot. If not, just comment them out.
     plot_types = [
-    #'CRE_globalmean',                   # scatter plot of global mean CRE feedbacks
+    'CRE_globalmean',                   # scatter plot of global mean CRE feedbacks
     #'RadKernel_globalmean',             # scatter plot of global mean RadKernel feedback: non-cloud and adjusted CRE feedbacks
     #'RadKernel_zonalmean',              # zonal mean plot of adjusted CRE feedback
     #'CldRadKernel_globalmean',          # scatter plot of global mean CldRadKernel feedback: decomposition into low and non-low clouds and amount, altitude, optical depth.
@@ -124,8 +120,8 @@ if GetFigure:
     #'RadKernel_latlon_dif',             # lat-lon plot of RadKernel feedback difference between case and reference case
     #'tas_latlon',                       # lat-lon plot of surface air temperature and the difference between case and reference case
     #'LCF',                              # Temperature - Liquid Condensate Fraction
-    'zm_CLOUD',                         # zonal mean plot of cloud varaibles difference 
-    'latlon_CLOUD',                     # lat-lon plot of cloud varaibles difference
+    #'zm_CLOUD',                         # zonal mean plot of cloud varaibles difference 
+    #'latlon_CLOUD',                     # lat-lon plot of cloud varaibles difference
     #'webb_decomp',                      # decomposition of adjusted CRE feedback into low and non-low clouds
     ]
 
@@ -154,11 +150,11 @@ for outdir in [outdir_out, outdir_final, diagfigdir]:
 # ----------------------------------------------------------------------------
 for icase,case in enumerate(case_short):
 
-    run_id1 = CL.get_lutable(case,'amip')
-    run_id2 = CL.get_lutable(case,'amip4K')
+    run_id1,yearS_CTL,yearE_CTL = CL.get_lutable(case,'amip')
+    run_id2,yearS_P4K,yearE_P4K = CL.get_lutable(case,'amip4K')
     print(case)
-    print(run_id1)
-    print(run_id2)
+    print(run_id1,yearS_CTL, yearE_CTL)
+    print(run_id2,yearS_P4K, yearE_P4K)
 
     #################################################################
     # pre-process model output to get necessary input files
@@ -205,7 +201,7 @@ if GetFigure:
     fh1 = 13    # font size for legend
     s1 = 120    # marker size for E3SMv2
     s2 = 100    # marker size for other CMIP models
-    a1 = 1      # apparency for markers
+    a1 = 0.6      # apparency for markers
     
     # advanced setting: if plot_CldRadKernel_zonalmean, control the number of cases you want to show in one figure.
     # for example, if you would like to show the first three cases, then first 6 cases, and all cases, pls set ncase = [3,6,7]
@@ -274,7 +270,7 @@ if GetFigure:
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     # get dictionary of all plot type lists
-    dics_plots = AP.get_plot_dics(case_short,ref_case_short,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir, ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions)
+    dics_plots = AP.get_plot_dics(case_short,ref_case_short,Add_otherCMIPs, use_amip, datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir, ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions)
     
     for key in dics_plots:
         if key in plot_types:
