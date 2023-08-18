@@ -27,7 +27,7 @@ Installation:
 - f2py -c tropo.f90 -m tropo [a *.so file will be generated]
 
 #### Pre-needed data
-- please download radiative kernel data (Huang et al., 2017) from: https://www.dropbox.com/sh/ngfb7bxhwcbxwu8/AAC6AIha5rLjsl3lUZPiLO6Ua/toa?dl=0&subfolder_nav_tracking=1 first. Then, set RadKernel_dir = *datadir* in main-test.py.
+- please download radiative kernel data (Huang et al., 2017) from: https://www.dropbox.com/sh/ngfb7bxhwcbxwu8/AAC6AIha5rLjsl3lUZPiLO6Ua/toa?dl=0&subfolder_nav_tracking=1 (expired) or https://portal.nersc.gov/project/mp193/qinyi/DATA/Huang_kernel_data/ first. Then, set RadKernel_dir = *datadir* in main-test.py.
 
 #### How to use it?
 - Modify cases_lookup.py: it is used to map the shortname of each pair of CTL and P4K cases with their long casename. Please add your defined shortname of case as a new dict key with real CTL and P4K experiment names as its value. After that, you can use the shortname in main-test.py to refer the cases.
