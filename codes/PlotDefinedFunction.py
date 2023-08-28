@@ -13,11 +13,8 @@ import scipy.interpolate
 from global_land_mask import globe
 
 from sklearn import datasets, linear_model
-import statsmodels.api as sm
-import statsmodels.formula.api as smf
 from sklearn.metrics import r2_score
 
-from matplotlib import ticker
 
 #========================================================================================================
 def find_model_list(datadir,prefix,suffix1,suffix2,phases,exp_cntl,exp_new):
@@ -447,6 +444,9 @@ def add_common_colorbar(fig,im,axes,units,orientation='vertical',nbins=9,fontsiz
     nbins --- number of labeled ticks. default: 9
     fontsize --- label fontsize for colorbar. 
     '''
+
+    from matplotlib import ticker
+
     pos1 = axes[-1].get_position() # get the original position for the last subplot 
     if orientation == 'vertical':
         pos2 = [pos1.x0 + pos1.width + 0.01, pos1.y0,  pos1.width / 20.0, pos1.height ]   
