@@ -15,8 +15,6 @@
 #           psl - sea level pressure [Pa]
 #           ta - atmospheric temperature [K]
 #           hus - atmospheric humidity [kg/kg]
-#           OMEGA - vertical velocity [Pa/s]
-#           Z3 - geopotential height [m]
 #    Output: 
 #           Spatial map and global mean of Planck, lapse rate, water vapor, cloud feedbacks 
 #
@@ -45,6 +43,9 @@ import cases_lookup as CL
 import time
 from loguru import logger
 from PlotDefinedFunction import area_averager
+import xrw 
+import pickle
+from get_mip_data import read_mip_data,read_amip_data,read_pickle,write_pickle,read_e3sm_data
 
 ### Horizontally regrid data into one defined grid first 
 do_hor_regrid = True
@@ -60,13 +61,12 @@ if do_hor_regrid:
 ### Define standard pressure levels  [hPa]
 Dlevs = np.array([100000, 92500, 85000, 70000, 60000, 50000, 40000, 30000, 25000, 20000, 15000, 10000, 7000, 5000, 3000, 2000, 1000])/100.
 
-### read necessary variables from models [month,(level),lat,lon]
-var2d = ["tas","rlut","rsut","rlutcs","rsutcs","rsus","rsds","ps","rsdt","psl","ts"]
-var3d = ["ta","hus","OMEGA","Z3"]
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-def RadKernel(kernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1,exp2):
+def RadKernel_MIP(kernel_dir,case_stamp,outdir,figdir,filenames,tslice):
+
+    Vars = ["tas","rlut","rsut","rlutcs","rsutcs","rsus","rsds","ps","rsdt","psl","ts","ta","hus"]
 
     outfile_map = "RadKern_map_"+case_stamp+".nc"
     outfile_gm  = "RadKern_gm_"+case_stamp+".csv" 
@@ -80,32 +80,53 @@ def RadKernel(kernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,
     #logger.add("NewRegress",format=fmt)
     ###################
 
-    yearS_4d = "{:04d}".format(yearS)
-    yearE_4d = "{:04d}".format(yearE)
-    nyears = yearE - yearS + 1
-
-    print(direc_data,fname1)
-    direc_data1 = direc_data+'/'+fname1+'/'
-    direc_data2 = direc_data+'/'+fname2+'/'
-
-    monS = 1
-    monE = 12
-    monS_2d='{:02d}'.format(monS)
-    monE_2d='{:02d}'.format(monE) 
-
-    Vars = var2d + var3d
-
-    my_timer = Timer()
+    # Read MIP data
     #=============================================================
-    # read model's data
-    #=============================================================
-    dic_mod = read_data_e3sm(Vars,var2d,var3d,direc_data1,direc_data2,exp1,exp2,yearS_4d,monS_2d,yearE_4d,monE_2d,nyears)
-    
+    dic_mod = read_mip_data(Vars,filenames,tslice)
+    dic_mod = get_intermediate_data(dic_mod)
     sub_name = 'Read model data'
     print_memory_status(sub_name)
 
     print(dic_mod.keys())
 
+    nyears = int(dic_mod['tas_ano'].shape[0]/12.)
+
+    calculation(case_stamp, kernel_dir, nyears, outdir, figdir, outfile_map, outfile_gm, dic_mod)
+    
+    return 
+
+def RadKernel_E3SM(kernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir):
+
+    outfile_map = "RadKern_map_"+case_stamp+".nc"
+    outfile_gm  = "RadKern_gm_"+case_stamp+".csv" 
+    if os.path.isfile(outdir+outfile_map) and os.path.isfile(outdir+outfile_gm):
+        print('RadKenel anlaysis is done.')
+        return 
+
+    logger.remove()
+    fmt = "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <cyan>{level}</cyan> | {message} |{elapsed}"
+    logger.add(sys.stdout, format=fmt)
+
+    ### read necessary variables from models [month,(level),lat,lon]
+    var2d = ["tas","rlut","rsut","rlutcs","rsutcs","rsus","rsds","ps","rsdt","psl","ts"]
+    var3d = ["ta","hus"]
+    Vars = var2d + var3d
+
+    nyears = yearE-yearS+1
+
+    my_timer = Timer()
+    #=============================================================
+    # read model's data
+    #=============================================================
+    dic_mod = read_e3sm_data(Vars,direc_data,case_stamp,yearS,yearE,fname1,fname2)
+    dic_mod = get_intermediate_data(dic_mod)
+
+    sub_name = 'Read model data'
+    print_memory_status(sub_name)
+
+    calculation(case_stamp, kernel_dir, nyears, outdir, figdir, outfile_map, outfile_gm, dic_mod)
+
+def calculation(case_stamp, kernel_dir, nyears,outdir, figdir, outfile_map, outfile_gm, dic_mod):
     #=============================================================
     # Regridding model's data
     #=============================================================
@@ -122,6 +143,8 @@ def RadKernel(kernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,
         if len(data.shape) == 3:
             dic_mod_fn[svar] = data_grd 
         elif len(data.shape) == 4:
+            if 'plev' in list(data_grd.coords):
+                data_grd = data_grd.rename({'plev':'lev'})
             # vertical regrid model data to Dlevs
             if data_grd.coords['lev'].max().values > 1300: # pressure in Pa
                 logger.info(f'convert level from Pa to hPa')
@@ -1177,18 +1200,6 @@ def save_big_dataset(dic_mod,outfile):
     data_big.to_netcdf(outfile)
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-def read_pickle(filename):
-    pickle_in = open(filename,"rb")
-    dic = pickle.load(pickle_in)
-    return dic
-
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-def write_pickle(filename,dic):
-    pickle_out = open(filename,"wb")
-    pickle.dump(dic,pickle_out)
-    pickle_out.close()
-
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 class Timer:
     '''
     Example:
@@ -1490,45 +1501,8 @@ def prints(varname,data):
     #return print(varname,' = ',data.shape, np.min(data),np.max(data),type(data),'number of NaN =',np.sum(np.isnan(data)),'number of mask =',np.sum(data.mask))
 
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-def read_data_e3sm(var,var2d,var3d,direc_data1,direc_data2,exp1,exp2,yrS_4d,monS_2d,yrE_4d,monE_2d,nyears):
+def get_intermediate_data(dic_invar): 
 
-    dic_invar = {}
-    for svar in var:
-        if svar in var:
-            if not os.path.isfile(direc_data1+svar+'_'+exp1+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc'):
-                if svar == 'ta':
-                    svar_in = 'T'
-                elif svar == 'hus':
-                    svar_in = 'Q'
-                else:
-                    svar_in = svar
-            else:
-                svar_in = svar
-
-            print(" =================== we are processing E3SM amip data", svar, " locally ====================")
-
-            f1 = xr.open_dataset(direc_data1+svar_in+'_'+exp1+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc')
-            dic_invar[svar+'_pi'] = f1[svar_in][:nyears*12,:,:]
-            f1.close()
- 
-            f2 = xr.open_dataset(direc_data2+svar_in+'_'+exp2+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc')
-            dic_invar[svar+'_ab'] = f2[svar_in][:nyears*12,:,:]
-            f2.close()
- 
-            # reverse lev direction
-            if svar in var3d:
-                dic_invar[svar+'_pi'] = dic_invar[svar+'_pi'][:,::-1,:,:]
-                dic_invar[svar+'_ab'] = dic_invar[svar+'_ab'][:,::-1,:,:]
-
-            dic_invar[svar+'_ano'] = xr.DataArray(dic_invar[svar+'_ab'] - dic_invar[svar+'_pi'], coords=dic_invar[svar+'_pi'].coords)
-            stop_here = False
-        else:
-            stop_here = True
-
-        if stop_here: ### we don't get enough data to do further processing. just skip out this loop.
-            print('stop_here is', stop_here)
-            continue
-   
     ### get SWCF, LWCF and their anomalies
     #dic_invar['SWCRE_ano']  = dic_invar['rsutcs_ano'] - dic_invar['rsut_ano']
     #dic_invar['LWCRE_ano']  = dic_invar['rlutcs_ano'] - dic_invar['rlut_ano']
@@ -1558,14 +1532,18 @@ def read_data_e3sm(var,var2d,var3d,direc_data1,direc_data2,exp1,exp2,yrS_4d,monS
 
     return dic_invar
 
+
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 if __name__ == "__main__":
 
-    RadKernel_dir = '/qfs/people/qiny108/diag_feedback_E3SM/Huang_kernel_data/'
+    #RadKernel_dir = '/qfs/people/qiny108/diag_feedback_E3SM/Huang_kernel_data/'
     #direc_data = '/compyfs/qiny108/diag_feedback_E3SM_postdata/'
-    direc_data = '/compyfs/qiny108/colla/diag_feedback_E3SM_postdata/'
+    #direc_data = '/compyfs/qiny108/colla/diag_feedback_E3SM_postdata/'
+
+    RadKernel_dir = "/p/user_pub/climate_work/qin4/From_Compy/home_dir/diag_feedback_E3SM/Huang_kernel_data/"
+    direc_data = '/p/user_pub/climate_work/qin4/From_Compy/compyfs_dir/colla/diag_feedback_E3SM_postdata/'
 
     case_stamp = 'v2test'
     yearS = 2
@@ -1574,8 +1552,28 @@ if __name__ == "__main__":
     fname2,_,_ = CL.get_lutable(case_stamp,'amip4K')
     outdir = './'
     figdir = './'
-    exp1 = 'FC5'
-    exp2 = 'FC5_4K'
     
-    RadKernel(RadKernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1,exp2)
+    RadKernel_E3SM(RadKernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir)
+    exit()
+
+    # ------------------------------
+    # Input requirements for MIP data
+    # ------------------------------
+    model = 'GFDL-CM4'  
+    institution = 'NOAA-GFDL'
+    variant = 'r1i1p1f1'
+
+    tslice = slice("1980-01-01","1981-12-31")
+
+    # ------------ get filenames ----------------------------------
+    ff = 'filenames_'+model+'_'+variant+'.pickle'
+    filenames = read_pickle(ff)
+    #print('filenames=',filenames)
+
+    RadKernel_dir = "/p/user_pub/climate_work/qin4/From_Compy/home_dir/diag_feedback_E3SM/Huang_kernel_data/"
+    case_stamp = model+'_'+variant
+    outdir = './'
+    figdir = './'
+
+    RadKernel_MIP(RadKernel_dir,case_stamp,outdir,figdir,filenames,tslice)
 

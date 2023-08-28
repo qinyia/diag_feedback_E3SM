@@ -58,12 +58,248 @@ import sys
 sys.path.append('../')
 import cases_lookup as CL
 from PlotDefinedFunction import linearregression_nd,area_averager,weighted_annual_mean, save_big_dataset
+from get_mip_data import read_mip_data,read_amip_data,read_pickle,write_pickle,read_e3sm_data
+
+###########################################################################
+# MAIN ROUTINE FOLLOWS
+##########################################################################
+def CloudRadKernel_MIP(direc_kernel,case_stamp,outdir,figdir,filenames,tslice):
+
+    outfile_gm_sw = outdir+'decomp_global_mean_sw_'+case_stamp+'.csv'
+    outfile_gm_lw = outdir+'decomp_global_mean_lw_'+case_stamp+'.csv'
+    outfile_map = outdir+'global_cloud_feedback_'+case_stamp+'.nc'
+
+    if os.path.isfile(outfile_gm_sw) and os.path.isfile(outfile_gm_lw) and os.path.isfile(outfile_map):
+        print('CloudRadKernel result is already there.')
+        return
+
+    # Read E3SM data 
+    Vars = ['clisccp','rsuscs','rsdscs','tas']
+    dics_invar = read_mip_data(Vars,filenames,tslice)
+
+    nyears = int(dics_invar[list(dics_invar.keys())[0]].shape[0]/12)
+
+    calculation(direc_kernel,dics_invar,nyears,outfile_gm_sw,outfile_gm_lw,outfile_map,case_stamp)
+
+    return
+ 
+def CloudRadKernel_E3SM(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir):
+
+    outfile_gm_sw = outdir+'decomp_global_mean_sw_'+case_stamp+'.csv'
+    outfile_gm_lw = outdir+'decomp_global_mean_lw_'+case_stamp+'.csv'
+    outfile_map = outdir+'global_cloud_feedback_'+case_stamp+'.nc'
+
+    if os.path.isfile(outfile_gm_sw) and os.path.isfile(outfile_gm_lw) and os.path.isfile(outfile_map):
+        print('CloudRadKernel result is already there.')
+        return
+
+    # Read E3SM data 
+    Vars = ['clisccp','rsuscs','rsdscs','tas']
+    nyears = int(yearE-yearS+1)
+    dics_invar = read_e3sm_data(Vars,direc_data,case_stamp,yearS,yearE,fname1,fname2)
+
+    calculation(direc_kernel,dics_invar,nyears,outfile_gm_sw,outfile_gm_lw,outfile_map,case_stamp)
+
+    return
+    
+# ========================================================================================================
+def read_kernel(direc_kernel,nyears):
+
+    # Load in the Zelinka et al 2012 kernels:
+    f=xr.open_dataset(direc_kernel+'cloud_kernels2.nc')
+    LWkernel=f['LWkernel']
+    SWkernel=f['SWkernel']
+    f.close()
+    
+    albcs=np.arange(0.0,1.5,0.5) # the clear-sky albedos over which the kernel is computed
+    
+    # LW kernel does not depend on albcs, just repeat the final dimension over longitudes:
+    LWkernel_map=xr.DataArray(np.transpose(np.tile(np.tile(LWkernel[:,:,:,:,0],(1,nyears,1,1,1)),(144,1,1,1,1)),[1,2,3,4,0]))
+
+    # Define the cloud kernel axis attributes
+    lats=LWkernel.lat.values
+    lons=np.arange(1.25,360,2.5)
+
+    return lats,lons,LWkernel_map,SWkernel
+
+
+# ========================================================================================================
+def cal_sfc_albedo(dics_invar):
+    # Calculate surface albedo 
+    albcs1=xr.DataArray(dics_invar['rsuscs_pi']/dics_invar['rsdscs_pi'].where((~np.isnan(dics_invar['rsdscs_pi'])) & (dics_invar['rsdscs_pi']!=0)), coords=dics_invar['rsuscs_pi'].coords)
+    albcs1=xr.where(albcs1>1.,1,albcs1) # where(condition, x, y) is x where condition is true, y otherwise
+    albcs1=xr.where(albcs1<0.,0,albcs1)
+    del dics_invar['rsuscs_pi'], dics_invar['rsdscs_ab']
+
+    dics_invar['albcs1'] = albcs1
+
+    # Compute tas anomaly and global annual mean 
+    anomtas = dics_invar['tas_ano']
+
+    # Define new time coordinate
+    newtime = pd.date_range(start='1850-01-01', periods=dics_invar['tas_pi'].shape[0], freq='MS')
+    anomtas = anomtas.assign_coords({'time':("time",newtime)})
+
+    # Get annual mean 
+    anomtas_ann = weighted_annual_mean(anomtas.time,anomtas)
+
+    # Get global annual mean 
+    anomtas_ann_gm = area_averager(anomtas_ann)
+    
+    # Compute global annual mean tas anomalies
+    avgdtas = area_averager(anomtas_ann.mean(axis=0)) # (scalar)
+    print('avgdtas = ',avgdtas.values)
+
+    dics_invar['anomtas_ann_gm'] = avgdtas 
+
+    return dics_invar 
+
+# ========================================================================================================
+def calculation(direc_kernel,dics_invar,nyears,outfile_gm_sw,outfile_gm_lw,outfile_map,case_stamp):
+
+    # Calculate surface albedo and global climo surface temperature anomaly
+    dics_invar = cal_sfc_albedo(dics_invar)
+
+    # Read kernel and its coordinates 
+    lats,lons,LWkernel_map,SWkernel = read_kernel(direc_kernel,nyears)
+
+    # Regrid model data to kernel's lats and lons
+    dics_in = {}
+    for svar in dics_invar.keys():
+        if len(dics_invar[svar].shape) > 2: 
+            dics_in[svar]  = dics_invar[svar].interp(lat=lats,lon=lons)
+        else:
+            dics_in[svar] = dics_invar[svar] 
+    del dics_invar 
+
+    # Use control albcs to map SW kernel to appropriate longitudes
+    newtime = pd.date_range(start='1850-01-01', periods=dics_in['tas_pi'].shape[0], freq='MS')
+    dics_in['albcs1'] = dics_in['albcs1'].assign_coords({'time':("time",newtime)})
+    avgalbcs1 = dics_in['albcs1'].groupby('time.month').mean('time')
+    SWkernel_map_tmp = map_SWkern_to_lon(SWkernel,avgalbcs1)
+    SWkernel_map = xr.DataArray(np.tile(SWkernel_map_tmp,(nyears,1,1,1,1)), coords=dics_in['clisccp_pi'].coords)
+    del SWkernel_map_tmp
+
+    # The sun is down if every bin of the SW kernel is zero:
+    sundown=np.ma.sum(np.ma.sum(SWkernel_map,axis=2),axis=1)  #12*nyears,90,144
+    night=np.where(sundown==0)
+    print("Data processing is done.")
+    print()
+
+    # Prepare input data for later feedback calculation 
+    dics_in['dcld_dT'] = dics_in['clisccp_ano'] 
+    dics_in['c1'] = dics_in['clisccp_pi']
+    dics_in['Klw'] = LWkernel_map
+    dics_in['Ksw'] = SWkernel_map
+    dics_in['night'] = night
+    dics_in['anomtas_ann_gm'] = dics_in['anomtas_ann_gm']
+
+    # Compute cloud feedbacks and their breakdown into components
+    print('Start computing cloud feedbacks ...')
+
+    # Define a python dictionary containing the sections of the histogram to consider
+    # These are the same as in Zelinka et al, GRL, 2016
+    sections = ['ALL','HI680','LO680']
+    Psections=[slice(0,7),slice(2,7),slice(0,2)]
+    sec_dic=dict(zip(sections,Psections))
+    
+    df_sw_all = pd.DataFrame()
+    df_lw_all = pd.DataFrame()
+
+    dic_out1 = {}
+    for sec in sections:
+        print ('Using '+sec+' CTP bins')
+        choose=sec_dic[sec]
+        LC = len(np.ones(100)[choose])
+    
+        # Preallocation of arrays:
+        LWcld_tot=nanarray((12*nyears,90,144))
+        LWcld_amt=nanarray((12*nyears,90,144))
+        LWcld_alt=nanarray((12*nyears,90,144))
+        LWcld_tau=nanarray((12*nyears,90,144))
+        LWcld_err=nanarray((12*nyears,90,144))
+        SWcld_tot=nanarray((12*nyears,90,144))
+        SWcld_amt=nanarray((12*nyears,90,144))
+        SWcld_alt=nanarray((12*nyears,90,144))
+        SWcld_tau=nanarray((12*nyears,90,144))
+        SWcld_err=nanarray((12*nyears,90,144))
+        dc_star=nanarray((12*nyears,7,LC,90,144))
+        dc_prop=nanarray((12*nyears,7,LC,90,144))
+
+    
+        for mm in range(12*nyears):
+            dcld_dT = dics_in['dcld_dT'][mm,:,choose,:]
+            c1 = dics_in['c1'][mm,:,choose,:]
+            c2 = c1 + dcld_dT
+            Klw = dics_in['Klw'][mm,:,choose,:]
+            Ksw = dics_in['Ksw'][mm,:,choose,:]
+
+            print('mm=',mm, dcld_dT.shape, c1.shape, c2.shape, Klw.shape, Ksw.shape) 
+
+            # The following performs the amount/altitude/optical depth decomposition of
+            # Zelinka et al., J Climate (2012b), as modified in Zelinka et al., J. Climate (2013)
+            (LWcld_tot[mm,:],LWcld_amt[mm,:],LWcld_alt[mm,:],LWcld_tau[mm,:],LWcld_err[mm,:],SWcld_tot[mm,:],SWcld_amt[mm,:],SWcld_alt[mm,:],SWcld_tau[mm,:],SWcld_err[mm,:],dc_star[mm,:],dc_prop[mm,:]) = KT_decomposition_4D(c1,c2,Klw,Ksw)
+
+        # Set the SW cloud feedbacks to zero in the polar night
+        # Do this since they may come out of previous calcs as undefined, but should be zero:
+        night = dics_in['night']
+        SWcld_tot[night]=0
+        SWcld_amt[night]=0
+        SWcld_alt[night]=0
+        SWcld_tau[night]=0
+        SWcld_err[night]=0
+
+        AX3 = dics_in['c1'][:,0,0,:].coords #[coord_time,coord_lats,coord_lons]
+
+        # July 7, 2020 save variables into dictionary
+        names = [\
+        'SWcld_tot','SWcld_amt','SWcld_alt','SWcld_tau','SWcld_err',\
+        'LWcld_tot','LWcld_amt','LWcld_alt','LWcld_tau','LWcld_err',\
+        ]
+        variables = [\
+        SWcld_tot,SWcld_amt,SWcld_alt,SWcld_tau,SWcld_err,\
+        LWcld_tot,LWcld_amt,LWcld_alt,LWcld_tau,LWcld_err,\
+        ]
+
+        dic_all = {}
+        for n,name in enumerate(names):
+            DATA_anom = variables[n].filled(fill_value=np.nan) # convert masked array to array with nan as missing value
+            DATA_anom = xr.DataArray(variables[n], coords=AX3)
+            DATA_am = weighted_annual_mean(DATA_anom.time,DATA_anom)
+
+            if 'coupled' in case_stamp:
+                slope,intercept = linearregression_nd(DATA_am, x = np.reshape(dics_in['anomtas_ann_gm'].values, (dics_in['anomtas_ann_gm'].shape[0],1,1)))
+                #print('slope=',slope.shape, np.min(slope), np.max(slope), 'intercept=',intercept.shape, np.min(intercept), np.max(intercept))
+            else:
+                slope = DATA_anom.groupby('time.month').mean('time').mean(axis=0)/dics_in['anomtas_ann_gm'].mean()
+
+            dic_out1[str(sec)+'_'+str(name)] = slope 
+            dic_out1[str(sec)+'_'+str(name)].attrs['long_name'] = str(sec)+'_'+str(name)
+
+            avgDATA = area_averager(slope).values
+            if 'SW' in name:
+                df_sw_tmp = pd.DataFrame([[sec,'CTP bins',name,str(np.round(avgDATA,3))]],columns=['type','bin','decomp',case_stamp])
+                df_sw_all = pd.concat([df_sw_all,df_sw_tmp])
+            elif 'LW' in name:
+                df_lw_tmp = pd.DataFrame([[sec,'CTP bins',name,str(np.round(avgDATA,3))]],columns=['type','bin','decomp',case_stamp])
+                df_lw_all = pd.concat([df_lw_all,df_lw_tmp])
+
+   
+    print(df_lw_all.head())
+    print(df_sw_all.head())
+    
+    # Save global mean values
+    df_lw_all.to_csv(outfile_gm_lw)
+    df_sw_all.to_csv(outfile_gm_sw)
+
+    # Save nc file
+    comment = 'created by cal_CloudRadKernel_E3SM.py; Author: Yi Qin (yi.qin@pnnl.gov)'
+    save_big_dataset(dic_out1,outfile_map,comment)
 
 ###########################################################################
 # HELPFUL FUNCTIONS FOLLOW
 ###########################################################################
 
-# ------------------------------------------------------------------------
 def YEAR(data):
     """
     Compute annual means without forcing it to be Jan through Dec
@@ -194,288 +430,50 @@ def KT_decomposition_4D(c1,c2,Klw,Ksw):
 
     return (dRlw_true,dRlw_prop,dRlw_dctp,dRlw_dtau,dRlw_resid,dRsw_true,dRsw_prop,dRsw_dctp,dRsw_dtau,dRsw_resid,dc_star,dc_prop)
  
-###########################################################################
-# MAIN ROUTINE FOLLOWS
-##########################################################################
-
-###########################################################################
-# Part 1: Read in data, regrid, compute anomalies, map kernels to lat/lon
-# This is identical to the first part of apply_cloud_kernels_v2.py
-###########################################################################
-def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir):
-
-    outfile_gm_sw = outdir+'decomp_global_mean_sw_'+case_stamp+'.csv'
-    outfile_gm_lw = outdir+'decomp_global_mean_lw_'+case_stamp+'.csv'
-    outfile_map = outdir+'global_cloud_feedback_'+case_stamp+'.nc'
-    if os.path.isfile(outfile_gm_sw) and os.path.isfile(outfile_gm_lw) and os.path.isfile(outfile_map):
-        print('CloudRadKernel result is already there.')
-        return
-
-    yearS_4d = "{:04d}".format(yearS)
-    yearE_4d = "{:04d}".format(yearE)
-    nyears = yearE - yearS + 1
-
-    direc_data1 = direc_data+'/'+fname1+'/'
-    direc_data2 = direc_data+'/'+fname2+'/'
-
-    exp1='FC5'
-    exp2='FC5_4K'
-    
-    used_models = 'E3SM-1-0'
-    
-    yrS=yearS
-    yrE=yearE
-    monS=1
-    monE=12
-    
-    yrS_4d='{:04d}'.format(yrS)
-    yrE_4d='{:04d}'.format(yrE)
-    monS_2d='{:02d}'.format(monS)
-    monE_2d='{:02d}'.format(monE)
-    
-    # Load in the Zelinka et al 2012 kernels:
-    # ------------------------------------------------------------------------------------
-    f=xr.open_dataset(direc_kernel+'cloud_kernels2.nc')
-    LWkernel=f['LWkernel']
-    SWkernel=f['SWkernel']
-    f.close()
-    
-    #LWkernel=MV.masked_where(np.isnan(LWkernel),LWkernel)
-    #SWkernel=MV.masked_where(np.isnan(SWkernel),SWkernel)
-    
-    albcs=np.arange(0.0,1.5,0.5) # the clear-sky albedos over which the kernel is computed
-    
-    # LW kernel does not depend on albcs, just repeat the final dimension over longitudes:
-    LWkernel_map=xr.DataArray(np.transpose(np.tile(np.tile(LWkernel[:,:,:,:,0],(1,nyears,1,1,1)),(144,1,1,1,1)),[1,2,3,4,0]))
-
-    # Define the cloud kernel axis attributes
-    lats=LWkernel.lat.values
-    lons=np.arange(1.25,360,2.5)
-
-    print('Start reading clisccp ...')
-    # ------------------------------------------------------------------------------------
-    # Load in clisccp from control and perturbed simulation
-
-    if not os.path.isfile(direc_data1+'clisccp_'+exp1+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc'):
-        svar_in = 'FISCCP1_COSP'
-    else:
-        svar_in = 'clisccp'
-        
-    f=xr.open_dataset(direc_data1+svar_in+'_'+exp1+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc')
-    clisccp1=f[svar_in]#.transpose('time','cosp_tau','cosp_prs','lat','lon') # the old order is: (time, CTP, TAU, LAT, LON)
-    f.close()
-    f=xr.open_dataset(direc_data2+svar_in+'_'+exp2+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc')
-    clisccp2=f[svar_in]#.transpose('time','cosp_tau','cosp_prs','lat','lon')
-    f.close()
-
-    # Make sure clisccp is in percent  
-    sumclisccp1 = clisccp1.sum(axis=2).sum(axis=1)
-    sumclisccp2 = clisccp2.sum(axis=2).sum(axis=1)
-    if np.max(sumclisccp1) <= 1.:
-        print('Changing clisccp in percent...')
-        clisccp1 = clisccp1*100.        
-    if np.max(sumclisccp2) <= 1.:
-        clisccp2 = clisccp2*100.
-    
-    # Compute clisccp anomalies
-    anomclisccp = xr.DataArray(clisccp2 - clisccp1, coords=clisccp1.coords)
-    
-    clisccp1_grd = clisccp1.interp(lat=lats,lon=lons).transpose('time','cosp_tau','cosp_prs','lat','lon')
-    del clisccp1
-    clisccp2_grd = clisccp2.interp(lat=lats,lon=lons).transpose('time','cosp_tau','cosp_prs','lat','lon')
-    del clisccp2
-    anomclisccp_grd = anomclisccp.interp(lat=lats,lon=lons).transpose('time','cosp_tau','cosp_prs','lat','lon')
-    del anomclisccp
-
-    print('Start reading albedo ...')
-    # ------------------------------------------------------------------------------------
-    # Compute clear-sky surface albedo
-    f=xr.open_dataset(direc_data1+'rsuscs_'+exp1+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc')
-    rsuscs1 = f['rsuscs']
-    f.close()
-    f=xr.open_dataset(direc_data1+'rsdscs_'+exp1+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc')
-    rsdscs1 = f['rsdscs']
-    f.close()
-
-    albcs1=xr.DataArray(rsuscs1/rsdscs1, coords=rsuscs1.coords)
-    albcs1=xr.where(albcs1>1.,1,albcs1) # where(condition, x, y) is x where condition is true, y otherwise
-    albcs1=xr.where(albcs1<0.,0,albcs1)
-
-    albcs1_grd = albcs1.interp(lat=lats,lon=lons)
-    del albcs1, rsuscs1, rsdscs1 
- 
-    print('Start reading surface air temperature ...')
-    # ------------------------------------------------------------------------------------
-    # Load surface air temperature
-    f=xr.open_dataset(direc_data1+'tas_'+exp1+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc',decode_times=False)
-    tas1 = f['tas']
-    f.close()
-    f=xr.open_dataset(direc_data2+'tas_'+exp2+'_'+yrS_4d+monS_2d+'-'+yrE_4d+monE_2d+'.nc',decode_times=False)
-    tas2 = f['tas']
-    f.close()
-
-    # Compute tas anomaly and global annual mean 
-    anomtas = xr.DataArray(tas2 - tas1, coords=tas2.coords)
-
-    # Define new time coordinate
-    newtime = pd.date_range(start='1850-01-01', periods=tas1.shape[0], freq='MS')
-    anomtas = anomtas.assign_coords({'time':("time",newtime)})
-
-#    anomtas_ann = anomtas.groupby('time.year').mean('time')
-    anomtas_ann = weighted_annual_mean(anomtas.time,anomtas)
-
-    anomtas_ann_gm = area_averager(anomtas_ann)
-
-    del(tas1,tas2)
-    
-    # Compute global annual mean tas anomalies
-    avgdtas = area_averager(anomtas_ann.mean(axis=0)) # (scalar)
-    print('avgdtas = ',avgdtas.values)
-   
-    # =======================================================================================
-    # Use control albcs to map SW kernel to appropriate longitudes
-    # Jan 09, 2021: follow Mark's method -- use climatological control albedo to map SWkernel_map
-    # rather than the 150-yr annual cycle control albedo
-    albcs1_grd = albcs1_grd.assign_coords({'time':("time",newtime)})
-    avgalbcs1 = albcs1_grd.groupby('time.month').mean('time')
-    SWkernel_map_tmp = map_SWkern_to_lon(SWkernel,avgalbcs1)
-    SWkernel_map = xr.DataArray(np.tile(SWkernel_map_tmp,(nyears,1,1,1,1)), coords=clisccp1_grd.coords)
-    del SWkernel_map_tmp
-
-    # The sun is down if every bin of the SW kernel is zero:
-    sundown=np.ma.sum(np.ma.sum(SWkernel_map,axis=2),axis=1)  #12*nyears,90,144
-    night=np.where(sundown==0)
-    print("Data processing is done.")
-    print()
-    
-    ###########################################################################
-    # Part 2: Compute cloud feedbacks and their breakdown into components
-    ###########################################################################         
-    print('Start computing cloud feedbacks ...')
-
-    # Define a python dictionary containing the sections of the histogram to consider
-    # These are the same as in Zelinka et al, GRL, 2016
-    sections = ['ALL','HI680','LO680']
-    Psections=[slice(0,7),slice(2,7),slice(0,2)]
-
-    sec_dic=dict(zip(sections,Psections))
-    
-    df_sw_all = pd.DataFrame()
-    df_lw_all = pd.DataFrame()
-    
-
-    dic_out1 = {}
-    for sec in sections:
-        print ('Using '+sec+' CTP bins')
-        choose=sec_dic[sec]
-        LC = len(np.ones(100)[choose])
-    
-        # Preallocation of arrays:
-        LWcld_tot=nanarray((12*nyears,90,144))
-        LWcld_amt=nanarray((12*nyears,90,144))
-        LWcld_alt=nanarray((12*nyears,90,144))
-        LWcld_tau=nanarray((12*nyears,90,144))
-        LWcld_err=nanarray((12*nyears,90,144))
-        SWcld_tot=nanarray((12*nyears,90,144))
-        SWcld_amt=nanarray((12*nyears,90,144))
-        SWcld_alt=nanarray((12*nyears,90,144))
-        SWcld_tau=nanarray((12*nyears,90,144))
-        SWcld_err=nanarray((12*nyears,90,144))
-        dc_star=nanarray((12*nyears,7,LC,90,144))
-        dc_prop=nanarray((12*nyears,7,LC,90,144))
-    
-        for mm in range(12*nyears):
-            dcld_dT = anomclisccp_grd[mm,:,choose,:]
-            c1 = clisccp1_grd[mm,:,choose,:]
-            c2 = c1 + dcld_dT
-            Klw = LWkernel_map[mm,:,choose,:]
-            Ksw = SWkernel_map[mm,:,choose,:]
-
-            # The following performs the amount/altitude/optical depth decomposition of
-            # Zelinka et al., J Climate (2012b), as modified in Zelinka et al., J. Climate (2013)
-            (LWcld_tot[mm,:],LWcld_amt[mm,:],LWcld_alt[mm,:],LWcld_tau[mm,:],LWcld_err[mm,:],SWcld_tot[mm,:],SWcld_amt[mm,:],SWcld_alt[mm,:],SWcld_tau[mm,:],SWcld_err[mm,:],dc_star[mm,:],dc_prop[mm,:]) = KT_decomposition_4D(c1,c2,Klw,Ksw)
-
-        # Set the SW cloud feedbacks to zero in the polar night
-        # Do this since they may come out of previous calcs as undefined, but should be zero:
-        SWcld_tot[night]=0
-        SWcld_amt[night]=0
-        SWcld_alt[night]=0
-        SWcld_tau[night]=0
-        SWcld_err[night]=0
-
-        AX3 = albcs1_grd.coords #[coord_time,coord_lats,coord_lons]
-        AX= albcs1_grd[0,:,:].coords #[coord_lats,coord_lons]
-
-        # July 7, 2020 save variables into dictionary
-        names = [\
-        'SWcld_tot','SWcld_amt','SWcld_alt','SWcld_tau','SWcld_err',\
-        'LWcld_tot','LWcld_amt','LWcld_alt','LWcld_tau','LWcld_err',\
-        ]
-        variables = [\
-        SWcld_tot,SWcld_amt,SWcld_alt,SWcld_tau,SWcld_err,\
-        LWcld_tot,LWcld_amt,LWcld_alt,LWcld_tau,LWcld_err,\
-        ]
-
-        dic_all = {}
-        for n,name in enumerate(names):
-            DATA_anom = variables[n].filled(fill_value=np.nan) # convert masked array to array with nan as missing value
-            DATA_anom = xr.DataArray(variables[n], coords=AX3)
-            DATA_am = weighted_annual_mean(DATA_anom.time,DATA_anom)
-
-            if 'coupled' in case_stamp:
-                slope,intercept = linearregression_nd(DATA_am, x = np.reshape(anomtas_ann_gm.values, (anomtas_ann_gm.shape[0],1,1)))
-                #print('slope=',slope.shape, np.min(slope), np.max(slope), 'intercept=',intercept.shape, np.min(intercept), np.max(intercept))
-            else:
-                slope = DATA_anom.groupby('time.month').mean('time').mean(axis=0)/anomtas_ann_gm.mean()
-
-            dic_out1[str(sec)+'_'+str(name)] = slope 
-            dic_out1[str(sec)+'_'+str(name)].attrs['long_name'] = str(sec)+'_'+str(name)
-
-            avgDATA = area_averager(slope).values
-            if 'SW' in name:
-                df_sw_tmp = pd.DataFrame([[sec,'CTP bins',name,str(np.round(avgDATA,3))]],columns=['type','bin','decomp',used_models])
-                df_sw_all = pd.concat([df_sw_all,df_sw_tmp])
-            elif 'LW' in name:
-                df_lw_tmp = pd.DataFrame([[sec,'CTP bins',name,str(np.round(avgDATA,3))]],columns=['type','bin','decomp',used_models])
-                df_lw_all = pd.concat([df_lw_all,df_lw_tmp])
-
-   
-    print(df_lw_all.head())
-    print(df_sw_all.head())
-    
-    # Save global mean values
-    df_lw_all.to_csv(outfile_gm_lw)
-    df_sw_all.to_csv(outfile_gm_sw)
-
-    # Save nc file
-    comment = 'created by cal_CloudRadKernel_E3SM.py; Author: Yi Qin (yi.qin@pnnl.gov)'
-    save_big_dataset(dic_out1,outfile_map,comment)
-
     
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 if __name__ == "__main__":
 
+#    direc_kernel = '../CloudRadKernel_input/'
+#    #direc_data = '/compyfs/qiny108/diag_feedback_E3SM_postdata/'
+#    #direc_data = '/compyfs/qiny108/colla/diag_feedback_E3SM_postdata/'
+#    direc_data = '/p/user_pub/climate_work/qin4/From_Compy/compyfs_dir/colla/diag_feedback_E3SM_postdata/'
+#
+#    case_stamps = [\
+#    'v2test'
+#    ]
+#
+#    for case_stamp in case_stamps:
+#
+#        fname1,_,_ = CL.get_lutable(case_stamp,'amip')
+#        fname2,_,_ = CL.get_lutable(case_stamp,'amip4K')
+#
+#        outdir = './'
+#        figdir = './'
+#
+#        yearS = 2
+#        yearE = 3
+#
+#        CloudRadKernel_E3SM(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir)
+
+    # ------------------------------
+    # Input requirements for MIP data
+    # ------------------------------
+    model = 'GFDL-CM4'  
+    institution = 'NOAA-GFDL'
+    variant = 'r1i1p1f1'
+
+    ff = 'filenames_'+model+'_'+variant+'.pickle'
+    filenames = read_pickle(ff)
+    #print('filenames=',filenames)
+
+    case_stamp = model+'_'+variant
+    outdir = './'
+    figdir = './'
     direc_kernel = '../CloudRadKernel_input/'
-    #direc_data = '/compyfs/qiny108/diag_feedback_E3SM_postdata/'
-    direc_data = '/compyfs/qiny108/colla/diag_feedback_E3SM_postdata/'
 
-    case_stamps = [\
-    'v2test'
-    ]
+    tslice = slice('1980-01-01','1981-12-31')
 
-    for case_stamp in case_stamps:
+    CloudRadKernel_MIP(direc_kernel,case_stamp,outdir,figdir,filenames,tslice)
 
-        fname1,_,_ = CL.get_lutable(case_stamp,'amip')
-        fname2,_,_ = CL.get_lutable(case_stamp,'amip4K')
-
-        outdir = './'
-        figdir = './'
-
-        exp1 = 'FC5'
-        exp2 = 'FC5_4K'
-
-        yearS = 2
-        yearE = 3
-
-        CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir)

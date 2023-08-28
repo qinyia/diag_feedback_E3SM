@@ -20,6 +20,7 @@ from PlotDefinedFunction import linearregression_nd, area_averager, weighted_ann
 import sys
 sys.path.append("../")
 import cases_lookup as CL
+from get_mip_data import read_mip_data,read_amip_data,read_pickle,write_pickle,read_e3sm_data
 
 # ============================================================ 
 def calc_EIS(Ts, SLP, T700, z700):
@@ -89,27 +90,8 @@ def calc_EIS(Ts, SLP, T700, z700):
 ###########################################################################
 # HELPFUL FUNCTIONS FOLLOW
 ###########################################################################
-def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1,exp2):
-
-    yearS_4d = "{:04d}".format(yearS)
-    yearE_4d = "{:04d}".format(yearE)
-    nyears = yearE - yearS + 1
-    
-    direc_data1 = direc_data+'/'+fname1+'/'
-    direc_data2 = direc_data+'/'+fname2+'/'
-    
-    used_models = 'E3SM-1-0'
-    
-    yrS=yearS
-    yrE=yearE
-    monS=1
-    monE=12
-    
-    yrS_4d='{:04d}'.format(yrS)
-    yrE_4d='{:04d}'.format(yrE)
-    monS_2d='{:02d}'.format(monS)
-    monE_2d='{:02d}'.format(monE)
-    
+def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir):
+   
     latspc = np.arange(-90,92.5,2.5)
     lonspc = np.arange(1.25,360,2.5)
 
@@ -129,7 +111,7 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
     # read 2D variables
     # =============================================
     for svarh in var:
-        print('svarh=',svarh)
+        print('svarh = ',svarh)
 
         outfile = outdir+'global_'+svarh+'_'+case_stamp+'.nc'
     
@@ -137,100 +119,65 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
             print('cal_3dvar', case_stamp, svarh, 'output is ready. Please continue. ')
             continue 
 
+        if svarh == 'netCRE':
+            svar_here = ['rsutcs','rsut','rlutcs','rlut']
+        elif svarh == 'SWCRE':
+            svar_here = ['rsutcs','rsut']
+        elif svarh == 'LWCRE':
+            svar_here = ['rlutcs','rlut']
+        elif svarh == 'EIS':
+            svar_here = ['Z3','T','OMEGA','psl','ts']
+        elif svarh == 'PRECT':
+            svar_here = ['PRECC','PRECL']
+        else:
+            svar_here = [svarh]
+
+        svar_here += ['tas']
+
+        dics = read_e3sm_data(svar_here,direc_data,case_stamp,yearS,yearE,fname1,fname2)
+
+        # Regrid 
+        for key in dics.keys():
+            dics[key] = dics[key].interp(lat=latspc,lon=lonspc)
+
+        # calculate CRE
+        if svarh == 'netCRE':
+            cre_pi = (dics['rsutcs_pi']-dics['rsut_pi']) + (dics['rlutcs_pi']-dics['rlut_pi'])
+            cre_ab = (dics['rsutcs_ab']-dics['rsut_ab']) + (dics['rlutcs_ab']-dics['rlut_ab'])
+        elif svarh == 'SWCRE':
+            cre_pi = dics['rsutcs_pi']-dics['rsut_pi'] 
+            cre_ab = dics['rsutcs_ab']-dics['rsut_ab'] 
+        elif svarh == 'LWCRE':
+            cre_pi = dics['rlutcs_pi']-dics['rlut_pi']
+            cre_ab = dics['rlutcs_ab']-dics['rlut_ab']
+        elif svarh == 'EIS':
+            cre_pi,_ = calc_EIS(dics['ts_pi'], dics['psl_pi'], dics['T_pi'].interp(lev=[700]), dics['Z3_pi'].interp(lev=[700]))
+            cre_ab,_ = calc_EIS(dics['ts_ab'], dics['psl_ab'], dics['T_ab'].interp(lev=[700]), dics['Z3_ab'].interp(lev=[700]))
+        elif svarh == 'PRECT':
+            cre_pi = dics['PRECC_pi'] + dics['PRECL_pi']
+            cre_ab = dics['PRECC_ab'] + dics['PRECL_ab']
+        else:
+            cre_pi = dics[svarh+'_pi']
+            cre_ab = dics[svarh+'_ab']
+
+        pi_raw_grd = xr.DataArray(cre_pi, coords=dics['tas_pi'].coords)
+        ab_raw_grd = xr.DataArray(cre_ab, coords=dics['tas_pi'].coords)
+
+        # reverse lev direction
+        if len(pi_raw_grd.shape) == 4:
+            pi_raw_grd = pi_raw_grd[:,::-1,:,:]
+            ab_raw_grd = ab_raw_grd[:,::-1,:,:]
+
         dic_all = {}
-        for svar in ['tas',svarh]:
-            print(svar)
+        dic_all[svarh+'_pi'] = pi_raw_grd
+        dic_all[svarh+'_ab'] = ab_raw_grd 
+        dic_all[svarh+'_ano'] = ab_raw_grd - pi_raw_grd
 
-            if svar in ['SWCRE','LWCRE','netCRE','EIS','PRECT']:
-                if svar == 'netCRE':
-                    svar_here = ['rsutcs','rsut','rlutcs','rlut']
-                elif svar == 'SWCRE':
-                    svar_here = ['rsutcs','rsut']
-                elif svar == 'LWCRE':
-                    svar_here = ['rlutcs','rlut']
-                elif svar == 'EIS':
-                    svar_here = ['Z3','T','OMEGA','psl','ts']
-                elif svar == 'PRECT':
-                    svar_here = ['PRECC','PRECL']
+        dic_all['tas_pi'] = dics['tas_pi']
+        dic_all['tas_ab'] = dics['tas_ab']
+        dic_all['tas_ano'] = dics['tas_ano']
 
-
-                dics = {}
-                for svarh in svar_here:
-                    f1 = xr.open_dataset(direc_data+fname1+'/'+svarh+'_'+exp1+'_'+yearS_4d+'01-'+yearE_4d+'12.nc')
-                    pi_raw1 = f1[svarh]
-                    f1.close()
-                    f2 = xr.open_dataset(direc_data+fname2+'/'+svarh+'_'+exp2+'_'+yearS_4d+'01-'+yearE_4d+'12.nc')
-                    ab_raw1 = f2[svarh]
-                    f2.close()
-
-                    if svarh in ['Z3','T']:
-                        spec_lev = 700 
-                        pi_raw1 = pi_raw1.interp(lev=[spec_lev])[:,0,:,:]
-                        ab_raw1 = ab_raw1.interp(lev=[spec_lev])[:,0,:,:]
-                    elif svarh in ['OMEGA']:
-                        spec_lev = 500 
-                        pi_raw1 = pi_raw1.interp(lev=[spec_lev])[:,0,:,:]
-                        ab_raw1 = ab_raw1.interp(lev=[spec_lev])[:,0,:,:]
-
-                    pi_raw1_grd = pi_raw1.interp(lat=latspc,lon=lonspc)
-                    ab_raw1_grd = ab_raw1.interp(lat=latspc,lon=lonspc)
-
-                    print(pi_raw1_grd.shape, ab_raw1_grd.shape)
-
-                    dics[svarh] = [pi_raw1_grd,ab_raw1_grd]
-
-                # calculate CRE
-                if svar == 'netCRE':
-                    cre_pi = (dics['rsutcs'][0]-dics['rsut'][0]) + (dics['rlutcs'][0]-dics['rlut'][0])
-                    cre_ab = (dics['rsutcs'][1]-dics['rsut'][1]) + (dics['rlutcs'][1]-dics['rlut'][1])
-                elif svar == 'SWCRE':
-                    cre_pi = dics['rsutcs'][0]-dics['rsut'][0] 
-                    cre_ab = dics['rsutcs'][1]-dics['rsut'][1] 
-                elif svar == 'LWCRE':
-                    cre_pi = dics['rlutcs'][0]-dics['rlut'][0]
-                    cre_ab = dics['rlutcs'][1]-dics['rlut'][1]
-                elif svar == 'EIS':
-                    cre_pi,_ = calc_EIS(dics['ts'][0], dics['psl'][0], dics['T'][0], dics['Z3'][0])
-                    cre_ab,_ = calc_EIS(dics['ts'][1], dics['psl'][1], dics['T'][1], dics['Z3'][1])
-                elif svar == 'PRECT':
-                    cre_pi = dics['PRECC'][0] + dics['PRECL'][0]
-                    cre_ab = dics['PRECC'][1] + dics['PRECL'][1]
-
-                pi_raw_grd = xr.DataArray(cre_pi, coords=dics[list(dics.keys())[0]][0].coords)
-                ab_raw_grd = xr.DataArray(cre_ab, coords=dics[list(dics.keys())[0]][0].coords)
-
-                # reverse lev direction
-                if len(pi_raw_grd.shape) == 4:
-                    pi_raw_grd = pi_raw_grd[:,::-1,:,:]
-                    ab_raw_grd = ab_raw_grd[:,::-1,:,:]
-            else:
-                f1 = xr.open_dataset(direc_data+fname1+'/'+svar+'_'+exp1+'_'+yearS_4d+'01-'+yearE_4d+'12.nc')
-                pi_raw = f1[svar]
-                f1.close()
-
-                f2 = xr.open_dataset(direc_data+fname2+'/'+svar+'_'+exp2+'_'+yearS_4d+'01-'+yearE_4d+'12.nc')
-                ab_raw = f2[svar]
-                f2.close()
-
-                # reverse lev direction
-                if len(pi_raw.shape) == 4:
-                    pi_raw = pi_raw[:,::-1,:,:]
-                    ab_raw = ab_raw[:,::-1,:,:]
-
-                #----------------------------------------------------------
-                # regrid data                 
-                #----------------------------------------------------------
-                pi_raw_grd = pi_raw.interp(lat=latspc,lon=lonspc)
-                ab_raw_grd = ab_raw.interp(lat=latspc,lon=lonspc)
-
-            print('pi_raw_grd.shape = ',pi_raw_grd.shape)
-            print('ab_raw_grd.shape = ',ab_raw_grd.shape)
-
-            dic_all[svar+'_ano'] = ab_raw_grd - pi_raw_grd
-            dic_all[svar+'_pi'] = pi_raw_grd
-            dic_all[svar+'_ab'] = ab_raw_grd
-
-            del(pi_raw_grd, ab_raw_grd)
+        del(pi_raw_grd, ab_raw_grd)
 
         # Define new time coordinate
         newtime = pd.date_range(start='1850-01-01', periods=dic_all[list(dic_all.keys())[0]].shape[0], freq='MS')
@@ -241,7 +188,7 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
         dic_all['tas_ano'] = dic_all['tas_ano'].assign_coords({'time':("time",newtime)})
         anomtas = weighted_annual_mean(dic_all['tas_ano'].time, dic_all['tas_ano']) #(nyears, 90, 144)
         avgdtas = area_averager(anomtas.mean(axis=0)) # (scalar)
-        print('avgdtas = ',avgdtas)
+        print('avgdtas = ',avgdtas.values)
 
         # get time-series of annual mean
         dic_all2 = {}
@@ -268,7 +215,7 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
                     print('doing regression...')
                     dic_out[svar+'_clim'],intercept = linearregression_nd(dic_all2[svar+'_ann'], x=np.reshape(tas_ano_ann_gm,(dic_all2[svar+'_ann'].shape[0],1,1)))
 
-        print('dic_out.keys() = ',dic_out.keys())
+        print('dic_out.keys() = ',list(dic_out.keys()))
 
         #----------------------------------------------------------
         # save data into file     
@@ -277,7 +224,7 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
 
         data_vars = {}
         for svar in dic_out.keys():
-            print('svar = ', svar)
+            print('Saving svar = ', svar)
             tmp = dic_out[svar] 
             if len(tmp.shape) == 2:
                 data_vars[svar] = (('lat','lon'),tmp.data)
@@ -313,7 +260,8 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
 if __name__ == "__main__":
 
     #direc_data = '/compyfs/qiny108/diag_feedback_E3SM_postdata/'
-    direc_data = '/compyfs/qiny108/colla/diag_feedback_E3SM_postdata/'
+    #direc_data = '/compyfs/qiny108/colla/diag_feedback_E3SM_postdata/'
+    direc_data = '/p/user_pub/climate_work/qin4/From_Compy/compyfs_dir/colla/diag_feedback_E3SM_postdata/'
 
     case_stamp = 'v2test'
     yearS = 2
@@ -325,7 +273,5 @@ if __name__ == "__main__":
     exp1 = 'FC5'
     exp2 = 'FC5_4K'
     
-    cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1,exp2)
-
-
+    cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir)
 

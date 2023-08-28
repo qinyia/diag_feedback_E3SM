@@ -23,6 +23,35 @@ import cal_3dvar as cal3dvar
 import LonPivot as LP
 import matplotlib.patches as mpatches
 
+
+#############################################################################################
+def get_var_dirs(ff,exps,Vars,model,variant,phase):
+    '''
+    retrieve directories for all needed variables and save them into a pickle file.
+    ''' 
+    filenames={}
+    for exp in exps:
+        filenames[exp]={}
+        for var in Vars:
+            print(exp, var)
+
+            if var == 'clisccp':
+                cmipTable = 'CFmon'
+            else:
+                cmipTable = 'Amon'
+
+            filenames[exp][var] = xrw.get_cmip_paths(model=model,member=variant,mip_era=phase,experiment=exp,variable=var,frequency='mon',cmipTable=cmipTable,trim=False,verbose=False)
+
+            print(var,'=======>>>>>>>',filenames[exp][var],len(filenames[exp][var]))
+            logger.info(f'{var} ====>>>> {filenames[exp][var]}, {len(filenames[exp][var])}') # to be tested whether it works
+
+            if len(filenames[exp][var]) == 0:
+                sys.exit('Warning! we dont find any NC data for '+var+'. Please check!')
+
+    write_pickle(ff,filenames)
+
+    return 
+
 #############################################################################################
 def prepare_pd2html(outfig,varname,desc,casevscase=''):
     print(casevscase)
@@ -41,17 +70,16 @@ def make_dir(outdir):
         print("----------Successfully created the directory %s " % outdir)
 
 #############################################################################################
+# Calculation Part for E3SM output
+#############################################################################################
 
-def get_cal_dics(direc_data, case_stamp, yearS2, yearE2, run_id1, run_id2, outdir_final,
-                  RadKernel_dir, figdir, exp1, exp2, 
+def get_cal_dics_E3SM(direc_data, case_stamp, yearS2, yearE2, run_id1, run_id2, outdir_final,
+                  RadKernel_dir, figdir, 
                   CloudRadKernel_dir):
 
     dics_cal = {}
-
-    print(direc_data, case_stamp, yearS2, yearE2, run_id1, run_id2, outdir_final)
-
-    my_cal = calculation(direc_data, case_stamp, yearS2, yearE2, run_id1, run_id2, outdir_final,
-                  RadKernel_dir, figdir, exp1, exp2,
+    my_cal = calculation_E3SM(direc_data, case_stamp, yearS2, yearE2, run_id1, run_id2, outdir_final,
+                  RadKernel_dir, figdir,
                   CloudRadKernel_dir)
 
     dics_cal['RadFeedback']         = my_cal.cal_Global_RadFeedback
@@ -60,14 +88,12 @@ def get_cal_dics(direc_data, case_stamp, yearS2, yearE2, run_id1, run_id2, outdi
     dics_cal['CloudRadKernel']      = my_cal.cal_CloudRadKernel
     dics_cal['cal_LCF']             = my_cal.cal_LCF
     dics_cal['cal_3dvar']           = my_cal.cal_3dvar
-#    dics_cal['RadKernel_regime']    = my_cal.cal_RadKernel_regime
-
 
     return dics_cal
 
-class calculation:
+class calculation_E3SM:
     def __init__(self,direc_data, case_stamp, yearS2, yearE2, run_id1, run_id2, outdir_final,
-                      RadKernel_dir, figdir, exp1, exp2, 
+                      RadKernel_dir, figdir, 
                       CloudRadKernel_dir ):
 
         self.direc_data = direc_data
@@ -79,38 +105,105 @@ class calculation:
         self.outdir_final = outdir_final
         self.RadKernel_dir = RadKernel_dir
         self.figdir = figdir
-        self.exp1 = exp1
-        self.exp2 = exp2
         self.CloudRadKernel_dir = CloudRadKernel_dir 
 
     def cal_Global_RadFeedback(self):
-        result = GRF.Global_RadFeedback(self.direc_data, self.case_stamp, self.yearS2, self.yearE2, self.run_id1, self.run_id2, self.outdir_final,self.exp1,self.exp2)
+        result = GRF.Global_RadFeedback_E3SM(self.direc_data, self.case_stamp, self.yearS2, self.yearE2, self.run_id1, self.run_id2, self.outdir_final)
         
     def cal_RadKernel(self):
-        result = RK.RadKernel(self.RadKernel_dir,self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir,self.exp1,self.exp2)
+        result = RK.RadKernel_E3SM(self.RadKernel_dir,self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir)
 
     def cal_webb_decomp(self):
-        result = WD.cal_webb_decomp(self.outdir_final,self.case_stamp,self.yearS2,self.yearE2,self.outdir_final,self.figdir)
-
-#    def cal_RadKernel_regime(self):
-#        result = RRW.RadKernel_regime(self.RadKernel_dir,self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir,self.exp1,self.exp2)
+        result = WD.cal_webb_decomp(self.outdir_final,self.case_stamp,self.outdir_final)
 
     def cal_CloudRadKernel(self):
-        result = CRK.CloudRadKernel(self.CloudRadKernel_dir,self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir)
+        result = CRK.CloudRadKernel_E3SM(self.CloudRadKernel_dir,self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir)
 
     def cal_LCF(self):
-        result = LCF.cal_LCF(self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir)
+        result = LCF.cal_LCF_E3SM(self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir)
 
     def cal_3dvar(self):
-        result = cal3dvar.cal_3dvar(self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir,self.exp1,self.exp2)
+        result = cal3dvar.cal_3dvar(self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir)
 
 #############################################################################################
+# Calculation Part for MIP models 
+#############################################################################################
 
-def get_plot_dics(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir,ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions):
+def get_cal_dics_MIP(case_stamp, tslice, filenames, outdir_final,
+                  RadKernel_dir, figdir,
+                  CloudRadKernel_dir):
+
+    dics_cal = {}
+
+    my_cal = calculation_MIP(case_stamp, tslice, filenames, outdir_final,
+                  RadKernel_dir, figdir, 
+                  CloudRadKernel_dir)
+
+    dics_cal['RadFeedback']         = my_cal.cal_Global_RadFeedback
+    dics_cal['RadKernel']           = my_cal.cal_RadKernel
+    dics_cal['Webb_Decomp']         = my_cal.cal_webb_decomp
+    dics_cal['CloudRadKernel']      = my_cal.cal_CloudRadKernel
+    dics_cal['cal_LCF']             = my_cal.cal_LCF
+
+    return dics_cal
+
+class calculation_MIP:
+    def __init__(self, case_stamp, tslice, filenames, outdir_final,
+                      RadKernel_dir, figdir,
+                      CloudRadKernel_dir ):
+
+        self.case_stamp = case_stamp
+        self.tslice = tslice
+        self.filenames = filenames 
+        self.outdir_final = outdir_final
+        self.RadKernel_dir = RadKernel_dir
+        self.figdir = figdir
+        self.CloudRadKernel_dir = CloudRadKernel_dir 
+
+    def cal_Global_RadFeedback(self):
+        result = GRF.Global_RadFeedback_MIP(self.case_stamp, self.outdir_final,self.filenames, self.tslice)
+        
+    def cal_RadKernel(self):
+        result = RK.RadKernel_MIP(self.RadKernel_dir, self.case_stamp, self.outdir_final,self.figdir,self.filenames, self.tslice)
+
+    def cal_webb_decomp(self):
+        result = WD.cal_webb_decomp(self.outdir_final,self.case_stamp,self.outdir_final)
+
+    def cal_CloudRadKernel(self):
+        result = CRK.CloudRadKernel_MIP(self.CloudRadKernel_dir, self.case_stamp, self.outdir_final,self.figdir, self.filenames,self.tslice)
+
+    def cal_LCF(self):
+        result = LCF.cal_LCF_MIP(self.case_stamp, self.outdir_final,self.figdir, self.filenames,self.tslice)
+
+
+#############################################################################################
+# Plotting Part 
+#############################################################################################
+
+def get_plot_dics(cases,ref_casesA, figdir, datadir_v2, 
+                    Add_otherCMIPs, datadir_v1=None, datadir_Ringer=None, datadir_RadKernel=None, datadir_CldRadKernel=None):
     '''
     Aug 20, 201: get the plot dictionary for all plot types.
     '''
     dics_plots = {}
+
+    colors = PDF.get_color('tab10',len(cases)) 
+    linewidths = [2]
+    linestyles = ['--']
+    linewidths.extend([3]*(len(cases)-1))
+    linestyles.extend(['-']*(len(cases)-1))
+    
+    fh = 15     # font size
+    fh1 = 13    # font size for legend
+    s1 = 120    # marker size for E3SMv2
+    s2 = 100    # marker size for other CMIP models
+    a1 = 1      # apparency for markers
+    
+    ncase = [len(cases)]
+    # add region ranges: [latS, latE, lonS, lonE] to help generate regional figures 
+    regions = [-90,90,0,360] 
+    #regions = [10,70,220,310]
+    #regions = [24,55.5,-140,-70]
 
     my_plot = plots(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir,ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions)
 
@@ -816,14 +909,13 @@ class plots:
                     df2 = df1.loc[:,'E3SM-1-0']
                     df_SW_all[case] = df2
                 else:
-                    MODEL = 'E3SM-1-0'
      
                     df1 = pd.read_csv(self.datadir_v2+'decomp_global_mean_lw_'+case+'.csv',index_col=0)
-                    df2 = df1.loc[:,MODEL]
+                    df2 = df1.loc[:,case]
                     df_LW_all[case] = df2
             
                     df1 = pd.read_csv(self.datadir_v2+'decomp_global_mean_sw_'+case+'.csv',index_col=0)
-                    df2 = df1.loc[:,MODEL]
+                    df2 = df1.loc[:,case]
                     df_SW_all[case] = df2
                 
             # get net cloud feedback 

@@ -22,28 +22,57 @@ import numpy.ma as ma
 sys.path.append('../')
 import cases_lookup as CL
 import PlotDefinedFunction as PDF
+import xrw
+from loguru import logger
+from get_mip_data import read_mip_data,read_amip_data,read_pickle,write_pickle,read_e3sm_data
 
 
 ########## MAIN SUBROUTINE STARTS HERE ....
-def Global_RadFeedback(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,exp1,exp2):
 
-    #if os.path.isfile(outdir+'global_mean_features_'+case_stamp+'.csv'):
-    #    print('Global_RadFeedback is done.')
-    #    return 
+def Global_RadFeedback_E3SM(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir):
 
-    var = ["rlut","rsdt","rsut","rlutcs","rsutcs","ts"]
+    if os.path.isfile(outdir+'global_mean_features_'+case_stamp+'.csv'):
+        print('Global_RadFeedback is done.')
+        return 
 
-    yearS_4d = "{:04d}".format(yearS)
-    yearE_4d = "{:04d}".format(yearE)
+    Vars = ["rlut","rsdt","rsut","rlutcs","rsutcs","ts"]
+
     nyears = yearE - yearS + 1
     
     # Read E3SM data
-    dic_all = read_e3sm_data(var,direc_data,fname1,fname2,exp1,exp2,yearS_4d,yearE_4d)
-#    dic_all = read_mip_data(filenames)
+    dic_all = read_e3sm_data(Vars,direc_data,case_stamp,yearS,yearE,fname1,fname2)
 
     # Get intermediate data
     dic_all = get_intermediate_data(dic_all)
 
+    # Do calculation
+    calculation(dic_all,case_stamp,outdir)
+
+    return
+
+# ==================================================================================
+def Global_RadFeedback_MIP(case_stamp,outdir,filenames,tslice):
+
+    Vars = ["rlut","rsdt","rsut","rlutcs","rsutcs","ts"]
+
+    if os.path.isfile(outdir+'global_mean_features_'+case_stamp+'.csv'):
+        print('Global_RadFeedback is done.')
+        return 
+
+    
+    # Read MIP data
+    dic_all = read_mip_data(Vars,filenames, tslice)
+
+    # Get intermediate data
+    dic_all = get_intermediate_data(dic_all)
+
+    # Do calculation
+    calculation(dic_all,case_stamp,outdir)
+
+    return 
+
+# ==================================================================================
+def calculation(dic_all,case_stamp,outdir):
     # Define new time coordinate
     newtime = pd.date_range(start='1850-01-01', periods=dic_all['rsut_pi'].shape[0], freq='MS')
     
@@ -103,34 +132,6 @@ def Global_RadFeedback(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,ex
     df_gavg.to_csv(outdir+'global_mean_features_'+case_stamp+'.csv')
 
 # ==================================================================================
-def read_e3sm_data(var,direc_data,fname1,fname2,exp1,exp2,yearS_4d,yearE_4d):
-    '''
-    Read E3SM data 
-    ''' 
-
-    dic_all = {}
-    for svar in var:
-        if svar in var:
-            print(svar)
-            f1 = xr.open_dataset(direc_data+fname1+'/'+svar+'_'+exp1+'_'+yearS_4d+'01-'+yearE_4d+'12.nc')
-            pi_raw = f1[svar]
-            f1.close()
-    
-            f2 = xr.open_dataset(direc_data+fname2+'/'+svar+'_'+exp2+'_'+yearS_4d+'01-'+yearE_4d+'12.nc')
-            ab_raw = f2[svar]
-            f2.close()
-
-            dic_all[svar+'_ano'] = xr.DataArray(ab_raw - pi_raw, coords=pi_raw.coords)
-            dic_all[svar+'_pi'] = pi_raw
-            dic_all[svar+'_ab'] = ab_raw
-
-            del(pi_raw, ab_raw)
-        else:
-            print('we dont find this variable:',svar,' in your file. Please check it!')
-    
-    return dic_all
-
-# ==================================================================================
 def get_intermediate_data(dic_all): 
     dic_all['rsnt_pi'] = dic_all['rsdt_pi'] - dic_all['rsut_pi']
     dic_all['rsnt_ab'] = dic_all['rsdt_ab'] - dic_all['rsut_ab']
@@ -179,58 +180,14 @@ def get_intermediate_data(dic_all):
     
     return dic_all
 
-# ==================================================================================
-def get_amip_data(filename,var,tslice, lev=None):
-    '''
-    Refer to the same function from Mark Zelinka's assessed-cloud-fbks package
-    '''
-    # load in cmip data using the appropriate function for the experiment/mip
-    print('        '+var)
-
-    try:
-        f=xr.open_dataset(filename[var])
-    except:
-        f=xr.open_mfdataset(filename[var])
-
-    if lev:
-        data = f[var].sel(time=tslice,level=lev).squeeze()
-    else:
-        data = f[var].sel(time=tslice).squeeze()
-    f.close()
-
-    ## Regrid to cloud kernel grid
-    #data = avg.regrid(kern_grid,regridTool="esmf",regridMethod = "linear")
-
-    return(data)
-
-# ==================================================================================
-def read_mip_data(filenames):
-    '''
-    Refer to get_CRK_data function from Mark Zelinka's assessed-cld-fbks package
-    '''
-    #var = ["rlut","rsnt","rlutcs","rsntcs","ts"]
-    
-    # Load in monthly mean from control and perturbed simulation
-    dic_all = {}
-    for svar in var:
-        pi_raw = get_amip_data(filenames['amip'],svar)
-        ab_raw = get_amip_data(filenames['amip-p4K'],svar)
-   
-        dic_all[svar+'_ano'] = xr.DataArray(ab_raw - pi_raw, coords=pi_raw.coords)
-        dic_all[svar+'_pi'] = pi_raw
-        dic_all[svar+'_ab'] = ab_raw
-
-        del(pi_raw, ab_raw)
-                   
-    return dic_all
-
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 if __name__ == "__main__":
 
     #direc_data = '/compyfs/qiny108/diag_feedback_E3SM_postdata/'
-    direc_data = '/compyfs/qiny108/colla/diag_feedback_E3SM_postdata/'
+    #direc_data = '/compyfs/qiny108/colla/diag_feedback_E3SM_postdata/'
+    direc_data = '/p/user_pub/climate_work/qin4/From_Compy/compyfs_dir/colla/diag_feedback_E3SM_postdata/'
 
     case_stamp = 'v2test'
     yearS = 2
@@ -239,8 +196,8 @@ if __name__ == "__main__":
     fname2,_,_ = CL.get_lutable(case_stamp,'amip4K')
     outdir = './'
     figdir = './'
-    exp1 = 'FC5'
-    exp2 = 'FC5_4K'
+
+    Global_RadFeedback_E3SM(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir)
 
     # ------------------------------
     # Input requirements for MIP data
@@ -248,39 +205,13 @@ if __name__ == "__main__":
     model = 'GFDL-CM4'  
     institution = 'NOAA-GFDL'
     variant = 'r1i1p1f1'
-    grid_label = 'gr1'
-    version = 'v20180701'
-    path = '/p/css03/esgf_publish/CMIP6'
 
-    exps = ['amip','amip-p4K']
-    cmipTable = 'Amon'
+    tslice = slice("1980-01-01","1981-12-31")
 
     # ------------ get filenames ----------------------------------
     ff = 'filenames_'+model+'_'+variant+'.pickle'
-
-    if os.path.isfile(ff):
-        logger.info(f'filenames of {model} is ready. Great!')
-    else:
-        filenames={}
-
-        for exp in exps:
-            filenames[exp]={}
-            for var in Vars:
-                filenames[exp][var] = xrw.get_cmip_paths(model=model,member=ripf,mip_era=phase,experiment=exp,variable=var,frequency='mon',cmipTable=cmipTable,trim=False,verbose=False)
-
-                print(var,'=======>>>>>>>',filenames[exp][var],len(filenames[exp][var]))
-                logger.info(f'{var} ====>>>> {filenames[exp][var]}, {len(filenames[exp][var])}') # to be tested whether it works
-
-                if len(filenames[exp][var]) == 0:
-                    sys.exit('Warning! we dont find any NC data for '+var+'. Please check!')
-
-        write_pickle(ff,filenames)
-
-    # =================================================
     filenames = read_pickle(ff)
+    print('filenames=',filenames)
 
-    
-    Global_RadFeedback(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,exp1,exp2)
-
-    
+    Global_RadFeedback_MIP(case_stamp,outdir,filenames,tslice)
 

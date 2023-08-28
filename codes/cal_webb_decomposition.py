@@ -29,7 +29,7 @@ from PlotDefinedFunction import save_big_dataset
 ###########################################################################
 
 # ========================================================================
-def cal_webb_decomp(direc_data,case_stamp,yearS,yearE,outdir,figdir):
+def cal_webb_decomp(direc_data,case_stamp,outdir):
 
     outfile = outdir+'RadKern_map_'+case_stamp+'-webb-decomp.nc'
 
@@ -173,7 +173,8 @@ def webb_decomposition(sw,lw):
 if __name__ == "__main__":
 
     #direc_data = '/compyfs/qiny108/diag_feedback_E3SM_postdata/'
-    direc_data = '/qfs/people/qiny108/colla/diag_feedback_E3SM/data/'
+    #direc_data = '/qfs/people/qiny108/colla/diag_feedback_E3SM/data/'
+    direc_data = '/p/user_pub/climate_work/qin4/From_Compy/home_dir/colla/diag_feedback_E3SM/codes/'
 
     case_stamps = [\
     'v2test'
@@ -185,13 +186,13 @@ if __name__ == "__main__":
         fname2,_,_ = CL.get_lutable(case_stamp,'amip4K')
 
         outdir = './'
-        figdir = './'
 
         exp1 = 'FC5'
         exp2 = 'FC5_4K'
 
-        yearS = 2
-        yearE = 6
+        cal_webb_decomp(direc_data,case_stamp,outdir)
 
-        cal_webb_decomp(direc_data,case_stamp,yearS,yearE,outdir,figdir)
-
+    model = 'GFDL-CM4'  
+    variant = 'r1i1p1f1'
+    case_stamp  = model+'_'+variant 
+    cal_webb_decomp(direc_data,case_stamp,outdir)
