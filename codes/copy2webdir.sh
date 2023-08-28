@@ -20,5 +20,5 @@ tar xvf view.tar
 chmod -R 755 viewer
 chmod -R 755 figure 
 
-# remove view.tar
-rm -f view.tar 
+## remove view.tar
+#rm -f view.tar 
