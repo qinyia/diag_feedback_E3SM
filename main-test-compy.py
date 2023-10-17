@@ -35,7 +35,7 @@ if UseE3smDiagOutput:
     PreProcess = False  
     grd_info = "180x360_aave"
     num_years_per_file = 2 
-    outdir_out = run_dir+'/E3SMv2_simulations/' # the same as the model output directory if input_dir = output_dir in the zppy config. 
+    outdir_out = run_dir+'/E3SMv2_simulations/' # the path where the E3SM diag data saved [before the casename] -- the same as the model output directory if input_dir = output_dir in the zppy config. 
 else:
     PreProcess = True # True: prepare input data for feedback calculation, including regrid and reorganize data
     grd_info = None
