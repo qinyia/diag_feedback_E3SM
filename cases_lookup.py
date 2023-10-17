@@ -35,6 +35,10 @@ def get_lutable(version,exp):
     '20221013.v2.F2010-CICE.IC.back.clubb.g1.1.ne30pg2_EC.compy2',3,4,
     '20221013.v2.F2010-CICE.IC.back.clubb.g1.1.p4Ka.ne30pg2_EC.compy2',3,4,
     ],
+    'v2test_e3smdiag':[
+    '20221013.v2.F2010-CICE.IC.back.clubb.g1.1.ne30pg2_EC.compy',1,6,
+    '20221013.v2.F2010-CICE.IC.back.clubb.g1.1.p4Ka.ne30pg2_EC.compy',1,6,
+    ],
     }
 
     if exp == 'amip':

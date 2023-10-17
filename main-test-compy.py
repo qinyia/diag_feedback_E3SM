@@ -14,20 +14,36 @@ import generate_html as gh
 
 # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 # ----------------------------Hi, all modifications please start here --------------------------------------------
-#machine = 'cori'
-machine = 'compy'
+machine = 'compy' # [compy, cori, chrysalis]
 
-# model output directory www_dir and webpage directory run_dir
+# model output directory run_dir and webpage directory www_dir
 if machine == 'compy':
     www_dir = "/compyfs/www/qiny108/colla/"
     run_dir = "/compyfs/qiny108/colla/" 
 elif machine == 'cori':
     www_dir = "/global/project/projectdirs/mp193/www/qinyi/"
     run_dir = "/global/cscratch1/sd/qinyi/diagfbk_demo/"
+elif machine == 'chrysalis':
+    www_dir = "/lcrc/group/e3sm/public_html/diagnostic_output/ac.xzheng/E3SMv3_dev/"
+    run_dir = "/lcrc/group/e3sm/ac.xzheng/"
 
-e3sm_version = 2 # E3SM version: controls regrid file and 'eam' or 'cam' in searching files.
+e3sm_version = 2 # E3SM version 
 
-PreProcess = True  # True: prepare input data for feedback calculation, including regrid and reorganize data
+UseE3smDiagOutput = True # Use pre-processed data from e3sm_diags
+
+if UseE3smDiagOutput:
+    PreProcess = False  
+    grd_info = "180x360_aave"
+    num_years_per_file = 2 
+    outdir_out = run_dir+'/E3SMv2_simulations/' # the same as the model output directory if input_dir = output_dir in the zppy config. 
+else:
+    PreProcess = True # True: prepare input data for feedback calculation, including regrid and reorganize data
+    grd_info = None
+    num_years_per_file = None
+    outdir_out = None 
+
+print('UseE3smDiagOutput=', UseE3smDiagOutput, ', grd_info=', grd_info, ', num_years_per_file=', num_years_per_file)
+
 hasCOSP = True   # True: include COSP output 
 
 RunDiag = True # True: run feedback calculation
@@ -39,6 +55,7 @@ if GetFigure:
     # If you are not on cori machine, please set it as False. The comparison with other CMIP models are not 
     # supported on other machines currently. 
     Add_otherCMIPs = True ## include option about whether adding results from other CMIP models
+    use_amip = False # use amip or cmip results from other CMIP models: amip - True; cmip - False
 
 
 # give one shorname for each pair experiment, like v1, v2, v3....
@@ -47,8 +64,8 @@ case_short = [\
 #'v2_coupled',
 #'v1_amip4K',
 #'v1',\
-'v2test',\
-'v2test2',\
+'v2test_e3smdiag',\
+#'v2test2',\
 ]
 
 # give the reference case: the reference case is used to compare with the case and generate difference maps. 
@@ -58,14 +75,14 @@ case_short = [\
 # 3. For each case, the corresponding reference cases can be any lengths.
 # 4. If you don't have any reference cases for one case, just set it as [].
 ref_case_short = [\
-#[],\
 [],\
+#['v2test'],\
 ]
 
 # set model output data directory 
-if e3sm_version == 2: # E3SM version 2
+if e3sm_version == 3: # E3SM version 3
     # set input directory 1 --- the directory before casename in the whole directory
-    datadir_in1= run_dir+'/E3SMv2_simulations/'
+    datadir_in1= run_dir+'/E3SMv3_dev/'
     # set input directory 2 --- the directory after casename in the whole directory
     datadir_in2 = 'archive/atm/hist/'
 
@@ -74,6 +91,23 @@ if e3sm_version == 2: # E3SM version 2
         rgr_map = '/qfs/people/zender/data/maps/map_ne30pg2_to_cmip6_180x360_aave.20200201.nc'
     elif machine == 'cori':
         rgr_map = '/global/cfs/cdirs/e3sm/zender/maps/map_ne30pg2_to_cmip6_180x360_aave.20200201.nc'
+    elif machine == 'chrysalis':
+        rgr_map = '/home/ac.zender/data/maps/map_ne30pg2_to_cmip6_180x360_aave.20200201.nc'
+
+elif e3sm_version == 2: # E3SM version 2
+    # set input directory 1 --- the directory before casename in the whole directory
+    datadir_in1= run_dir+'/E3SMv2/'
+    # set input directory 2 --- the directory after casename in the whole directory
+    datadir_in2 = 'archive/atm/hist/'
+
+    comp = 'eam.h0'
+    if machine == 'compy':
+        rgr_map = '/qfs/people/zender/data/maps/map_ne30pg2_to_cmip6_180x360_aave.20200201.nc'
+    elif machine == 'cori':
+        rgr_map = '/global/cfs/cdirs/e3sm/zender/maps/map_ne30pg2_to_cmip6_180x360_aave.20200201.nc'
+    elif machine == 'chrysalis':
+        rgr_map = '/home/ac.zender/data/maps/map_ne30pg2_to_cmip6_180x360_aave.20200201.nc'
+
 
 elif e3sm_version == 1: # E3SM version 1
     # set input directory 1 --- the directory before casename in the whole directory
@@ -86,10 +120,12 @@ elif e3sm_version == 1: # E3SM version 1
         rgr_map = "/qfs/people/zender/data/maps/map_ne30np4_to_cmip6_180x360_aave.20181001.nc"
     elif machine == 'cori':
         rgr_map = "/global/cfs/cdirs/e3sm/zender/maps/map_ne30np4_to_cmip6_180x360_aave.20181001.nc"
-
+    elif machine == 'chrysalis':
+        rgr_map = '/home/ac.zender/data/maps/map_ne30pg2_to_cmip6_180x360_aave.20200201.nc'
  
 # set output directory for necessary variables after post-processing E3SM raw data
-outdir_out = run_dir+'/diag_feedback_E3SM_postdata/'
+if not UseE3smDiagOutput: 
+    outdir_out = run_dir+'/diag_feedback_E3SM_postdata/'
 
 ### NOTION: if you work on Cori, you should not change the below directories. If not, you should download data.
 # set RadKernel input kernel directory
@@ -97,6 +133,8 @@ if machine == 'compy':
     RadKernel_dir = '/qfs/people/qiny108/diag_feedback_E3SM/Huang_kernel_data/'
 elif machine == 'cori':
     RadKernel_dir = '/global/project/projectdirs/mp193/www/qinyi/DATA/Huang_kernel_data/'
+elif machine == 'chrysalis':
+    RadKernel_dir = '/home/ac.xzheng/E3SMv3_dev/utils/cloud_feedback/diag_feedback_E3SM/Huang_kernel_data/'
 
 # RunDiag types 
 if RunDiag:
@@ -117,13 +155,13 @@ if GetFigure:
     'RadKernel_globalmean',             # scatter plot of global mean RadKernel feedback: non-cloud and adjusted CRE feedbacks
     'RadKernel_zonalmean',              # zonal mean plot of adjusted CRE feedback
     'CldRadKernel_globalmean',          # scatter plot of global mean CldRadKernel feedback: decomposition into low and non-low clouds and amount, altitude, optical depth.
-    #'CldRadKernel_zonalmean',           # zonal mean plot of CldRadKernel feedback
-    #'RadKernel_latlon',                 # lat-lon plot of RadKernel feedback for each case
-    #'CldRadKernel_latlon',              # lat-lon plot of CldRadKernel feedback for each case
+    'CldRadKernel_zonalmean',           # zonal mean plot of CldRadKernel feedback
+    'RadKernel_latlon',                 # lat-lon plot of RadKernel feedback for each case
+    'CldRadKernel_latlon',              # lat-lon plot of CldRadKernel feedback for each case
     #'CldRadKernel_latlon_dif',          # lat-lon plot of CldRadKernel feedback difference between case and reference case
     #'RadKernel_latlon_dif',             # lat-lon plot of RadKernel feedback difference between case and reference case
     #'tas_latlon',                       # lat-lon plot of surface air temperature and the difference between case and reference case
-    #'LCF',                              # Temperature - Liquid Condensate Fraction
+    'LCF',                              # Temperature - Liquid Condensate Fraction
     #'zm_CLOUD',                         # zonal mean plot of cloud varaibles difference 
     #'latlon_CLOUD',                     # lat-lon plot of cloud varaibles difference
     #'webb_decomp',                      # decomposition of adjusted CRE feedback into low and non-low clouds
@@ -180,9 +218,10 @@ for icase,case in enumerate(case_short):
 
         direc_data = outdir_out
     
-        dics_cal = AP.get_cal_dics(direc_data, case_short[icase], yearS_P4K, yearE_P4K, run_id1, run_id2, outdir_final,
-                          RadKernel_dir, diagfigdir, exp1, exp2,
-                          CloudRadKernel_dir)
+        dics_cal = AP.get_cal_dics_E3SM(direc_data, case_short[icase], yearS_P4K, yearE_P4K, run_id1, run_id2, outdir_final,
+                          RadKernel_dir, diagfigdir,
+                          CloudRadKernel_dir, 
+                          UseE3smDiagOutput, grd_info, num_years_per_file)
 
         for key in dics_cal:
             if key in cal_types:
@@ -231,6 +270,8 @@ if GetFigure:
         datadir_CMIPs = '/compyfs/qiny108/diag_feedback_otherCMIPs/'
     elif machine == 'cori':
         datadir_CMIPs = '/global/project/projectdirs/mp193/www/qinyi/DATA/'
+    elif machine == 'chrysalis':
+        datadir_CMIPs = '/home/ac.xzheng/E3SMv3_dev/utils/cloud_feedback/diag_feedback_E3SM/DATA/'
     
     # -- data for E3SMv1 [dont modify data in this directory.]
     datadir_v1 = datadir_CMIPs+'E3SMv1_data/'
@@ -264,20 +305,23 @@ if GetFigure:
         webdir = www_dir+"/diag_feedback/"+case_short[-1]+"/"
     elif machine == 'cori':
         webdir = www_dir+"/diag_feedback/"+case_short[-1]+"/"
+    elif machine == 'chrysalis':
+        webdir = www_dir+"/diag_feedback/"+case_short[-1]+"/"
     
     ## create figure directory if it does not exist
     AP.make_dir(figdir)
     AP.make_dir(csvdir)
     AP.make_dir(viewdir)
     
-    if machine in ['compy','cori']:
+    if machine in ['compy','cori','chrysalis']:
         AP.make_dir(webdir)
         os.system("cp -p "+datadir+"/viewer/11.css "+viewdir)
     
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     # get dictionary of all plot type lists
-    dics_plots = AP.get_plot_dics(case_short,ref_case_short,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir, ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions)
+    dics_plots = AP.get_plot_dics(case_short,ref_case_short,figdir,datadir_v2,Add_otherCMIPs,use_amip,datadir_v1,datadir_Ringer,datadir_RadKernel,datadir_CldRadKernel)
+
     
     for key in dics_plots:
         if key in plot_types:
@@ -292,7 +336,7 @@ if GetFigure:
     
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     # generate html file
-    if machine in ['compy','cori']:
+    if machine in ['compy','cori','chrysalis']:
         gh.generate_html(casedir,webdir)
     
     print('Well Done.')
