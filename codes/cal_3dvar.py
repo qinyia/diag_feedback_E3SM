@@ -20,7 +20,7 @@ from PlotDefinedFunction import linearregression_nd, area_averager, weighted_ann
 import sys
 sys.path.append("../")
 import cases_lookup as CL
-from get_mip_data import read_mip_data,read_amip_data,read_pickle,write_pickle,read_e3sm_data
+from get_mip_data import read_mip_data,read_amip_data,read_pickle,write_pickle,read_e3sm_data,read_e3smdiag_data
 
 # ============================================================ 
 def calc_EIS(Ts, SLP, T700, z700):
@@ -90,14 +90,14 @@ def calc_EIS(Ts, SLP, T700, z700):
 ###########################################################################
 # HELPFUL FUNCTIONS FOLLOW
 ###########################################################################
-def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir):
+def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,UseE3smDiagOutput=False,grd_info=None,num_years_per_file=None):
    
     latspc = np.arange(-90,92.5,2.5)
     lonspc = np.arange(1.25,360,2.5)
 
     var2d = [
     'ts', 'TGCLDLWP','TGCLDIWP',
-    'EIS',
+    #'EIS',
     'CLDLOW', 'CLDMED', 'CLDHGH','CLDTOT',
     ]
 
@@ -134,7 +134,10 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir):
 
         svar_here += ['tas']
 
-        dics = read_e3sm_data(svar_here,direc_data,case_stamp,yearS,yearE,fname1,fname2)
+        if UseE3smDiagOutput:
+            dics = read_e3smdiag_data(svar_here,direc_data,case_stamp,yearS,yearE,fname1,fname2,grd_info,num_years_per_file)
+        else:
+            dics = read_e3sm_data(svar_here,direc_data,case_stamp,yearS,yearE,fname1,fname2)
 
         # Regrid 
         for key in dics.keys():

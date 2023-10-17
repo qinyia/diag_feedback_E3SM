@@ -58,7 +58,7 @@ import sys
 sys.path.append('../')
 import cases_lookup as CL
 from PlotDefinedFunction import linearregression_nd,area_averager,weighted_annual_mean, save_big_dataset
-from get_mip_data import read_mip_data,read_amip_data,read_pickle,write_pickle,read_e3sm_data
+from get_mip_data import read_mip_data,read_amip_data,read_pickle,write_pickle,read_e3sm_data,read_e3smdiag_data
 
 ###########################################################################
 # MAIN ROUTINE FOLLOWS
@@ -83,7 +83,7 @@ def CloudRadKernel_MIP(direc_kernel,case_stamp,outdir,figdir,filenames,tslice):
 
     return
  
-def CloudRadKernel_E3SM(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir):
+def CloudRadKernel_E3SM(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,UseE3smDiagOutput=False,grd_info=None,num_years_per_file=None):
 
     outfile_gm_sw = outdir+'decomp_global_mean_sw_'+case_stamp+'.csv'
     outfile_gm_lw = outdir+'decomp_global_mean_lw_'+case_stamp+'.csv'
@@ -96,7 +96,11 @@ def CloudRadKernel_E3SM(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fn
     # Read E3SM data 
     Vars = ['clisccp','rsuscs','rsdscs','tas']
     nyears = int(yearE-yearS+1)
-    dics_invar = read_e3sm_data(Vars,direc_data,case_stamp,yearS,yearE,fname1,fname2)
+
+    if UseE3smDiagOutput:
+        dics_invar = read_e3smdiag_data(Vars,direc_data,case_stamp,yearS,yearE,fname1,fname2,grd_info,num_years_per_file)
+    else:
+        dics_invar = read_e3sm_data(Vars,direc_data,case_stamp,yearS,yearE,fname1,fname2)
 
     calculation(direc_kernel,dics_invar,nyears,outfile_gm_sw,outfile_gm_lw,outfile_map,case_stamp)
 
@@ -159,9 +163,11 @@ def calculation(direc_kernel,dics_invar,nyears,outfile_gm_sw,outfile_gm_lw,outfi
 
     # Calculate surface albedo and global climo surface temperature anomaly
     dics_invar = cal_sfc_albedo(dics_invar)
+    print('Surface albedo calculation is done.')
 
     # Read kernel and its coordinates 
     lats,lons,LWkernel_map,SWkernel = read_kernel(direc_kernel,nyears)
+    print('Reading kernel data is done.')
 
     # Regrid model data to kernel's lats and lons
     dics_in = {}
@@ -171,6 +177,7 @@ def calculation(direc_kernel,dics_invar,nyears,outfile_gm_sw,outfile_gm_lw,outfi
         else:
             dics_in[svar] = dics_invar[svar] 
     del dics_invar 
+    print('Regrid model data to kernel grid is done.')
 
     # Use control albcs to map SW kernel to appropriate longitudes
     newtime = pd.date_range(start='1850-01-01', periods=dics_in['tas_pi'].shape[0], freq='MS')
@@ -179,6 +186,7 @@ def calculation(direc_kernel,dics_invar,nyears,outfile_gm_sw,outfile_gm_lw,outfi
     SWkernel_map_tmp = map_SWkern_to_lon(SWkernel,avgalbcs1)
     SWkernel_map = xr.DataArray(np.tile(SWkernel_map_tmp,(nyears,1,1,1,1)), coords=dics_in['clisccp_pi'].coords)
     del SWkernel_map_tmp
+    print('Map SW kernel is done.')
 
     # The sun is down if every bin of the SW kernel is zero:
     sundown=np.ma.sum(np.ma.sum(SWkernel_map,axis=2),axis=1)  #12*nyears,90,144
@@ -212,33 +220,43 @@ def calculation(direc_kernel,dics_invar,nyears,outfile_gm_sw,outfile_gm_lw,outfi
         choose=sec_dic[sec]
         LC = len(np.ones(100)[choose])
     
-        # Preallocation of arrays:
-        LWcld_tot=nanarray((12*nyears,90,144))
-        LWcld_amt=nanarray((12*nyears,90,144))
-        LWcld_alt=nanarray((12*nyears,90,144))
-        LWcld_tau=nanarray((12*nyears,90,144))
-        LWcld_err=nanarray((12*nyears,90,144))
-        SWcld_tot=nanarray((12*nyears,90,144))
-        SWcld_amt=nanarray((12*nyears,90,144))
-        SWcld_alt=nanarray((12*nyears,90,144))
-        SWcld_tau=nanarray((12*nyears,90,144))
-        SWcld_err=nanarray((12*nyears,90,144))
-        dc_star=nanarray((12*nyears,7,LC,90,144))
-        dc_prop=nanarray((12*nyears,7,LC,90,144))
-
+        ## Preallocation of arrays:
+        #LWcld_tot=nanarray((12*nyears,90,144))
+        #LWcld_amt=nanarray((12*nyears,90,144))
+        #LWcld_alt=nanarray((12*nyears,90,144))
+        #LWcld_tau=nanarray((12*nyears,90,144))
+        #LWcld_err=nanarray((12*nyears,90,144))
+        #SWcld_tot=nanarray((12*nyears,90,144))
+        #SWcld_amt=nanarray((12*nyears,90,144))
+        #SWcld_alt=nanarray((12*nyears,90,144))
+        #SWcld_tau=nanarray((12*nyears,90,144))
+        #SWcld_err=nanarray((12*nyears,90,144))
+        #dc_star=nanarray((12*nyears,7,LC,90,144))
+        #dc_prop=nanarray((12*nyears,7,LC,90,144))
     
-        for mm in range(12*nyears):
-            dcld_dT = dics_in['dcld_dT'][mm,:,choose,:]
-            c1 = dics_in['c1'][mm,:,choose,:]
-            c2 = c1 + dcld_dT
-            Klw = dics_in['Klw'][mm,:,choose,:]
-            Ksw = dics_in['Ksw'][mm,:,choose,:]
+        #for mm in range(12*nyears):
+        #    dcld_dT = dics_in['dcld_dT'][mm,:,choose,:]
+        #    c1 = dics_in['c1'][mm,:,choose,:]
+        #    c2 = c1 + dcld_dT
+        #    Klw = dics_in['Klw'][mm,:,choose,:]
+        #    Ksw = dics_in['Ksw'][mm,:,choose,:]
 
-            print('mm=',mm, dcld_dT.shape, c1.shape, c2.shape, Klw.shape, Ksw.shape) 
+        #    print('mm=',mm, dcld_dT.shape, c1.shape, c2.shape, Klw.shape, Ksw.shape) 
 
-            # The following performs the amount/altitude/optical depth decomposition of
-            # Zelinka et al., J Climate (2012b), as modified in Zelinka et al., J. Climate (2013)
-            (LWcld_tot[mm,:],LWcld_amt[mm,:],LWcld_alt[mm,:],LWcld_tau[mm,:],LWcld_err[mm,:],SWcld_tot[mm,:],SWcld_amt[mm,:],SWcld_alt[mm,:],SWcld_tau[mm,:],SWcld_err[mm,:],dc_star[mm,:],dc_prop[mm,:]) = KT_decomposition_4D(c1,c2,Klw,Ksw)
+        #    # The following performs the amount/altitude/optical depth decomposition of
+        #    # Zelinka et al., J Climate (2012b), as modified in Zelinka et al., J. Climate (2013)
+        #    (LWcld_tot[mm,:],LWcld_amt[mm,:],LWcld_alt[mm,:],LWcld_tau[mm,:],LWcld_err[mm,:],SWcld_tot[mm,:],SWcld_amt[mm,:],SWcld_alt[mm,:],SWcld_tau[mm,:],SWcld_err[mm,:],dc_star[mm,:],dc_prop[mm,:]) = KT_decomposition_4D(c1,c2,Klw,Ksw)
+
+        dcld_dT = dics_in['dcld_dT'][:,:,choose,:]
+        c1      = dics_in['c1'][:,:,choose,:]
+        c2      = c1 + dcld_dT
+        Klw     = dics_in['Klw'][:,:,choose,:]
+        Ksw     = dics_in['Ksw'][:,:,choose,:]
+
+        output = KT_decomposition_general(c1, c2, Klw, Ksw)
+
+        LWcld_tot, LWcld_amt, LWcld_alt, LWcld_tau, LWcld_err, SWcld_tot, SWcld_amt, SWcld_alt, SWcld_tau, SWcld_err  = output['LWcld_tot'], output['LWcld_amt'], output['LWcld_alt'], output['LWcld_tau'], output['LWcld_err'], output['SWcld_tot'], output['SWcld_amt'], output['SWcld_alt'], output['SWcld_tau'], output['SWcld_err']
+
 
         # Set the SW cloud feedbacks to zero in the polar night
         # Do this since they may come out of previous calcs as undefined, but should be zero:
@@ -357,6 +375,7 @@ def map_SWkern_to_lon(Ksw,albcsmap):
         while MM>11:
             MM=MM-12
         for LA in range(lenlat):
+            #print('M=',M, 'LA=', LA)
             alon=albcsmap[M,LA,:] 
             # interp1d can't handle mask but it can deal with NaN (?)
             alon2=alon
@@ -429,8 +448,79 @@ def KT_decomposition_4D(c1,c2,Klw,Ksw):
     dc_prop = np.ma.transpose(dc_prop,(1,0,2,3)) 
 
     return (dRlw_true,dRlw_prop,dRlw_dctp,dRlw_dtau,dRlw_resid,dRsw_true,dRsw_prop,dRsw_dctp,dRsw_dtau,dRsw_resid,dc_star,dc_prop)
- 
+
+###########################################################################
+def KT_decomposition_general(c1,c2,Klw,Ksw):
+    """
+    this function takes in a (month,TAU,CTP,lat,lon) matrix and performs the 
+    decomposition of Zelinka et al 2013 doi:10.1175/JCLI-D-12-00555.1
+    """
     
+    # To help with broadcasting, move month axis to the end so that TAU,CTP are first
+    c1 = np.array(np.moveaxis(c1.to_masked_array(),0,-1))
+    c2 = np.array(np.moveaxis(c2.to_masked_array(),0,-1))
+    Klw = np.moveaxis(Klw.to_masked_array(),0,-1)
+    Ksw = np.moveaxis(Ksw.to_masked_array(),0,-1)
+    
+    sum_c=np.ma.sum(np.ma.sum(c1,0),0)                              # Eq. B2
+    dc = c2-c1 
+    sum_dc=np.ma.sum(np.ma.sum(dc,0),0)
+    dc_prop = c1*(sum_dc/sum_c)
+    dc_star = dc - dc_prop                                          # Eq. B1
+
+    # LW components
+    Klw0 = np.ma.sum(np.ma.sum(Klw*c1/sum_c,0),0)                   # Eq. B4
+    Klw_prime = Klw - Klw0                                          # Eq. B3
+    B7a = np.ma.sum(c1/sum_c,1,keepdims=True)                       # need to keep this as [TAU,1,...]
+    Klw_p_prime = np.ma.sum(Klw_prime*B7a,0)                        # Eq. B7
+    Klw_t_prime = np.ma.sum(Klw_prime*np.ma.sum(c1/sum_c,0),1)      # Eq. B8   
+    Klw_resid_prime = Klw_prime - np.expand_dims(Klw_p_prime,0) - np.expand_dims(Klw_t_prime,1)        # Eq. B9
+    dRlw_true = np.ma.sum(np.ma.sum(Klw*dc,1),0)                    # LW total
+    dRlw_prop = Klw0*sum_dc                                         # LW amount component
+    dRlw_dctp = np.ma.sum(Klw_p_prime*np.ma.sum(dc_star,0),0)       # LW altitude component
+    dRlw_dtau = np.ma.sum(Klw_t_prime*np.ma.sum(dc_star,1),0)       # LW optical depth component
+    dRlw_resid = np.ma.sum(np.ma.sum(Klw_resid_prime*dc_star,1),0)  # LW residual
+    dRlw_sum = dRlw_prop + dRlw_dctp + dRlw_dtau + dRlw_resid       # sum of LW components -- should equal LW total
+
+    # SW components
+    Ksw0 = np.ma.sum(np.ma.sum(Ksw*c1/sum_c,0),0)                   # Eq. B4
+    Ksw_prime = Ksw - Ksw0                                          # Eq. B3
+    B7a = np.ma.sum(c1/sum_c,1,keepdims=True)                       # need to keep this as [TAU,1,...]
+    Ksw_p_prime = np.ma.sum(Ksw_prime*B7a,0)                        # Eq. B7
+    Ksw_t_prime = np.ma.sum(Ksw_prime*np.ma.sum(c1/sum_c,0),1)      # Eq. B8  
+    Ksw_resid_prime = Ksw_prime - np.expand_dims(Ksw_p_prime,0) - np.expand_dims(Ksw_t_prime,1)        # Eq. B9 
+    dRsw_true = np.ma.sum(np.ma.sum(Ksw*dc,1),0)                    # SW total
+    dRsw_prop = Ksw0*sum_dc                                         # SW amount component
+    dRsw_dctp = np.ma.sum(Ksw_p_prime*np.ma.sum(dc_star,0),0)       # SW altitude component
+    dRsw_dtau = np.ma.sum(Ksw_t_prime*np.ma.sum(dc_star,1),0)       # SW optical depth component
+    dRsw_resid = np.ma.sum(np.ma.sum(Ksw_resid_prime*dc_star,1),0)  # SW residual
+    dRsw_sum = dRsw_prop + dRsw_dctp + dRsw_dtau + dRsw_resid       # sum of SW components -- should equal SW total
+
+    # Set SW fields to zero where the sun is down
+    RR = Ksw0.mask
+    dRsw_true = np.ma.where(RR,0,dRsw_true)
+    dRsw_prop = np.ma.where(RR,0,dRsw_prop)
+    dRsw_dctp = np.ma.where(RR,0,dRsw_dctp)
+    dRsw_dtau = np.ma.where(RR,0,dRsw_dtau)
+    dRsw_resid = np.ma.where(RR,0,dRsw_resid)
+
+    # Move month axis back to the beginning
+    output={}
+    output['LWcld_tot'] = np.moveaxis(dRlw_true,-1,0)
+    output['LWcld_amt'] = np.moveaxis(dRlw_prop,-1,0)
+    output['LWcld_alt'] = np.moveaxis(dRlw_dctp,-1,0)
+    output['LWcld_tau'] = np.moveaxis(dRlw_dtau,-1,0)
+    output['LWcld_err'] = np.moveaxis(dRlw_resid,-1,0)
+    output['SWcld_tot'] = np.moveaxis(dRsw_true,-1,0)
+    output['SWcld_amt'] = np.moveaxis(dRsw_prop,-1,0)
+    output['SWcld_alt'] = np.moveaxis(dRsw_dctp,-1,0)
+    output['SWcld_tau'] = np.moveaxis(dRsw_dtau,-1,0)
+    output['SWcld_err'] = np.moveaxis(dRsw_resid,-1,0)
+    #output['dc_star'] = MV.array(np.moveaxis(dc_star,-1,0))
+    #output['dc_prop'] = MV.array(np.moveaxis(dc_prop,-1,0))    
+    
+    return output    
+
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 if __name__ == "__main__":

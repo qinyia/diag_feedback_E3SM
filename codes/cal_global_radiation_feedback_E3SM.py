@@ -24,12 +24,12 @@ import cases_lookup as CL
 import PlotDefinedFunction as PDF
 import xrw
 from loguru import logger
-from get_mip_data import read_mip_data,read_amip_data,read_pickle,write_pickle,read_e3sm_data
+from get_mip_data import read_mip_data,read_amip_data,read_pickle,write_pickle,read_e3sm_data,read_e3smdiag_data
 
 
 ########## MAIN SUBROUTINE STARTS HERE ....
 
-def Global_RadFeedback_E3SM(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir):
+def Global_RadFeedback_E3SM(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,UseE3smDiagOutput=False,grd_info=None,num_years_per_file=None):
 
     if os.path.isfile(outdir+'global_mean_features_'+case_stamp+'.csv'):
         print('Global_RadFeedback is done.')
@@ -40,7 +40,10 @@ def Global_RadFeedback_E3SM(direc_data,case_stamp,yearS,yearE,fname1,fname2,outd
     nyears = yearE - yearS + 1
     
     # Read E3SM data
-    dic_all = read_e3sm_data(Vars,direc_data,case_stamp,yearS,yearE,fname1,fname2)
+    if UseE3smDiagOutput:
+        dic_all = read_e3smdiag_data(Vars,direc_data,case_stamp,yearS,yearE,fname1,fname2,grd_info,num_years_per_file)
+    else:
+        dic_all = read_e3sm_data(Vars,direc_data,case_stamp,yearS,yearE,fname1,fname2)
 
     # Get intermediate data
     dic_all = get_intermediate_data(dic_all)

@@ -75,12 +75,14 @@ def make_dir(outdir):
 
 def get_cal_dics_E3SM(direc_data, case_stamp, yearS2, yearE2, run_id1, run_id2, outdir_final,
                   RadKernel_dir, figdir, 
-                  CloudRadKernel_dir):
+                  CloudRadKernel_dir,
+                  UseE3smDiagOutput, grd_info, num_years_per_file):
 
     dics_cal = {}
     my_cal = calculation_E3SM(direc_data, case_stamp, yearS2, yearE2, run_id1, run_id2, outdir_final,
                   RadKernel_dir, figdir,
-                  CloudRadKernel_dir)
+                  CloudRadKernel_dir, 
+                  UseE3smDiagOutput, grd_info, num_years_per_file)
 
     dics_cal['RadFeedback']         = my_cal.cal_Global_RadFeedback
     dics_cal['RadKernel']           = my_cal.cal_RadKernel
@@ -94,7 +96,9 @@ def get_cal_dics_E3SM(direc_data, case_stamp, yearS2, yearE2, run_id1, run_id2, 
 class calculation_E3SM:
     def __init__(self,direc_data, case_stamp, yearS2, yearE2, run_id1, run_id2, outdir_final,
                       RadKernel_dir, figdir, 
-                      CloudRadKernel_dir ):
+                      CloudRadKernel_dir,
+                      UseE3smDiagOutput, grd_info, num_years_per_file, 
+                      ):
 
         self.direc_data = direc_data
         self.case_stamp = case_stamp
@@ -106,24 +110,27 @@ class calculation_E3SM:
         self.RadKernel_dir = RadKernel_dir
         self.figdir = figdir
         self.CloudRadKernel_dir = CloudRadKernel_dir 
+        self.UseE3smDiagOutput = UseE3smDiagOutput
+        self.grd_info = grd_info
+        self.num_years_per_file = num_years_per_file
 
     def cal_Global_RadFeedback(self):
-        result = GRF.Global_RadFeedback_E3SM(self.direc_data, self.case_stamp, self.yearS2, self.yearE2, self.run_id1, self.run_id2, self.outdir_final)
+        result = GRF.Global_RadFeedback_E3SM(self.direc_data, self.case_stamp, self.yearS2, self.yearE2, self.run_id1, self.run_id2, self.outdir_final, self.UseE3smDiagOutput, self.grd_info, self.num_years_per_file)
         
     def cal_RadKernel(self):
-        result = RK.RadKernel_E3SM(self.RadKernel_dir,self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir)
+        result = RK.RadKernel_E3SM(self.RadKernel_dir,self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir, self.UseE3smDiagOutput, self.grd_info, self.num_years_per_file)
 
     def cal_webb_decomp(self):
         result = WD.cal_webb_decomp(self.outdir_final,self.case_stamp,self.outdir_final)
 
     def cal_CloudRadKernel(self):
-        result = CRK.CloudRadKernel_E3SM(self.CloudRadKernel_dir,self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir)
+        result = CRK.CloudRadKernel_E3SM(self.CloudRadKernel_dir,self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir, self.UseE3smDiagOutput, self.grd_info, self.num_years_per_file)
 
     def cal_LCF(self):
-        result = LCF.cal_LCF_E3SM(self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir)
+        result = LCF.cal_LCF_E3SM(self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir, self.UseE3smDiagOutput, self.grd_info, self.num_years_per_file)
 
     def cal_3dvar(self):
-        result = cal3dvar.cal_3dvar(self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir)
+        result = cal3dvar.cal_3dvar(self.direc_data,self.case_stamp,self.yearS2,self.yearE2,self.run_id1,self.run_id2,self.outdir_final,self.figdir, self.UseE3smDiagOutput, self.grd_info, self.num_years_per_file)
 
 #############################################################################################
 # Calculation Part for MIP models 
@@ -181,7 +188,7 @@ class calculation_MIP:
 #############################################################################################
 
 def get_plot_dics(cases,ref_casesA, figdir, datadir_v2, 
-                    Add_otherCMIPs, datadir_v1=None, datadir_Ringer=None, datadir_RadKernel=None, datadir_CldRadKernel=None):
+                    Add_otherCMIPs, use_amip, datadir_v1=None, datadir_Ringer=None, datadir_RadKernel=None, datadir_CldRadKernel=None):
     '''
     Aug 20, 201: get the plot dictionary for all plot types.
     '''
@@ -197,7 +204,7 @@ def get_plot_dics(cases,ref_casesA, figdir, datadir_v2,
     fh1 = 13    # font size for legend
     s1 = 120    # marker size for E3SMv2
     s2 = 100    # marker size for other CMIP models
-    a1 = 1      # apparency for markers
+    a1 = 0.4      # apparency for markers
     
     ncase = [len(cases)]
     # add region ranges: [latS, latE, lonS, lonE] to help generate regional figures 
@@ -205,7 +212,7 @@ def get_plot_dics(cases,ref_casesA, figdir, datadir_v2,
     #regions = [10,70,220,310]
     #regions = [24,55.5,-140,-70]
 
-    my_plot = plots(cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir,ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions)
+    my_plot = plots(cases,ref_casesA,Add_otherCMIPs,use_amip, datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors, figdir,ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions)
 
     dics_plots['CRE_globalmean']             = my_plot.plot_CRE_globalmean
     dics_plots['RadKernel_globalmean']       = my_plot.plot_RadKernel_globalmean
@@ -231,10 +238,11 @@ def get_plot_dics(cases,ref_casesA, figdir, datadir_v2,
 
 
 class plots:
-    def __init__(self, cases,ref_casesA,Add_otherCMIPs,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors,figdir,ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions):
+    def __init__(self, cases,ref_casesA,Add_otherCMIPs,use_amip,datadir_v2, datadir_v1, s1, s2, fh, fh1, a1, colors,figdir,ncase, linestyles, linewidths, datadir_Ringer, datadir_RadKernel, datadir_CldRadKernel,regions):
         self.cases = cases
         self.ref_casesA = ref_casesA
         self.Add_otherCMIPs = Add_otherCMIPs
+        self.use_amip = use_amip
         self.datadir_v2 = datadir_v2
         self.datadir_v1 = datadir_v1
         self.s1 = s1
@@ -270,14 +278,24 @@ class plots:
         if self.Add_otherCMIPs:
             # read other CMIP5 and CMIP6 models
             # Oct 19, 2020: reduce model lists to fit both amip-p4K and amipFuture
-    
-            exp_cntl = [['piControl','amip'],['piControl','amip']]
-            exp_new = [['abrupt4xCO2','amip4K'],['abrupt-4xCO2','amip-p4K']]
-            
+
+            # if only add those models with both amip and cmip runs, set use_amip = True
+
+            phases = ['CMIP5','CMIP6']
+
             prefix = 'global_mean_features'
-            suffix1 = '*.csv'
-            suffix2 = '*.csv'
-            
+            if self.use_amip:
+                exp_cntl = [['piControl','amip'],['piControl','amip']]
+                exp_new = [['abrupt4xCO2','amip4K'],['abrupt-4xCO2','amip-p4K']]
+                suffix1 = '*.csv'
+                suffix2 = '*.csv'
+            else:
+                exp_cntl = [['piControl','piControl'],['piControl','piControl']]
+                exp_new = [['abrupt4xCO2','abrupt4xCO2'],['abrupt-4xCO2','abrupt-4xCO2']]
+                suffix1 = '*.csv'
+                suffix2 = '*.csv'
+
+           
             models_all,cmip5_models,cmip6_models = PDF.get_intersect_withripf(exp_cntl,exp_new,prefix,suffix1,suffix2,self.datadir_Ringer)
     
             exp_cntl = [['piControl','amip'],['piControl','amip']]
@@ -298,17 +316,24 @@ class plots:
             for model in models_all:
                 if model in cmip5_models:
     
-                    if model == 'CanESM2_r1i1p1':
-                        model_amip = 'CanAM4_r1i1p1'
-                    elif model == 'HadGEM2-ES_r1i1p1':
-                        model_amip = 'HadGEM2-A_r1i1p1'
-                    else:
-                	    model_amip = model
+                    if self.use_amip:
+                        if model == 'CanESM2_r1i1p1':
+                            model_amip = 'CanAM4_r1i1p1'
+                        elif model == 'HadGEM2-ES_r1i1p1':
+                            model_amip = 'HadGEM2-A_r1i1p1'
+                        else:
+                            model_amip = model
     
-                    filename = self.datadir_Ringer+'global_mean_features_CMIP5_amip4K_'+model_amip+'.csv'
+                        filename = self.datadir_Ringer+'global_mean_features_CMIP5_amip4K_'+model_amip+'.csv'
+                    else:
+                        filename = self.datadir_Ringer+'global_mean_features_CMIP5_abrupt4xCO2_'+model+'.csv'
+
                 else:
-                    filename = self.datadir_Ringer+'global_mean_features_CMIP6_amip-p4K_'+model+'.csv'
-            
+                    if self.use_amip:
+                        filename = self.datadir_Ringer+'global_mean_features_CMIP6_amip-p4K_'+model+'.csv'
+                    else:
+                        filename = self.datadir_Ringer+'global_mean_features_CMIP6_abrupt-4xCO2_'+model+'.csv'
+
                 df = pd.read_csv(filename,index_col=0)
                 df.index = df.loc[:,'varname']
                 df2 = df.loc[:,'anomaly_perK']
@@ -408,7 +433,11 @@ class plots:
             ax.set_ylabel('W/m$^2$/K',fontsize=self.fh)
             if idx==0:
                 if self.Add_otherCMIPs:
-                    legend1 = ax.legend([L2],['amip4K'],fontsize=self.fh1,loc='upper left')
+                    if self.use_amip:
+                        label = 'Multimodel Mean\n[amip4K]'
+                    else:
+                        label = 'Multimodel Mean\n[abrupt4xCO2]'
+                    legend1 = ax.legend([L2],[label],fontsize=self.fh1,loc='upper left')
                     ax.legend(fontsize=self.fh1)
                     ax.add_artist(legend1) 
                 else:
@@ -458,13 +487,13 @@ class plots:
     
         # read other CMIP5&6 models
         if self.Add_otherCMIPs:
-    
-            # if only add those models with both amip and cmip runs, set do_amip_cmip = True
-            do_amip_cmip = False
+            
+            # if only add those models with both amip and cmip runs, set use_amip = True
+            self.use_amip = False
 
             phases = ['CMIP5','CMIP6']
     
-            if do_amip_cmip:
+            if self.use_amip:
                 exp_cntl = [['piControl','amip'],['piControl','amip']]
                 exp_new = [['abrupt4xCO2','amip4K'],['abrupt-4xCO2','amip-p4K']]
 
@@ -496,14 +525,14 @@ class plots:
                     suffix = '_Latest-Oct18_1yr-36yr'
     
                 for imodel,model in enumerate(models[iphase]):
-    
-                    if do_amip_cmip:
+                    
+                    if self.use_amip:
                         if model == 'CanESM2':
                             model_amip = 'CanAM4'
                         elif model == 'HadGEM2-ES':
                             model_amip = 'HadGEM2-A'
                         else:
-                	        model_amip = model
+                            model_amip = model
     
                         df = pd.read_csv(self.datadir_RadKernel+'FDBK_'+phase+'_'+exp_new[iphase][1]+'_'+model_amip+suffix+'.csv',index_col=0)
                     else:
@@ -513,7 +542,7 @@ class plots:
                         else:
                             print(ff)
                             df = pd.read_csv(ff[0],index_col=0)
-
+    
                     df2 = df.iloc[:,0]
                     df_others[model] = df2
     
@@ -614,17 +643,17 @@ class plots:
             ax.set_ylabel('Feedback [W/m$^2$/K]',fontsize=self.fh)
             if idx == 0:
                 if self.Add_otherCMIPs:
-                    if do_amip_cmip:
-                        label = 'amip4K'
+                    if self.use_amip:
+                        label = 'Multimodel Mean\n[amip4K]'
                     else:
-                        label = 'MMM\n[abrupt4xCO2]'
+                        label = 'Multimodel Mean\n[abrupt4xCO2]'
 
                     legend1 = ax.legend([L2],[label],fontsize=self.fh1,loc='upper left')
                     ax.legend(fontsize=self.fh1)
                     ax.add_artist(legend1) 
                 else:
                     ax.legend(fontsize=self.fh1)
-    
+   
         #ax.grid(which='major', linestyle=':', linewidth='1.0', color='grey')
         ax.axhline(y=0,ls='-',color='black',lw=1)
         degrees = 0

@@ -2,6 +2,7 @@ import xarray as xr
 import pickle
 import pandas as pd
 import numpy as np
+import glob 
 
 # Standard vertical levels  [Pa]
 Dlevs = [100000, 92500, 85000, 70000, 60000, 50000, 40000, 30000, 25000, 20000, 15000, 10000, 7000, 5000, 3000, 2000, 1000, 500, 100]
@@ -183,6 +184,188 @@ def read_e3sm_data(Vars,direc_data,case_stamp,yearS,yearE,fname1,fname2):
         dics_invar[svar+'_ano'] = data_ano
 
     return dics_invar 
+
+# ========================================================================================================
+def read_e3smdiag_data(Vars,direc_data,case_stamp,yearS,yearE,fname1,fname2,grd_info,num_years_per_file):
+    '''
+    Read E3SM data from e3sm_diag output
+    ''' 
+
+    direc_data1 = direc_data+'/'+fname1+'/post/atm/'+grd_info+'/ts/monthly/'+str(num_years_per_file)+'yr/'
+    direc_data2 = direc_data+'/'+fname2+'/post/atm/'+grd_info+'/ts/monthly/'+str(num_years_per_file)+'yr/'
+    print('direc_data1 = ', direc_data1)
+    print('direc_data2 = ', direc_data2)
+    print()
+
+    
+    dics_invar = {}
+    for svar in Vars:
+        print('Start reading '+svar+'...')
+        if svar == 'clisccp':
+            svar_in = 'FISCCP1_COSP'
+        elif svar == 'ta':
+            svar_in = 'T'
+        elif svar == 'hus':
+            svar_in = 'Q'
+        elif svar == 'clw':
+            svar_in = 'CLDLIQ'
+        elif svar == 'cli':
+            svar_in = 'CLDICE'
+        elif svar == 'tas':
+            svar_in = 'TREFHT'
+        elif svar == 'rlut':
+            svar_in = 'FLUT'
+        elif svar == 'rlutcs':
+            svar_in = 'FLUTC'
+        elif svar == 'rsut':
+            svar_in = 'rsut'
+        elif svar == 'rsutcs':
+            svar_in = 'rsutcs'
+        elif svar == 'rsds':
+            svar_in = 'FSDS'
+        elif svar == 'rsdscs':
+            svar_in = 'FSDSC'
+        elif svar == 'rsus':
+            svar_in = 'rsus'
+        elif svar == 'rsuscs':
+            svar_in = 'rsuscs'
+        elif svar == 'ps':
+            svar_in = 'PS'
+        elif svar == 'psl':
+            svar_in = 'PSL'
+        elif svar == 'rsdt':
+            svar_in = 'SOLIN'
+        elif svar == 'ts':
+            svar_in = 'TS'
+        else:
+            svar_in = svar
+        
+        if len(glob.glob1(direc_data1,svar_in+"_*.nc")) == 0: 
+            print('No direct output for '+svar_in+':')
+            if svar_in == 'rsutcs':
+                print('    Doing calculation for '+svar_in)
+                svar_tmp = 'SOLIN'
+                f=xr.open_mfdataset(direc_data1+svar_tmp+'_*.nc')
+                data1_pi=f[svar_tmp]
+                f.close()
+                f=xr.open_mfdataset(direc_data2+svar_tmp+'_*.nc')
+                data1_ab=f[svar_tmp]
+                f.close()
+
+                svar_tmp = 'FSNTC'
+                f=xr.open_mfdataset(direc_data1+svar_tmp+'_*.nc')
+                data2_pi=f[svar_tmp]
+                f.close()
+                f=xr.open_mfdataset(direc_data2+svar_tmp+'_*.nc')
+                data2_ab=f[svar_tmp]
+                f.close()
+
+                data_pi = xr.DataArray(data1_pi - data2_pi, coords=data1_pi.coords)
+                data_ab = xr.DataArray(data1_ab - data2_ab, coords=data1_ab.coords)
+            elif svar_in == 'rsut':
+                print('    Doing calculation for '+svar_in)
+                svar_tmp = 'SOLIN'
+                f=xr.open_mfdataset(direc_data1+svar_tmp+'_*.nc')
+                data1_pi=f[svar_tmp]
+                f.close()
+                f=xr.open_mfdataset(direc_data2+svar_tmp+'_*.nc')
+                data1_ab=f[svar_tmp]
+                f.close()
+
+                svar_tmp = 'FSNT'
+                f=xr.open_mfdataset(direc_data1+svar_tmp+'_*.nc')
+                data2_pi=f[svar_tmp]
+                f.close()
+                f=xr.open_mfdataset(direc_data2+svar_tmp+'_*.nc')
+                data2_ab=f[svar_tmp]
+                f.close()
+
+                data_pi = xr.DataArray(data1_pi - data2_pi, coords=data1_pi.coords)
+                data_ab = xr.DataArray(data1_ab - data2_ab, coords=data1_ab.coords)
+
+            elif svar_in == 'rsuscs':
+                print('    Doing calculation for '+svar_in)
+
+                svar_tmp = 'FSDSC'
+                f=xr.open_mfdataset(direc_data1+svar_tmp+'_*.nc')
+                data1_pi=f[svar_tmp]
+                f.close()
+                f=xr.open_mfdataset(direc_data2+svar_tmp+'_*.nc')
+                data1_ab=f[svar_tmp]
+                f.close()
+
+                svar_tmp = 'FSNSC'
+                f=xr.open_mfdataset(direc_data1+svar_tmp+'_*.nc')
+                data2_pi=f[svar_tmp]
+                f.close()
+                f=xr.open_mfdataset(direc_data2+svar_tmp+'_*.nc')
+                data2_ab=f[svar_tmp]
+                f.close()
+
+                data_pi = xr.DataArray(data1_pi - data2_pi, coords=data1_pi.coords)
+                data_ab = xr.DataArray(data1_ab - data2_ab, coords=data1_ab.coords)
+
+            elif svar_in == 'rsus':
+                print('    Doing calculation for '+svar_in)
+
+                svar_tmp = 'FSDS'
+                f=xr.open_mfdataset(direc_data1+svar_tmp+'_*.nc')
+                data1_pi=f[svar_tmp]
+                f.close()
+                f=xr.open_mfdataset(direc_data2+svar_tmp+'_*.nc')
+                data1_ab=f[svar_tmp]
+                f.close()
+
+                svar_tmp = 'FSNS'
+                f=xr.open_mfdataset(direc_data1+svar_tmp+'_*.nc')
+                data2_pi=f[svar_tmp]
+                f.close()
+                f=xr.open_mfdataset(direc_data2+svar_tmp+'_*.nc')
+                data2_ab=f[svar_tmp]
+                f.close()
+
+                data_pi = xr.DataArray(data1_pi - data2_pi, coords=data1_pi.coords)
+                data_ab = xr.DataArray(data1_ab - data2_ab, coords=data1_ab.coords)
+
+            else:
+                print('ERROR: We should do the calculation for', svar_in, '. Please check.')
+                exit()
+
+        else:
+            f=xr.open_mfdataset(direc_data1+svar_in+'_*.nc')
+            data_pi=f[svar_in]
+            f.close()
+            f=xr.open_mfdataset(direc_data2+svar_in+'_*.nc')
+            data_ab=f[svar_in]
+            f.close()
+
+        # reverse lev direction
+        if svar in ['ta','hus']:
+            data_pi = data_pi[:,::-1,:,:]
+            data_ab = data_ab[:,::-1,:,:]
+
+        if svar == 'clisccp':
+            # Make sure clisccp is in percent  
+            sumclisccp1 = data_pi.sum(axis=2).sum(axis=1)
+            sumclisccp2 = data_ab.sum(axis=2).sum(axis=1)
+            if np.max(sumclisccp1) <= 1.:
+                print('Changing clisccp in percent...')
+                data_pi = data_pi*100.        
+            if np.max(sumclisccp2) <= 1.:
+                data_ab = data_ab*100.
+
+            data_pi = data_pi.transpose('time','cosp_tau','cosp_prs','lat','lon')
+            data_ab = data_ab.transpose('time','cosp_tau','cosp_prs','lat','lon')
+    
+        # Compute clisccp anomalies
+        data_ano = xr.DataArray(data_ab - data_pi, coords=data_pi.coords)
+
+        dics_invar[svar+'_pi'] = data_pi
+        dics_invar[svar+'_ab'] = data_ab
+        dics_invar[svar+'_ano'] = data_ano
+
+    return dics_invar 
+
 
 # ============================================================================================
 def logLinearInterpolation(

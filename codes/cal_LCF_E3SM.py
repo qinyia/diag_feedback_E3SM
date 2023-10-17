@@ -12,7 +12,7 @@ import cases_lookup as CL
 from PlotDefinedFunction import area_averager 
 import xrw
 from loguru import logger
-from get_mip_data import read_mip_data,read_amip_data,read_pickle,write_pickle,read_e3sm_data
+from get_mip_data import read_mip_data,read_amip_data,read_pickle,write_pickle,read_e3sm_data,read_e3smdiag_data
 
 # ============= sorting setting ==================
 dbin = 4 # set the temperature bin size is 4 K
@@ -85,7 +85,7 @@ def cal_LCF_MIP(case_stamp,outdir,figdir,filenames,tslice):
     return 
 
 
-def cal_LCF_E3SM(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir):
+def cal_LCF_E3SM(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,UseE3smDiagOutput=False,grd_info=None,num_years_per_file=None):
 
     Vars = ['clw','cli','ta']
 
@@ -98,7 +98,10 @@ def cal_LCF_E3SM(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir):
     nyears = yearE - yearS + 1 
 
     # read model's data
-    dic_mod = read_e3sm_data(Vars,direc_data,case_stamp,yearS,yearE,fname1,fname2)
+    if UseE3smDiagOutput:
+        dic_mod = read_e3smdiag_data(Vars,direc_data,case_stamp,yearS,yearE,fname1,fname2,grd_info,num_years_per_file)
+    else:
+        dic_mod = read_e3sm_data(Vars,direc_data,case_stamp,yearS,yearE,fname1,fname2)
 
     calculation(dic_mod, outfile)
 

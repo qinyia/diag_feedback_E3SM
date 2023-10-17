@@ -45,7 +45,7 @@ from loguru import logger
 from PlotDefinedFunction import area_averager
 import xrw 
 import pickle
-from get_mip_data import read_mip_data,read_amip_data,read_pickle,write_pickle,read_e3sm_data
+from get_mip_data import read_mip_data,read_amip_data,read_pickle,write_pickle,read_e3sm_data,read_e3smdiag_data
 
 ### Horizontally regrid data into one defined grid first 
 do_hor_regrid = True
@@ -95,7 +95,7 @@ def RadKernel_MIP(kernel_dir,case_stamp,outdir,figdir,filenames,tslice):
     
     return 
 
-def RadKernel_E3SM(kernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir):
+def RadKernel_E3SM(kernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,UseE3smDiagOutput=False,grd_info=None,num_years_per_file=None):
 
     outfile_map = "RadKern_map_"+case_stamp+".nc"
     outfile_gm  = "RadKern_gm_"+case_stamp+".csv" 
@@ -118,7 +118,11 @@ def RadKernel_E3SM(kernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,ou
     #=============================================================
     # read model's data
     #=============================================================
-    dic_mod = read_e3sm_data(Vars,direc_data,case_stamp,yearS,yearE,fname1,fname2)
+    if UseE3smDiagOutput:
+        dic_mod = read_e3smdiag_data(Vars,direc_data,case_stamp,yearS,yearE,fname1,fname2,grd_info,num_years_per_file)
+    else:
+        dic_mod =     read_e3sm_data(Vars,direc_data,case_stamp,yearS,yearE,fname1,fname2)
+
     dic_mod = get_intermediate_data(dic_mod)
 
     sub_name = 'Read model data'
@@ -1538,22 +1542,25 @@ def get_intermediate_data(dic_invar):
 
 if __name__ == "__main__":
 
-    #RadKernel_dir = '/qfs/people/qiny108/diag_feedback_E3SM/Huang_kernel_data/'
-    #direc_data = '/compyfs/qiny108/diag_feedback_E3SM_postdata/'
-    #direc_data = '/compyfs/qiny108/colla/diag_feedback_E3SM_postdata/'
+    RadKernel_dir = '/qfs/people/qiny108/diag_feedback_E3SM/Huang_kernel_data/'
+    direc_data = '/compyfs/qiny108/colla/E3SMv2_simulations/'
 
-    RadKernel_dir = "/p/user_pub/climate_work/qin4/From_Compy/home_dir/diag_feedback_E3SM/Huang_kernel_data/"
-    direc_data = '/p/user_pub/climate_work/qin4/From_Compy/compyfs_dir/colla/diag_feedback_E3SM_postdata/'
+    #RadKernel_dir = "/p/user_pub/climate_work/qin4/From_Compy/home_dir/diag_feedback_E3SM/Huang_kernel_data/"
+    #direc_data = '/p/user_pub/climate_work/qin4/From_Compy/compyfs_dir/colla/diag_feedback_E3SM_postdata/'
 
     case_stamp = 'v2test'
-    yearS = 2
-    yearE = 3
+    yearS = 1
+    yearE = 6
     fname1,_,_ = CL.get_lutable(case_stamp,'amip')
     fname2,_,_ = CL.get_lutable(case_stamp,'amip4K')
     outdir = './'
     figdir = './'
     
-    RadKernel_E3SM(RadKernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir)
+    UseE3smDiagOutput = True
+    grd_info = '180x360_aave'
+    num_years_per_file= 2
+
+    RadKernel_E3SM(RadKernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,UseE3smDiagOutput=UseE3smDiagOutput,grd_info=grd_info,num_years_per_file=num_years_per_file)
     exit()
 
     # ------------------------------
