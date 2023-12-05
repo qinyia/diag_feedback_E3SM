@@ -20,7 +20,7 @@
 
 Installation:
 
-- `conda create -n diagfbk -c conda-forge -c xarray dask netCDF4 bottleneck cartopy nco scikit-learn statsmodels`
+- `conda create -n diagfbk -c conda-forge python=3.11.0 xarray dask netCDF4 bottleneck cartopy nco scikit-learn statsmodels`
 - `conda activate diagfbk`
 - `pip install global_land_mask`
 - `cd ./codes` 
