@@ -37,6 +37,72 @@ import cal_EIS as calEIS
 ###########################################################################
 # HELPFUL FUNCTIONS FOLLOW
 ###########################################################################
+def nowgt_p_TimeLevLatLon(data,levs,pressure_mask=None):
+    '''
+    vertical level mean 
+    inputs: data(time,level)
+    '''
+
+    # Mask data if pressure_mask is not None
+    if pressure_mask is not None:
+        datah = np.where(pressure_mask, np.nan, data)
+
+    data_pavg = np.nanmean(datah,axis=1)
+
+    ## covert to cdms variable
+    data_integral = cdms.asVariable(data_pavg)
+    data_integral.setAxisList(data[:,0,:].getAxisList())
+
+    return data_integral
+
+# ================================================================================
+
+
+def wgt_p_TimeLevLatLon(data,levs,pressure_mask=None):
+    '''
+    vertical integral weighted by pressure thickness
+    inputs: data(time,level)
+            levs -- must be bottom to top
+    '''
+    
+    # fixed parameters
+    gravit = 9.8 # m/s2
+
+    if levs[0] < 1300: # in hPa --> Pa
+        levs = levs*100.
+
+    # Revert the pressure level to bottom to top
+    if levs[0] < levs[1]:
+        levs = levs[::-1]
+        datah = data[:,::-1,:]
+        pressure_maskh = pressure_mask[:,::-1,:]
+
+    # Mask data if pressure_mask is not None
+    if pressure_mask is not None:
+        datah = np.where(pressure_maskh, np.nan, datah)
+
+    dp = levs[:-1] - levs[1:]
+    #print('dp = ', dp)
+
+    data_mid = (datah[:,:-1,:]+datah[:,1:,:])/2.
+    #print('data_mid',data_mid.shape)
+
+    ## move the level to the last axis
+    data_mid_trans = np.moveaxis(data_mid,1,-1)
+    #print('data_mid_trans',data_mid_trans.shape)
+
+    data_wgt = np.nansum(data_mid_trans*dp,axis=-1)/gravit # kg/m2
+    #print('data_wgt',data_wgt.shape)
+    #print(np.nanmin(data_wgt), np.nanmax(data_wgt))
+
+    ## covert to cdms variable
+    data_integral = cdms.asVariable(data_wgt)
+    data_integral.setAxisList(data[:,0,:].getAxisList())
+
+    return data_integral
+
+# ================================================================================
+
 def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1,exp2):
 
     yearS_4d = "{:04d}".format(yearS)
@@ -74,28 +140,21 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
     grid = cdms.createGenericGrid(lats,lons)
 
     var3d = [\
-#               'TGCLDLWP','CLDLOW','netCRE','SWCRE','LWCRE',
-#             'CLOUDCOVER_CLUBB', 'CLOUDFRAC_CLUBB', 'RCMINLAYER_CLUBB', 'RCM_CLUBB',
-#             'RTP2_CLUBB', 'RTPTHLP_CLUBB', 'THLP2_CLUBB',
-#             'WP2_CLUBB', 'WP3_CLUBB', 'WPRCP_CLUBB', 'WPRTP_CLUBB', 'WPTHLP_CLUBB', 'WPTHVP_CLUBB','Skw',\
-#             'RCMTEND_CLUBB', 'MPDLIQ','DPDLFLIQ', 'MPDW2P',
-#             'DCQ','ZMDQ','MPDQ','RVMTEND_CLUBB','DYNTEQ',
-#             'DCCLDLIQ','ZMDLIQ','DPDLFLIQ','MPDLIQ','RCMTEND_CLUBB',
-#             'ts', 'CLOUD', 'CLDLIQ', 'TGCLDLWP', 'RELHUM', 'T', 'Q', 'Qsfc_700', 
-#             'EIS', 'CLOUD','CLDLIQ',\
-#             'OMEGA', 'U', 'V', 'ts_tas', 'SHFLX', 'LHFLX', 'RHsfc', 'PRECT', 'rlus', 
-#             'DTCOND','DTCORE', 'ZMDT', 'TTEND_CLUBB', 'MPDT', 'QRL', 'QRS', 
-             'FREQ_MINCDNC','CLOUD','CLDLIQ',
-#             'CONCLD', 
-#             'CMFMCDZM', 'ZMMU', 'ZMMD', 
-#             'PRECC', 
-#             'rlds', 'rlus', 'FDLCA', 'FDLA', 'FULCA', 'FULA', 'FNLCA', 'FNLA', 
-#            'QRLC', 'QRSC'
-#            'DPBLH','PBLHI','PBLHOLD', 'FRQPBL', 'ZLCL', 
-#             'EIS','DCPPBL','DTHVINV','DTINV','DZINV',
-#             'ENTEFF',#'ENTEFFN','ENTEFFP','ENTEFF_ALL','ENTEFF_ALLN','ENTEFF_ALLP',
-#             'ENTRAT',#'ENTRATN','ENTRATP','ENTRAT_ALL','ENTRAT_ALLN','ENTRAT_ALLP',
-#             'CLDLOW','TGCLDLWP','PBLH','DCPPBL','LHFLX','SHFLX','ENTRAT'
+             'WP2_850to925', 'SKW_ZT_850to925',
+             'WP2_700to850', 'SKW_ZT_700to850',
+             'LWP_LS',
+             'LWP_LSlow','LWP_LShigh',
+             'TGCLDLWP','CLDLOW','CLDMED',
+             'netCRE','SWCRE','LWCRE',
+             'TGCLDLWP',
+             'CLOUD', 'CLDLIQ', 'CLDICE', 'RELHUM', 'T', 'Q','EIS', 
+             'RTP2_CLUBB', 'RTPTHLP_CLUBB', 'THLP2_CLUBB',
+             'WP2_CLUBB', 'WP3_CLUBB', 'WPRCP_CLUBB', 'WPRTP_CLUBB', 'WPTHLP_CLUBB', 'WPTHVP_CLUBB','SKW_ZM','SKW_ZT',\
+             'DPBLH','PBLHI','PBLHOLD', 'FRQPBL', 'ZLCL','DCPPBL','DTHVINV','DTINV','DZINV',
+             'ENTEFF','ENTEFFN','ENTEFFP',#'ENTEFF_ALL','ENTEFF_ALLN','ENTEFF_ALLP',
+             'ENTRAT','ENTRATN','ENTRATP',#'ENTRAT_ALL','ENTRAT_ALLN','ENTRAT_ALLP',
+             'CCN3','CDNUMC','ccn.3bl','cdnc','TMQ',
+             'FREQZM', 'CMFMCDZM', #'DP_WCLDBASE', 'DP_MFUP_MAX',
             ]
 
     var = var3d
@@ -161,7 +220,10 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
                 pi_raw_grd.setAxisList(pi_raw1_grd.getAxisList())
                 ab_raw_grd.setAxisList(ab_raw1_grd.getAxisList())
 
-            elif svar in ['SWCRE','LWCRE','netCRE','Skw','EIS','Qsfc_700','DYNTEQ','ts_tas','RHsfc','PRECT']:
+            elif svar in ['SWCRE','LWCRE','netCRE','Skw','EIS','Qsfc_700','DYNTEQ','ts_tas','RHsfc','PRECT','OMEGA700','LWP_LS','LWP_LSlow','LWP_LShigh',
+             'WP2_850to925', 'SKW_ZT_850to925',
+             'WP2_700to850', 'SKW_ZT_700to850',
+            ]:
                 if svar == 'netCRE':
                     svar_here = ['rsutcs','rsut','rlutcs','rlut']
                 elif svar == 'SWCRE':
@@ -172,6 +234,8 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
                     svar_here = ['SKW_ZM_bf']
                 elif svar == 'EIS':
                     svar_here = ['Z3','T','OMEGA','psl','ts']
+                elif svar == 'OMEGA700':
+                    svar_here = ['OMEGA']
                 elif svar == 'Qsfc_700':
                     svar_here = ['Q']
                 elif svar == 'DYNTEQ':
@@ -182,23 +246,35 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
                     svar_here = ['RELHUM']
                 elif svar == 'PRECT':
                     svar_here = ['PRECC','PRECL']
-
+                elif svar in ['LWP_LS','LWP_LSlow','LWP_LShigh']:
+                    svar_here = ['CLDLIQ']
+                elif svar in ['WP2_850to925', 'WP2_700to850']:
+                    svar_here = ['WP2_CLUBB']
+                elif svar in ['SKW_ZT_850to925', 'SKW_ZT_700to850']:
+                    svar_here = ['SKW_ZT']
 
                 dics = {}
-                for svarh in svar_here:
-                    f1 = cdms.open(direc_data+fname1+'/'+svarh+'_'+exp1+'_'+yearS_4d+'01-'+yearE_4d+'12.nc')
-                    pi_raw1 = f1(svarh)
+                for svar2 in svar_here:
+                    print('Reading control '+svar2+'...')
+                    f1 = cdms.open(direc_data+fname1+'/'+svar2+'_'+exp1+'_'+yearS_4d+'01-'+yearE_4d+'12.nc')
+                    pi_raw1 = f1(svar2)
                     f1.close()
-                    f2 = cdms.open(direc_data+fname2+'/'+svarh+'_'+exp2+'_'+yearS_4d+'01-'+yearE_4d+'12.nc')
-                    ab_raw1 = f2(svarh)
+                    print('Reading warming '+svar2+'...')
+                    f2 = cdms.open(direc_data+fname2+'/'+svar2+'_'+exp2+'_'+yearS_4d+'01-'+yearE_4d+'12.nc')
+                    ab_raw1 = f2(svar2)
                     f2.close()
+                    print('pi_raw1.shape=',pi_raw1.shape, 'ab_raw1.shape=',ab_raw1.shape)
 
-                    if svarh in ['Z3','T']:
+                    if svar2 in ['Z3','T']:
                         spec_lev = 700 
                         pi_raw1 = pi_raw1.pressureRegrid(cdms.createAxis([spec_lev]))[:,0,:,:]
                         ab_raw1 = ab_raw1.pressureRegrid(cdms.createAxis([spec_lev]))[:,0,:,:]
-                    elif svarh in ['OMEGA']:
+                    elif svar in ['EIS','LTS'] and svar2 in ['OMEGA']:
                         spec_lev = 500 
+                        pi_raw1 = pi_raw1.pressureRegrid(cdms.createAxis([spec_lev]))[:,0,:,:]
+                        ab_raw1 = ab_raw1.pressureRegrid(cdms.createAxis([spec_lev]))[:,0,:,:]
+                    elif svar == 'OMEGA700' and svar2 == 'OMEGA':
+                        spec_lev = 700
                         pi_raw1 = pi_raw1.pressureRegrid(cdms.createAxis([spec_lev]))[:,0,:,:]
                         ab_raw1 = ab_raw1.pressureRegrid(cdms.createAxis([spec_lev]))[:,0,:,:]
 
@@ -212,9 +288,10 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
                         pi_raw1_grd.setAxis(2,lats_ax)
                         pi_raw1_grd.setAxis(3,lons_ax)
 
-                    print(pi_raw1_grd.shape, ab_raw1_grd.shape)
+                    print('pi_raw1_grd.shape = ',pi_raw1_grd.shape)
+                    print('ab_raw1_grd.shape = ',ab_raw1_grd.shape)
 
-                    dics[svarh] = [pi_raw1_grd,ab_raw1_grd]
+                    dics[svar2] = [pi_raw1_grd,ab_raw1_grd]
 
                 # calculate CRE
                 if svar == 'netCRE':
@@ -232,6 +309,9 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
                 elif svar == 'EIS':
                     cre_pi,_ = calEIS.calc_EIS(dics['ts'][0], dics['psl'][0], dics['T'][0], dics['Z3'][0])
                     cre_ab,_ = calEIS.calc_EIS(dics['ts'][1], dics['psl'][1], dics['T'][1], dics['Z3'][1])
+                elif svar == 'OMEGA700':
+                    cre_pi = dics['OMEGA'][0]
+                    cre_ab = dics['OMEGA'][1]
                 elif svar == 'Qsfc_700':
                     cre_pi = dics['Q'][0].pressureRegrid(cdms.createAxis([1000]))[:,0,:,:] - dics['Q'][0].pressureRegrid(cdms.createAxis([700]))[:,0,:,:]
                     cre_ab = dics['Q'][1].pressureRegrid(cdms.createAxis([1000]))[:,0,:,:] - dics['Q'][1].pressureRegrid(cdms.createAxis([700]))[:,0,:,:]
@@ -247,11 +327,74 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
                 elif svar == 'PRECT':
                     cre_pi = dics['PRECC'][0] + dics['PRECL'][0]
                     cre_ab = dics['PRECC'][1] + dics['PRECL'][1]
+                elif svar == 'LWP_LS':
+                    cre_pi = wgt_p_TimeLevLatLon(dics['CLDLIQ'][0], dics['CLDLIQ'][0].getLevel()[:])
+                    cre_ab = wgt_p_TimeLevLatLon(dics['CLDLIQ'][1], dics['CLDLIQ'][1].getLevel()[:])
+                elif svar == 'LWP_LSlow':
+                    tmp = dics['CLDLIQ'][0]
+                    pressure_threshold = 680
+                    level_values = tmp.getLevel()[:]
+                    pressure_mask = np.less(level_values, pressure_threshold)
+                    expanded_mask = np.transpose(np.tile(pressure_mask, (tmp.shape[0], tmp.shape[2], tmp.shape[3],1)), (0,3,1,2))
+                    cre_pi = wgt_p_TimeLevLatLon(dics['CLDLIQ'][0], dics['CLDLIQ'][0].getLevel()[:],pressure_mask=expanded_mask)
+                    cre_ab = wgt_p_TimeLevLatLon(dics['CLDLIQ'][1], dics['CLDLIQ'][1].getLevel()[:],pressure_mask=expanded_mask)
+                elif svar == 'LWP_LShigh':
+                    tmp = dics['CLDLIQ'][0]
+                    pressure_threshold = 680
+                    level_values = tmp.getLevel()[:]
+                    pressure_mask = np.greater(level_values, pressure_threshold)
+                    expanded_mask = np.transpose(np.tile(pressure_mask, (tmp.shape[0], tmp.shape[2], tmp.shape[3],1)), (0,3,1,2))
+                    cre_pi = wgt_p_TimeLevLatLon(dics['CLDLIQ'][0], dics['CLDLIQ'][0].getLevel()[:],pressure_mask=expanded_mask)
+                    cre_ab = wgt_p_TimeLevLatLon(dics['CLDLIQ'][1], dics['CLDLIQ'][1].getLevel()[:],pressure_mask=expanded_mask)
+                elif svar == 'WP2_850to925':
+                    tmp = dics['WP2_CLUBB'][0]
+                    lower_bound = 850
+                    upper_bound = 925
+                    level_values = tmp.getLevel()[:]
+                    print('level_values', level_values)
+                    pressure_mask = np.logical_or(level_values < lower_bound, level_values > upper_bound)
+                    expanded_mask = np.transpose(np.tile(pressure_mask, (tmp.shape[0], tmp.shape[2], tmp.shape[3],1)), (0,3,1,2))
+                    cre_pi = nowgt_p_TimeLevLatLon(dics['WP2_CLUBB'][0], dics['WP2_CLUBB'][0].getLevel()[:],pressure_mask=expanded_mask)
+                    cre_ab = nowgt_p_TimeLevLatLon(dics['WP2_CLUBB'][1], dics['WP2_CLUBB'][1].getLevel()[:],pressure_mask=expanded_mask)
+                elif svar == 'WP2_700to850':
+                    tmp = dics['WP2_CLUBB'][0]
+                    lower_bound = 700
+                    upper_bound = 850
+                    level_values = tmp.getLevel()[:]
+                    print('level_values', level_values)
+                    pressure_mask = np.logical_or(level_values < lower_bound, level_values > upper_bound)
+                    expanded_mask = np.transpose(np.tile(pressure_mask, (tmp.shape[0], tmp.shape[2], tmp.shape[3],1)), (0,3,1,2))
+                    cre_pi = nowgt_p_TimeLevLatLon(dics['WP2_CLUBB'][0], dics['WP2_CLUBB'][0].getLevel()[:],pressure_mask=expanded_mask)
+                    cre_ab = nowgt_p_TimeLevLatLon(dics['WP2_CLUBB'][1], dics['WP2_CLUBB'][1].getLevel()[:],pressure_mask=expanded_mask)
+                elif svar == 'SKW_ZT_850to925':
+                    tmp = dics['SKW_ZT'][0]
+                    lower_bound = 850
+                    upper_bound = 925
+                    level_values = tmp.getLevel()[:]
+                    print('level_values', level_values)
+                    pressure_mask = np.logical_or(level_values < lower_bound, level_values > upper_bound)
+                    expanded_mask = np.transpose(np.tile(pressure_mask, (tmp.shape[0], tmp.shape[2], tmp.shape[3],1)), (0,3,1,2))
+                    cre_pi = nowgt_p_TimeLevLatLon(dics['SKW_ZT'][0], dics['SKW_ZT'][0].getLevel()[:],pressure_mask=expanded_mask)
+                    cre_ab = nowgt_p_TimeLevLatLon(dics['SKW_ZT'][1], dics['SKW_ZT'][1].getLevel()[:],pressure_mask=expanded_mask)
+                elif svar == 'SKW_ZT_700to850':
+                    tmp = dics['SKW_ZT'][0]
+                    lower_bound = 700
+                    upper_bound = 850
+                    level_values = tmp.getLevel()[:]
+                    print('level_values', level_values)
+                    pressure_mask = np.logical_or(level_values < lower_bound, level_values > upper_bound)
+                    expanded_mask = np.transpose(np.tile(pressure_mask, (tmp.shape[0], tmp.shape[2], tmp.shape[3],1)), (0,3,1,2))
+                    cre_pi = nowgt_p_TimeLevLatLon(dics['SKW_ZT'][0], dics['SKW_ZT'][0].getLevel()[:],pressure_mask=expanded_mask)
+                    cre_ab = nowgt_p_TimeLevLatLon(dics['SKW_ZT'][1], dics['SKW_ZT'][1].getLevel()[:],pressure_mask=expanded_mask)
+
 
                 pi_raw_grd = cdms.asVariable(cre_pi)
                 ab_raw_grd = cdms.asVariable(cre_ab)
 
-                if svar in ['Qsfc_700','RHsfc']:
+                if svar in ['Qsfc_700','RHsfc','LWP_LS','LWP_LSlow','LWP_LShigh',
+             'WP2_850to925', 'SKW_ZT_850to925',
+             'WP2_700to850', 'SKW_ZT_700to850',
+                ]:
                     pi_raw_grd.setAxisList(pi_raw1_grd[:,0,:,:].getAxisList())
                     ab_raw_grd.setAxisList(ab_raw1_grd[:,0,:,:].getAxisList())
                 else:
@@ -330,6 +473,8 @@ def cal_3dvar(direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir,exp1
         for svar in dic_all.keys():
             if '_pi' in svar:
                 dic_out[svar+'_clim'] = MV.average(dic_all[svar],axis=0)
+                if 'LWP_LS' in svar: 
+                    print(svar, np.nanmin(dic_out[svar+'_clim']), np.nanmax(dic_out[svar+'_clim']))
             if '_ab' in svar:
                 dic_out[svar+'_clim'] = MV.average(dic_all[svar],axis=0)
             elif '_ano' in svar:

@@ -14,8 +14,8 @@ def get_lutable(version,exp):
     '20211210.F2010C5-CMIP6-LR.IC.p4Ka.ne30_oECv3.compy.1080',
     ],
     'v2':[
-    '20211208.v2.F2010-CICE.IC.ne30pg2_EC.compy',
-    '20211210.v2.F2010-CICE.IC.p4Ka.ne30pg2_EC.compy',
+    ['20211208.v2.F2010-CICE.IC.ne30pg2_EC.compy',2,6],
+    ['20211210.v2.F2010-CICE.IC.p4Ka.ne30pg2_EC.compy',2,6],
     ],
     'v2.bk.clubb':[
     '20220110.v2.F2010-CICE.IC.back.clubb.ne30pg2_EC.compy',
@@ -186,16 +186,16 @@ def get_lutable(version,exp):
     '20230226.v2.F2010-CICE.IC.4xCO2.ne30pg2_EC.compy',\
     ],
     'v2.bk.MG_mincdnc.short':[
-    '20230320.v2.F2010-CICE.IC.back.MG_mincdnc.short.ne30pg2_EC.compy',\
-    '20230320.v2.F2010-CICE.IC.back.MG_mincdnc.short.p4Ka.ne30pg2_EC.compy',\
+    ['20230320.v2.F2010-CICE.IC.back.MG_mincdnc.short.ne30pg2_EC.compy',2,6],\
+    ['20230320.v2.F2010-CICE.IC.back.MG_mincdnc.short.p4Ka.ne30pg2_EC.compy',2,6],\
     ],
     'v2.bk.MG_auto.short':[
     '20230320.v2.F2010-CICE.IC.back.MG_auto.short.ne30pg2_EC.compy',\
     '20230320.v2.F2010-CICE.IC.back.MG_auto.short.p4Ka.ne30pg2_EC.compy',\
     ],
     'v2.freq_mincdnc':[
-    ['20230324.v2.F2010-CICE.IC.v2.mincdnc.freq.ne30pg2_EC.compy',2,6],
-    ['20230324.v2.F2010-CICE.IC.v2.mincdnc.freq.p4Ka.ne30pg2_EC.compy',2,6],
+    ['20230324.v2.F2010-CICE.IC.v2.mincdnc.freq.ne30pg2_EC.compy',2,3],
+    ['20230324.v2.F2010-CICE.IC.v2.mincdnc.freq.p4Ka.ne30pg2_EC.compy',2,3],
     ],
     'v2ppe.NDG':[
     ['20230323.v2.F2010.IC.NudgedMERRA.diagNd.wrd.pdf.PD.BASE.ne30pg2_EC.compy', 2010, 2010],
@@ -204,6 +204,10 @@ def get_lutable(version,exp):
     'v2ppe.FR':[
     ['20230130.v2.F2010.IC.diagNd.wrd.pdf.PD.BASE.ne30pg2_EC.compy', 2010, 2018],
     ['20230130.v2.F2010.IC.diagNd.wrd.pdf.P4K.BASE.ne30pg2_EC.compy',2010, 2018],
+    ],
+    'v2.MODIS.CW':[
+    ['20230504.v2.F1850.MODISHist.CNTL.ne30pg2_EC.compy',2,2],
+    ['20230504.v2.F1850.MODISHist.ECS.ne30pg2_EC.compy',2,2],
     ],
     }
 

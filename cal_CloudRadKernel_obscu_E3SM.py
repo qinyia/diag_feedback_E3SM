@@ -64,6 +64,161 @@ import os
 ###########################################################################
 # HELPFUL FUNCTIONS FOLLOW
 ###########################################################################
+def compute_fbk(ctl, fut, DT):
+    DR = fut - ctl
+    fbk = DR / DT
+    baseline = ctl
+    return fbk, baseline
+
+###########################################################################
+def obscuration_feedback_terms_general(L_R_bar0,dobsc_fbk,dunobsc_fbk,dobsc_cov_fbk,Klw,Ksw):
+    """
+    Estimate unobscured low cloud feedback, 
+    the low cloud feedback arising solely from changes in obscuration by upper-level clouds,
+    and the covariance term
+    
+    This function takes in a (month,tau,CTP,lat,lon) matrix
+   
+    Klw and Ksw contain just the low bins
+    
+    the following terms are generated in obscuration_terms():
+    dobsc = L_R_bar0 * F_prime
+    dunobsc = L_R_prime * F_bar
+    dobsc_cov = (L_R_prime * F_prime) - climo(L_R_prime * F_prime)
+    """
+    
+    Klw_low = Klw
+    Ksw_low = Ksw
+    L_R_bar0 = 100*L_R_bar0
+    dobsc_fbk = 100*dobsc_fbk
+    dunobsc_fbk = 100*dunobsc_fbk
+    dobsc_cov_fbk = 100*dobsc_cov_fbk
+    
+    LWdobsc_fbk = MV.sum(MV.sum(Klw_low * dobsc_fbk,1),1)
+    LWdunobsc_fbk = MV.sum(MV.sum(Klw_low * dunobsc_fbk,1),1)
+    LWdobsc_cov_fbk = MV.sum(MV.sum(Klw_low * dobsc_cov_fbk,1),1)    
+    
+    SWdobsc_fbk = MV.sum(MV.sum(Ksw_low * dobsc_fbk,1),1)
+    SWdunobsc_fbk = MV.sum(MV.sum(Ksw_low * dunobsc_fbk,1),1)
+    SWdobsc_cov_fbk = MV.sum(MV.sum(Ksw_low * dobsc_cov_fbk,1),1)    
+    
+    ###########################################################################
+    # Further break down the true and apparent low cloud-induced radiation anomalies into components
+    ###########################################################################
+    # No need to break down dobsc_fbk, as that is purely an amount component.
+        
+    # Break down dunobsc_fbk:
+    C_ctl = L_R_bar0
+    dC = dunobsc_fbk
+    C_fut = C_ctl + dC
+    
+    obsc_fbk_output = KT_decomposition_4D(C_ctl,C_fut,Klw_low,Ksw_low)        
+   
+    obsc_fbk_output['LWdobsc_fbk'] = LWdobsc_fbk
+    obsc_fbk_output['LWdunobsc_fbk'] = LWdunobsc_fbk
+    obsc_fbk_output['LWdobsc_cov_fbk'] = LWdobsc_cov_fbk
+    obsc_fbk_output['SWdobsc_fbk'] = SWdobsc_fbk
+    obsc_fbk_output['SWdunobsc_fbk'] = SWdunobsc_fbk
+    obsc_fbk_output['SWdobsc_cov_fbk'] = SWdobsc_cov_fbk
+    
+    return obsc_fbk_output
+        
+###########################################################################
+def obscuration_terms3(c1,c2):
+    """
+    USE THIS VERSION FOR DIFFERENCES OF 2 CLIMATOLOGIES (E.G. AMIP4K, 2xCO2 SLAB RUNS)
+    
+    Compute the components required for the obscuration-affected low cloud feedback
+    These are the terms shown in Eq 4 of Scott et al (2020) DOI: 10.1175/JCLI-D-19-1028.1
+    L_prime = dunobsc + dobsc + dobsc_cov, where
+    dunobsc = L_R_prime * F_bar     (delta unobscured low clouds, i.e., true low cloud feedback)
+    dobsc = L_R_bar * F_prime       (delta obscuration by upper level clouds)
+    dobsc_cov = (L_R_prime * F_prime) - climo(L_R_prime * F_prime)  (covariance term)
+    """
+    # c is [mo,tau,ctp,lat,lon]
+    # c is in percent
+    
+    AX = c2.getAxisList()
+    
+    c1=MV.masked_where(c2.mask,c1)
+    c2=MV.masked_where(c1.mask,c2)
+    
+    # SPLICE c1 and c2:
+    # MAKE SURE c1 and c2 are the same size!!!
+    if c1.shape != c2.shape:
+        raise RuntimeError('c1 and c2 are NOT the same size!!!')
+        
+    c12=np.ma.append(c1,c2,axis=0)    
+    
+    midpt=len(c1)
+           
+    U12 = MV.sum(MV.sum(c12[:,:,2:,:],1),1)/100.
+    
+    L12 = c12[:,:,:2,:]/100.  
+    
+    F12 = 1. - U12
+    F12=MV.masked_less(F12,0)
+
+    F12b = MV.array(np.expand_dims(np.expand_dims(F12,axis=1),axis=1))
+    F12b=MV.masked_where(L12[:,:1,:1,:].mask,F12b)
+    
+    L_R12 = L12/F12b
+    sum_L_R12 = MV.sum(MV.sum(L_R12,1),1)
+    sum_L_R12b = MV.array(np.expand_dims(np.expand_dims(sum_L_R12,axis=1),axis=1))
+    sum_L_R12c = np.broadcast_to(sum_L_R12b,L_R12.shape)
+    this = MV.masked_outside(sum_L_R12c,0,1)
+    L_R12 = MV.masked_where(this.mask,L_R12)
+    
+    L_R12 = MV.masked_where(sum_L_R12c>1,L_R12)
+        
+    L_R_prime,L_R_bar = monthly_anomalies(L_R12)
+    F_prime,F_bar = monthly_anomalies(F12b)    
+    L_prime,L_bar = monthly_anomalies(L12)
+    
+    # Cannot have negative cloud fractions:
+    L_R_bar[L_R_bar<0]=0
+    F_bar[F_bar<0]=0    
+    
+    rep_L_bar = tile_uneven(L_bar,L12)    
+    rep_L_R_bar = tile_uneven(L_R_bar,L_R12)            
+    rep_F_bar = tile_uneven(F_bar,F12b)
+    
+    # Cannot have negative cloud fractions:
+    L_R_bar[L_R_bar<0]=0
+    F_bar[F_bar<0]=0
+
+    dobsc = rep_L_R_bar * F_prime
+    dunobsc = L_R_prime * rep_F_bar
+    prime_prime = (L_R_prime * F_prime)
+
+    dobsc_cov,climo_prime_prime = monthly_anomalies(prime_prime)   
+    
+    # Re-scale these anomalies by 2, since we have computed all anomalies w.r.t. 
+    # the ctl+pert average rather than w.r.t. the ctl average
+    dobsc*=2
+    dunobsc*=2
+    dobsc_cov*=2
+    
+    return(rep_L_R_bar[midpt:],dobsc[midpt:],dunobsc[midpt:],dobsc_cov[midpt:])    
+
+###########################################################################
+
+def do_obscuration_calcs(CTL, FUT, Klw, Ksw, DT):
+    (L_R_bar, dobsc, dunobsc, dobsc_cov) = obscuration_terms3(CTL, FUT)
+
+    # Get unobscured low-cloud feedbacks and those caused by change in obscuration
+    ZEROS = np.zeros(L_R_bar.shape)
+    dummy, L_R_bar_base = compute_fbk(L_R_bar, L_R_bar, DT)
+    dobsc_fbk, dummy = compute_fbk(ZEROS, dobsc, DT)
+    dunobsc_fbk, dummy = compute_fbk(ZEROS, dunobsc, DT)
+    dobsc_cov_fbk, dummy = compute_fbk(ZEROS, dobsc_cov, DT)
+    obsc_output = obscuration_feedback_terms_general(
+        L_R_bar_base, dobsc_fbk, dunobsc_fbk, dobsc_cov_fbk, Klw, Ksw
+    )
+
+    return obsc_output
+ 
+###########################################################################
 def YEAR(data):
     """
     Compute annual means without forcing it to be Jan through Dec
@@ -602,4 +757,36 @@ def CloudRadKernel(direc_kernel,direc_data,case_stamp,yearS,yearE,fname1,fname2,
     df_sw_all.to_csv(outdir+'decomp_global_mean_sw_'+case_stamp+'.csv')
     df_net_all.to_csv(outdir+'decomp_global_mean_net_'+case_stamp+'.csv')
 
+
+    ###########################################################################
+    # Compute obscuration feedback components
+    ###########################################################################  
+    sec='LO680' # this should already be true, but just in case...
+    PP=sec_dic[sec]  
+    PP=sec_dic[sec]   
+    print('Get Obscuration Terms')
+    CTL,FUT = clisccp1_grd,clisccp1_grd+anomclisccp_grd
+    LWK = LWkernel_map[:,:,PP,:]
+    SWK = SWkernel_map[:,:,PP,:]
+    dTs = MV.average(anomtas_ann_gm)
+    obsc_output={}
+    obsc_output[sec] = do_obscuration_calcs(CTL,FUT,LWK,SWK,dTs)
     
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+if __name__ == "__main__":
+
+    import cases_lookup as CL 
+
+    RadKernel_dir = '/qfs/people/qiny108/diag_feedback_E3SM/CloudRadKernel_input/'
+    direc_data = '/compyfs/qiny108/diag_feedback_E3SM_postdata/'
+    case_stamp = 'v2.OutTend'
+    yearS = 2
+    yearE = 6
+    fname1 = CL.get_lutable(case_stamp,'amip')
+    fname2 = CL.get_lutable(case_stamp,'amip4K')
+    outdir = './test1003/'
+    figdir = './test1003/'
+    
+    result = CloudRadKernel(RadKernel_dir,direc_data,case_stamp,yearS,yearE,fname1,fname2,outdir,figdir)
+

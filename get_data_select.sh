@@ -25,56 +25,11 @@ echo $ncase
 reg_var_list=(FISCCP1_COSP FSDSC FSNSC TREFHT FSNT FSNTC FLUT FLUTC TS T Q FSDS FSNS SOLIN FSUTOA FSUTOAC PSL PS PRECC PRECL OMEGA TGCLDCWP TGCLDIWP TGCLDLWP CLDLOW CLDMED CLDHGH CLDTOT CLOUD CLDLIQ CLDICE RELHUM Z3)
 reg_var_new_list=(FISCCP1_COSP rsdscs rsnsc tas rsnt rsntcs rlut rlutcs ts T Q rsds rsns rsdt FSUTOA FSUTOAC psl ps PRECC PRECL OMEGA TGCLDCWP TGCLDIWP TGCLDLWP CLDLOW CLDMED CLDHGH CLDTOT CLOUD CLDLIQ CLDICE RELHUM Z3)
 
-#var_list=(DPDLFLIQ FREQZM dlf_out du_out ql_out mb_out dltaa_out dadt_out cape_out dcape_out deltat_out deltaq_out t_out q_out t_star_out q_star_out TUQ TVQ TUH TVH)
-#var_new_list=(DPDLFLIQ FREQZM dlf_out du_out ql_out mb_out dltaa_out dadt_out cape_out dcape_out deltat_out deltaq_out t_out q_out t_star_out q_star_out TUQ TVQ TUH TVH)
-
-# tendency variables 
-ten_var_list=(DPDLFLIQ DPDLFICE DPDLFT TTEND_CLUBB RCMTEND_CLUBB RIMTEND_CLUBB RVMTEND_CLUBB TTGWORO DTCORE EVAPTZM EVAPQZM ZMDT ZMDQ ZMDLIQ ZMDICE ZMMTT FZSNTZM EVSNTZM PTTEND PTEQ PTECLDLIQ PTECLDICE DTCOND DCQ DCCLDLIQ DCCLDICE TTEND_TOT MPDT MPDQ MPDLIQ MPDICE EVAPSNOW EVAPPREC QISEVAP QCSEVAP QIRESO QCRESO PSACWSO PRACSO MPDW2I MNUCCRO CMEIOUT BERGSO MELTSDT FRZRDT QRL QRS MPDW2P MPDW2I MPDW2V QCSEDTEN PRAO PRCO PSACWSO BERGSO)
-ten_var_new_list=(DPDLFLIQ DPDLFICE DPDLFT TTEND_CLUBB RCMTEND_CLUBB RIMTEND_CLUBB RVMTEND_CLUBB TTGWORO DTCORE EVAPTZM EVAPQZM ZMDT ZMDQ ZMDLIQ ZMDICE ZMMTT FZSNTZM EVSNTZM PTTEND PTEQ PTECLDLIQ PTECLDICE DTCOND DCQ DCCLDLIQ DCCLDICE TTEND_TOT MPDT MPDQ MPDLIQ MPDICE EVAPSNOW EVAPPREC QISEVAP QCSEVAP QIRESO QCRESO PSACWSO PRACSO MPDW2I MNUCCRO CMEIOUT BERGSO MELTSDT FRZRDT QRL QRS MPDW2P MPDW2I MPDW2V QCSEDTEN PRAO PRCO PSACWSO BERGSO)
-
-# CLUBB related variables 
-    clb1_var_list=(WP2_CLUBB WP3_CLUBB WPRCP_CLUBB WPRTP_CLUBB WPTHLP_CLUBB WPTHVP_CLUBB RTP2_CLUBB RTPTHLP_CLUBB THLP2_CLUBB SKW_ZM SKW_ZT)
-clb1_var_new_list=(WP2_CLUBB WP3_CLUBB WPRCP_CLUBB WPRTP_CLUBB WPTHLP_CLUBB WPTHVP_CLUBB RTP2_CLUBB RTPTHLP_CLUBB THLP2_CLUBB SKW_ZM SKW_ZT)
-
-# additional diagnostic variables from CLUBB
-    clb2_var_list=(DPBLH PBLHI PBLHOLD FRQPBL ZLCL DCPPBL DTHVINV DTINV DZINV ENTEFF ENTEFFN ENTEFFP ENTEFF_ALL ENTEFF_ALLN ENTEFF_ALLP ENTRAT ENTRATN ENTRATP ENTRAT_ALL ENTRAT_ALLN ENTRAT_ALLP SATPBL)
-clb2_var_new_list=(DPBLH PBLHI PBLHOLD FRQPBL ZLCL DCPPBL DTHVINV DTINV DZINV ENTEFF ENTEFFN ENTEFFP ENTEFF_ALL ENTEFF_ALLN ENTEFF_ALLP ENTRAT ENTRATN ENTRATP ENTRAT_ALL ENTRAT_ALLN ENTRAT_ALLP SATPBL)
-
-# additional variables for LCF diagnostics
-    deep_var_list=(FREQZM DP_WCLDBASE DP_MFUP_MAX CMFMCDZM)
-deep_var_new_list=(FREQZM DP_WCLDBASE DP_MFUP_MAX CMFMCDZM)
-
-oth_var_list=(\
-CCN3 \
-CDNUMC \
-ccn.3bl \
-cdnc \
-TMQ)
-
-oth_var_new_list=(\
-CCN3 \
-CDNUMC \
-ccn.3bl \
-cdnc \
-TMQ)
-
-# merge as the final list
-#var_list=( "${reg_var_list[@]}" "${ten_var_list[@]}" "${clb1_var_list[@]}" "${clb2_var_list[@]}" )
-#var_new_list=( "${reg_var_new_list[@]}" "${ten_var_new_list[@]}" "${clb1_var_new_list[@]}" "${clb2_var_new_list[@]}" )
-
-var_list=( "${reg_var_list[@]}" "${clb1_var_list[@]}" "${clb2_var_list[@]}" "${oth_var_list[@]}" "${deep_var_list[@]}" )
-var_new_list=( "${reg_var_new_list[@]}" "${clb1_var_new_list[@]}" "${clb2_var_new_list[@]}" "${oth_var_new_list[@]}" "${deep_var_new_list[@]}" )
-
-#var_list=( "${reg_var_list[@]}" )
-#var_new_list=( "${reg_var_new_list[@]}" )
-
-#var_list=( "${oth_var_list[@]}" )
-#var_new_list=( "${oth_var_new_list[@]}" )
-
+var_list=( "${reg_var_list[@]}" )
+var_new_list=( "${reg_var_new_list[@]}" )
 
 echo ${var_list[@]}
 echo ${var_new_list[@]}
-
 
 nvar=${#var_list[@]}
 echo $nvar

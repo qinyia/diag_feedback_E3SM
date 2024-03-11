@@ -1,7 +1,7 @@
 
 import os
 import sys
-import cases_lookup as CL
+import cases_lookup_ppe as CLP
 import PlotDefinedFunction as PDF
 import allplots as AP
 import cal_global_radiation_feedback_E3SM as GRF
@@ -35,39 +35,29 @@ GetFigure = False # True: run figure plotting and generate webpage
 
 # give one shorname for each pair experiment, like v1, v2, v3....
 case_short = [\
-#'v1_coupled',\
-#'v2_coupled',\
-#'v1',\
-#'v2.OutTend',\
-#'v2.bk.trig',\
-#'v2',\
-#'v2.bk.MG_accre',\
-#'v2.bk.MG_auto',\
-#'v2.bk.MG_Berg',\
-#'v1.SSTv1',\
-#'v2.SSTv2',\
-#'v2.P2K',\
-#'v2.P6K',\
-#'v2.P8K',\
-#'v2.OutTend.ZMout',\
-#'v2.bk.trig.ZMout',\
-#'v2.OutTend',\
-#'v2.bk.clubb',\
-#'v2.bk.clubb.g1.1',\
-#'v2.bk.clubb.g2',\
-#'v2.bk.clubb.g3',\
-#'v2.bk.clubb.g4.1',\
-#'v2.bk.clubb.g5',\
-#'v2.bk.clubb.g6',
-#'v2.bk.MG_wsub',\
-#'v2.bk.trig_ull',\
-#'v1.4xCO2',\
-#'v2.4xCO2',\
-'v2.freq_mincdnc',\
-#'v2.bk.MG_mincdnc.short',\
-#'v2ppe.FR',
-#'v2ppe.NDG',
-#'v2.MODIS.CW',
+#'BASE_FR',
+'BASE',
+'nomincdnc',
+#'prc_exp1',
+#'berg',
+#'prc_exp',
+#'prc_coef1',
+#'c1',
+#'gamma_coef',
+#'c8',
+#'accre_enhan',
+#'ice_deep',
+#'clubb_tk1',
+#'dp1',
+#'ice_sed_ai',
+#'so4_sz',
+#'prc_exp1_2',
+#'prc_exp_2',
+#'prc_coef1_2',
+#'ice_deep_2',
+#'dp1_2',
+#'ice_sed_ai_2',
+#'so4_sz_2',
 ]
 
 # give the reference case: the reference case is used to compare with the case and generate difference maps. 
@@ -76,12 +66,15 @@ case_short = [\
 # 2. Any cases in ref_case_short should be in "case_short" first.
 # 3. For each case, the corresponding reference cases can be any lengths.
 # 4. If you don't need any reference cases for one case, just set it as [].
-ref_case_short = [\
-[],\
-#['v2ppe.FR'],\
-['v2'],\
-#['v1'],\
-#['v2'],\
+ref_case_short = [
+[],
+['BASE'],
+['BASE'],
+['BASE'],
+['BASE'],
+['BASE'],
+['BASE'],
+['BASE'],
 ]
 
 # set start and end years: sometime, your start and end years are different for control (CTL) and warming (P4K) exps. 
@@ -91,8 +84,8 @@ ref_case_short = [\
 # set model output data directory 
 if e3sm_version == 2: # E3SM version 2
     # set input directory 1 --- the directory before casename in the whole directory
-    datadir_in1= run_dir+'/E3SMv2_simulations/'
-    #datadir_in1= run_dir+'/E3SMv2_simulations/PPE/'
+    #datadir_in1= run_dir+'/E3SMv2_simulations/'
+    datadir_in1= run_dir+'/E3SMv2_simulations/PPE/'
 
     # set input directory 2 --- the directory after casename in the whole directory
     #datadir_in2 = 'archive/atm/hist/'
@@ -111,7 +104,7 @@ elif e3sm_version == 1: # E3SM version 1
     rgr_map = "/qfs/people/zender/data/maps/map_ne30np4_to_cmip6_180x360_aave.20181001.nc"
  
 # set output directory for necessary variables after post-processing E3SM raw data
-outdir_out = run_dir+'/diag_feedback_E3SM_postdata/'
+outdir_out = run_dir+'/diag_feedback_E3SM_postdata_ppe/'
 
 ### NOTION: if you work on Cori, you should not change the below directories. If not, you should download data.
 # set RadKernel input kernel directory
@@ -123,15 +116,16 @@ RadKernel_dir = '/qfs/people/qiny108/diag_feedback_E3SM/Huang_kernel_data/'
 # RunDiag types 
 if COSP_output: 
     cal_types = [
-    #'RadFeedback',
-    #'RadKernel',
+    'RadFeedback',
+#    'RadKernel',
     #'Webb_Decomp',
-    #'CloudRadKernel',
+#    'CloudRadKernel',
     #'cal_LCF',
+#    'cal_APRP',
     #'cal_cloud',
     #'cal_EIS',
     #'cal_pr',
-    'cal_3dvar',
+#    'cal_3dvar',
     #'sort_cloud_regime',
     #'sort_cloud_3regime',
     #'RadKernel_regime',
@@ -157,9 +151,12 @@ curdir = os. getcwd()
 CloudRadKernel_dir = curdir+'/CloudRadKernel_input/'
 
 # set final output directory
-outdir_final = curdir+'/data/'
+#outdir_final = curdir+'/data/'
+outdir_final = curdir+'/data_ppe_2010to2014/'
+
 # set output figure directory
-figdir = curdir+'/figure/'
+#figdir = curdir+'/figure/'
+figdir = curdir+'/figure_ppe/'
 
 # set the case tag for control and warming experiments. Dont modify it.
 exp1 = 'FC5'
@@ -172,8 +169,22 @@ for outdir in [outdir_out, outdir_final, figdir]:
 # ----------------------------------------------------------------------------
 for icase,case in enumerate(case_short):
 
-    run_id1,yearS_CTL,yearE_CTL = CL.get_lutable(case,'amip')
-    run_id2,yearS_P4K,yearE_P4K = CL.get_lutable(case,'amip4K')
+
+    if '_FR' in case:
+        yearS_CTL = 2010
+        yearE_CTL = 2018
+        yearS_P4K = 2010
+        yearE_P4K = 2018
+        run_id1 = CLP.get_lutable(case,'PD')
+        run_id2 = CLP.get_lutable(case,'P4K')
+    else:
+        yearS_CTL = 2010
+        yearE_CTL = 2014 #2014
+        yearS_P4K = 2010
+        yearE_P4K = 2014 #2014
+        run_id1 = CLP.get_lutable(case,'PD_FR')
+        run_id2 = CLP.get_lutable(case,'P4K_FR')
+
     print(case)
     print(run_id1,yearS_CTL,yearE_CTL)
     print(run_id2,yearS_P4K,yearE_P4K)
@@ -187,7 +198,6 @@ for icase,case in enumerate(case_short):
         #os.system('sh archive_data.sh '+run_id1 + ' '+run_id2+' '+datadir_in1+' '+datadir_in0)
     
         os.system('sh get_data_spec.sh '+ run_id1 + ' '+run_id2+' '+rgr_map+' '+str(yearS_CTL)+' '+str(yearE_CTL)+' '+str(yearS_P4K)+' '+str(yearE_P4K)+' '+datadir_in1+' '+datadir_in2+' '+outdir_out+' '+comp)
-        #continue
 
     #################################################################
     # run diagnostics
@@ -216,19 +226,20 @@ if GetFigure:
     ## choose which type figures you want to plot. If not, just comment them out.
     if COSP_output:
         plot_types = [
-        #'CRE_globalmean',                   # scatter plot of global mean CRE feedbacks
-        #'RadKernel_globalmean',             # scatter plot of global mean RadKernel feedback: non-cloud and adjusted CRE feedbacks
-        #'RadKernel_zonalmean',              # zonal mean plot of adjusted CRE feedback
-        #'CldRadKernel_globalmean',          # scatter plot of global mean CldRadKernel feedback: decomposition into low and non-low clouds and amount, altitude, optical depth.
-        #'CldRadKernel_zonalmean',           # zonal mean plot of CldRadKernel feedback
-        #'RadKernel_latlon',                 # lat-lon plot of RadKernel feedback for each case
-        #'CldRadKernel_latlon',              # lat-lon plot of CldRadKernel feedback for each case
-        #'CldRadKernel_latlon_dif',          # lat-lon plot of CldRadKernel feedback difference between case and reference case
-        #'RadKernel_latlon_dif',             # lat-lon plot of RadKernel feedback difference between case and reference case
+        'CRE_globalmean',                   # scatter plot of global mean CRE feedbacks
+        'RadKernel_globalmean',             # scatter plot of global mean RadKernel feedback: non-cloud and adjusted CRE feedbacks
+        'RadKernel_zonalmean',              # zonal mean plot of adjusted CRE feedback
+        'CldRadKernel_globalmean',          # scatter plot of global mean CldRadKernel feedback: decomposition into low and non-low clouds and amount, altitude, optical depth.
+        'CldRadKernel_zonalmean',           # zonal mean plot of CldRadKernel feedback
+        'RadKernel_latlon',                 # lat-lon plot of RadKernel feedback for each case
+        'CldRadKernel_latlon',              # lat-lon plot of CldRadKernel feedback for each case
+        'APRP_latlon',                       # lat-lon plot of APRP results
+#        'CldRadKernel_latlon_dif',          # lat-lon plot of CldRadKernel feedback difference between case and reference case
+#        'RadKernel_latlon_dif',             # lat-lon plot of RadKernel feedback difference between case and reference case
         'tas_latlon',                       # lat-lon plot of surface air temperature and the difference between case and reference case
         'LCF',                              # Temperature - Liquid Condensate Fraction
-        #'zm_CLOUD',                         # zonal mean plot of cloud varaibles difference 
-        #'latlon_CLOUD',                     # lat-lon plot of cloud varaibles difference
+#        'zm_CLOUD',                         # zonal mean plot of cloud varaibles difference 
+#        'latlon_CLOUD',                     # lat-lon plot of cloud varaibles difference
         #'webb_decomp',                      # decomposition of adjusted CRE feedback into low and non-low clouds
         #'CLOUD_profile',                    # vertical cloud profile in different regions
         #'NRMSE_RadKern',                   # NRMSE and spatial correlation (COR) evolution with incremental denial experiments [note: RadKernel_latlon_dif should run first.]
@@ -307,8 +318,9 @@ if GetFigure:
     
     ## data directory for E3SMv2
     ## [it includes all data that you want to be plotted. If main.py runs successfully, this directory would be enough for further plot.]
-    datadir_v2 = datadir+'/data/'
-    
+    #datadir_v2 = datadir+'/data/'
+    datadir_v2 = datadir+'/data_ppe/'
+   
     casedir = datadir+'/'+case_short[-1]+'/'
     AP.make_dir(casedir)
     
